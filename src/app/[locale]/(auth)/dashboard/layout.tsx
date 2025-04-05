@@ -218,12 +218,28 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
               {t('dashboard_link')}
             </Link>
           </li>
-          <li>
+          {/* <li>
             <Link
               href="/dashboard/garden/"
               className={pathname === '/dashboard/garden' ? 'nav-button-selected' : 'nav-button-unselected'}
             >
               {t('garden_link')}
+            </Link>
+          </li> */}
+          <li>
+            <Link
+              href="/dashboard/integrations"
+              className={pathname === '/dashboard/integrations' ? 'nav-button-selected' : 'nav-button-unselected'}
+            >
+              {"Integrations"}
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/dashboard/hobonichi"
+              className={pathname === '/dashboard/hobonichi' ? 'nav-button-selected' : 'nav-button-unselected'}
+            >
+              {"Hobonichi"}
             </Link>
           </li>
         </>

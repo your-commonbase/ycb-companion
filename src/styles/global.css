@@ -107,7 +107,7 @@
   .nav-button-base {
     @apply flex justify-center items-center gap-2.5 
            rounded-[20px] text-sm
-           w-64
+           w-48
            h-10
            px-6 /* consistent horizontal padding */;
   }
