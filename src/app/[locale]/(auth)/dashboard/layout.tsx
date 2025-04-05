@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import Modal from 'react-modal';
@@ -19,6 +19,7 @@ import { BaseTemplate } from '@/templates/BaseTemplate';
 export default function DashboardLayout(props: { children: React.ReactNode }) {
   const t = useTranslations('DashboardLayout');
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const shareParam = searchParams!.get('share') || '';
   const [isSearchModalBetaOpen, setSearchModalBetaOpen] = useState(false);
@@ -150,23 +151,6 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
 
   // add event listener to 'r' key to open random page
   useEffect(() => {
-    // const fetchRandomEntry = async () => {
-    //   const response = await fetch('/api/random', {
-    //     method: 'POST',
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //     },
-    //   });
-    //   const randdata = await response.json();
-    //   return randdata.data[0];
-    // };
-
-    // const handleRandom = async () => {
-    //   // fetch a random entry and open it
-    //   const entry = await fetchRandomEntry();
-    //   router.push(`/dashboard/entry/${entry.id}`);
-    // };
-
     const handleKeyDown = (event: KeyboardEvent) => {
       // should be ignored if in input or textarea
       const target = event.target as HTMLElement;
@@ -222,40 +206,6 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
     };
   }, []);
 
-  // TODO: re-enable inbox count
-  // const [inboxCount, setInboxCount] = useState<any>({
-  //   data: {
-  //     count: 0,
-  //   },
-  // });
-  // const fetchInboxCountHelper = async () => {
-  //   const inboxCountResponse = await fetch('/api/inboxCount', {
-  //     method: 'POST',
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //     },
-  //   });
-  //   const inboxCountData = await inboxCountResponse.json();
-  //   console.log('Inbox count:', inboxCountData);
-  //   setInboxCount({
-  //     data: {
-  //       count: inboxCountData.data,
-  //     },
-  //   });
-  // };
-
-  // useEffect(() => {
-  //   const fetchInboxCount = async () => {
-  //     try {
-  //       await fetchInboxCountHelper();
-  //     } catch (error) {
-  //       console.error('Error fetching inbox count:', error);
-  //     }
-  //   };
-
-  //   fetchInboxCount();
-  // }, []);
-
   return (
     <BaseTemplate
       leftNav={
@@ -263,62 +213,19 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
           <li>
             <Link
               href="/dashboard/"
-              className="border-none text-gray-700 hover:text-gray-900"
+              className={pathname === '/dashboard' ? 'nav-button-selected' : 'nav-button-unselected'}
             >
               {t('dashboard_link')}
             </Link>
           </li>
-          {/* <li className="border-none text-gray-700 hover:text-gray-900">
-            <Link href="/dashboard/flow/" className="border-none">
-              {t('flow_link')}
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/dashboard/starred-entries/"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('starred_entries_link')}
-            </Link>
-          </li> */}
-          {/* <li>
-            <Link
-              href="/dashboard/flow-sessions/"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('flow_sessions_link')}
-            </Link>
-          </li>
-          <li className="border-none text-gray-700 hover:text-gray-900">
-            <Link href="/dashboard/inbox/" className="border-none">
-              {t('inbox_link')}
-            </Link>
-            <span> ({inboxCount.data.count})</span>
-          </li> */}
           <li>
             <Link
               href="/dashboard/garden/"
-              className="border-none text-gray-700 hover:text-gray-900"
+              className={pathname === '/dashboard/garden' ? 'nav-button-selected' : 'nav-button-unselected'}
             >
               {t('garden_link')}
             </Link>
           </li>
-          {/* <li>
-            <Link
-              href="/dashboard/grid/"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('grid_link')}
-            </Link>
-          </li> */}
-          {/* <li>
-            <Link
-              href="/dashboard/user-profile/"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('user_profile_link')}
-            </Link>
-          </li> */}
         </>
       }
       rightNav={
