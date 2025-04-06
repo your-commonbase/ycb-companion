@@ -7,34 +7,33 @@ const BaseTemplate = (props: {
 }) => {
   return (
     <div className="w-full antialiased">
-      <div className="mx-auto max-w-screen-md">
-        <header className="mb-10">
+      <div className="w-full px-4">
+        <header>
           <div className="flex justify-between items-center">
-            <div className="pb-8 pt-8">
+            <div className="w-32 flex flex-row items-center py-8">
               <img
                 src="/logomark-ycb.svg"
-                className="mr-2 pt-4 inline-block h-12"
+                className="h-10"
                 alt="favicon"
               />
               <img
                 src="/wordmark-ycb.svg"
-                className="inline-block h-16"
+                className="h-16"
                 alt="favicon"
               />
             </div>
             <nav>
               <ul className="flex flex-wrap gap-x-5 text-xl">
-                {props.rightNav}
+                {props.leftNav}
               </ul>
             </nav>
+            <nav>
+                <ul className="flex flex-wrap justify-end w-32">
+                  {props.rightNav}
+                </ul>
+            </nav>
           </div>
-          <nav>
-            <ul className="flex flex-wrap gap-x-5 text-xl">
-              {props.leftNav}
-            </ul>
-          </nav>
         </header>
-
         <main>{props.children}</main>
 
         <footer className="py-8 text-center text-sm">

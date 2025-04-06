@@ -212,34 +212,34 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
         <>
           <li>
             <Link
-              href="/dashboard/"
-              className={pathname === '/dashboard' ? 'nav-button-selected' : 'nav-button-unselected'}
+              href="/dashboard/store"
+              className={pathname === '/dashboard/store' ? 'nav-button-selected' : 'nav-button-unselected'}
             >
-              {t('dashboard_link')}
-            </Link>
-          </li>
-          {/* <li>
-            <Link
-              href="/dashboard/garden/"
-              className={pathname === '/dashboard/garden' ? 'nav-button-selected' : 'nav-button-unselected'}
-            >
-              {t('garden_link')}
-            </Link>
-          </li> */}
-          <li>
-            <Link
-              href="/dashboard/integrations"
-              className={pathname === '/dashboard/integrations' ? 'nav-button-selected' : 'nav-button-unselected'}
-            >
-              {"Integrations"}
+              {"Store"}
             </Link>
           </li>
           <li>
             <Link
-              href="/dashboard/hobonichi"
-              className={pathname === '/dashboard/hobonichi' ? 'nav-button-selected' : 'nav-button-unselected'}
+              href="/dashboard/search"
+              className={pathname === '/dashboard/search' ? 'nav-button-selected' : 'nav-button-unselected'}
             >
-              {"Hobonichi"}
+              {"Search"}
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/dashboard/synthesize"
+              className={pathname === '/dashboard/synthesize' ? 'nav-button-selected' : 'nav-button-unselected'}
+            >
+              {"Synthesize"}
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/dashboard/share"
+              className={pathname === '/dashboard/share' ? 'nav-button-selected' : 'nav-button-unselected'}
+            >
+              {"Share"}
             </Link>
           </li>
         </>
@@ -248,10 +248,6 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
         <>
           <li>
             <LogOutButton />
-          </li>
-
-          <li>
-            <LocaleSwitcher />
           </li>
         </>
       }

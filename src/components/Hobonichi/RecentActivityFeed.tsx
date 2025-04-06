@@ -2,7 +2,7 @@
 
 import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import Link from 'next/link';
 import LiteYouTubeEmbed from 'react-lite-youtube-embed';
 import { Spotify } from 'react-spotify-embed';
@@ -10,7 +10,7 @@ import { fetchByID } from '@/helpers/functions';
 import { v4 as uuidv4 } from 'uuid';
 import { updateEntry } from '@/helpers/functions';
 
-const RecentActivityFeed = () => {
+const RecentActivityFeed = forwardRef((props, ref) => {
   const [logEntries, setLogEntries] = useState<any[]>([]);
   const [openCommentInputs, setOpenCommentInputs] = useState<Set<string>>(new Set());
   const [tempComments, setTempComments] = useState<{ [key: string]: any[] }>({});
@@ -67,6 +67,10 @@ const RecentActivityFeed = () => {
       console.error('Error fetching log entries:', error);
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    fetchLogEntries
+  }));
 
   useEffect(() => {
     fetchLogEntries();
@@ -170,7 +174,12 @@ const RecentActivityFeed = () => {
       <h1 className="text-xl font-bold">Activity Log</h1>
       <div className="flex flex-col gap-4">
         {logEntries.map((entry: any) => (
-            <div key={entry.id} className="flex flex-col border border-black">
+            <div key={entry.id} className="relative flex flex-col border border-black">
+              <div className="absolute top-1/2 -right-48 -translate-y-1/2 w-24 aspect-square">
+                <button className="custom-button-pressable p-2 w-full">
+                  <img src="/graph-icon.svg" alt="graph-icon" />
+                </button>
+              </div>
               <div className="flex flex-col gap-2 p-4">
               {entry.metadata.author && 
                 entry.metadata.author.includes('imagedelivery.net') && (
@@ -277,6 +286,6 @@ const RecentActivityFeed = () => {
       </div>
     </div>
   );
-};
+});
 
 export default RecentActivityFeed;

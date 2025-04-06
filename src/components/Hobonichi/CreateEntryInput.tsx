@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 type EntryType = 'text' | 'image' | 'url' | 'qr';
 
-const CreateEntryInput = () => {
-  const router = useRouter();
+type Props = {
+  onEntryAdded?: () => void;
+};
+
+const CreateEntryInput = ({ onEntryAdded }: Props) => {
   const [textAreaValue, setTextAreaValue] = useState('');
   const [titleAreaValue, setTitleAreaValue] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,6 +16,19 @@ const CreateEntryInput = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const apiKey = process.env.NEXT_PUBLIC_API_KEY_CF_IMG;
+
+  const resetInputs = () => {
+    setTextAreaValue('');
+    setTitleAreaValue('');
+    setImageFile(null);
+    setEntryType('text');
+    
+    // Reset textarea height
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+      textarea.style.height = 'auto';
+    });
+  };
 
   const add = async (
     data: string,
@@ -44,13 +59,14 @@ const CreateEntryInput = () => {
     setLoading(false);
 
     if (responseData.respData) {
-      router.push(`/dashboard/entry/${responseData.respData.id}`);
+      onEntryAdded?.();
+      resetInputs();
     }
     return responseData;
   };
 
-  const uploadImage = async () => {
-    if (!imageFile) return;
+  const uploadImage = async (file: File) => {
+    if (!file) return;
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -68,7 +84,7 @@ const CreateEntryInput = () => {
             title: 'Image',
           });
           if (responseEntry.respData) {
-            router.push(`/dashboard/entry/${responseEntry.respData.id}`);
+            onEntryAdded?.();
           }
         } else {
           console.error('Error:', error);
@@ -76,7 +92,7 @@ const CreateEntryInput = () => {
         setLoading(false);
       };
     };
-    reader.readAsArrayBuffer(imageFile);
+    reader.readAsArrayBuffer(file);
   };
 
   const renderInput = () => {
@@ -244,17 +260,27 @@ const CreateEntryInput = () => {
         <button 
           onClick={async () => {
             if (loading) return;
-            if (entryType === 'image' && imageFile) {
-              await uploadImage();
-            } else if (entryType === 'url' && textAreaValue.trim() !== '') {
+
+            // Store the values we need before resetting
+            const currentEntryType = entryType;
+            const currentImageFile = imageFile;
+            const currentTextValue = textAreaValue.trim();
+            const currentTitleValue = titleAreaValue.trim();
+
+            // Reset inputs immediately for better UX
+            resetInputs();
+
+            if (currentEntryType === 'image' && currentImageFile) {
+              await uploadImage(currentImageFile);
+            } else if (currentEntryType === 'url' && currentTextValue !== '') {
               try {
-                const response = await fetch(`/api/get-title?url=${textAreaValue}`);
+                const response = await fetch(`/api/get-title?url=${currentTextValue}`);
                 const data = await response.json();
 
                 if (data.title) {
                   await add(
                     data.description ? `${data.description} | ${data.title}` : data.title,
-                    { author: textAreaValue, title: data.title }
+                    { author: currentTextValue, title: data.title }
                   );
                 } else {
                   throw new Error('No title found');
@@ -262,11 +288,11 @@ const CreateEntryInput = () => {
               } catch (err) {
                 console.error('Unable to add URL entry. Please try again.');
               }
-            } else if (textAreaValue.trim() !== '') {
-              await add(textAreaValue, {
+            } else if (currentTextValue !== '') {
+              await add(currentTextValue, {
                 author: 'https://yourcommonbase.com/dashboard',
-                title: titleAreaValue.trim() || new Date().toDateString(),
-                type: entryType,
+                title: currentTitleValue || new Date().toDateString(),
+                type: currentEntryType,
               });
             }
           }}

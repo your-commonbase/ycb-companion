@@ -1,7 +1,7 @@
 import Dashboard from "@/components/Hobonichi/Dashboard";
 
-const Hobonichi = () => {
+const Store = () => {
   return <Dashboard />;
 };
 
-export default Hobonichi;
+export default Store;
