@@ -3,7 +3,7 @@ const Synthesize = () => {
     <div>
       <h1>Synthesize</h1>
     </div>
-  )
-}
+  );
+};
 
 export default Synthesize;

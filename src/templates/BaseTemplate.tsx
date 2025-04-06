@@ -9,18 +9,10 @@ const BaseTemplate = (props: {
     <div className="w-full antialiased">
       <div className="w-full px-4">
         <header>
-          <div className="flex justify-between items-center">
-            <div className="w-32 flex flex-row items-center py-8">
-              <img
-                src="/logomark-ycb.svg"
-                className="h-10"
-                alt="favicon"
-              />
-              <img
-                src="/wordmark-ycb.svg"
-                className="h-16"
-                alt="favicon"
-              />
+          <div className="flex items-center justify-between">
+            <div className="flex w-32 flex-row items-center py-8">
+              <img src="/logomark-ycb.svg" className="h-10" alt="favicon" />
+              <img src="/wordmark-ycb.svg" className="h-16" alt="favicon" />
             </div>
             <nav>
               <ul className="flex flex-wrap gap-x-5 text-xl">
@@ -28,9 +20,9 @@ const BaseTemplate = (props: {
               </ul>
             </nav>
             <nav>
-                <ul className="flex flex-wrap justify-end w-32">
-                  {props.rightNav}
-                </ul>
+              <ul className="flex w-32 flex-wrap justify-end">
+                {props.rightNav}
+              </ul>
             </nav>
           </div>
         </header>

@@ -1,4 +1,4 @@
-import Dashboard from "@/components/Hobonichi/Dashboard";
+import Dashboard from '@/components/Hobonichi/Dashboard';
 
 const Store = () => {
   return <Dashboard />;

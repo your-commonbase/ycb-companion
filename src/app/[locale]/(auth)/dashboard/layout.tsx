@@ -1,12 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import Modal from 'react-modal';
 
-import LocaleSwitcher from '@/components/LocaleSwitcher';
 import { LogOutButton } from '@/components/LogOutButton';
 import SearchModalBeta from '@/components/SearchModalBeta';
 import SpeedDial from '@/components/SpeedDial';
@@ -17,7 +15,6 @@ import { fetchRandomEntry } from '@/helpers/functions';
 import { BaseTemplate } from '@/templates/BaseTemplate';
 
 export default function DashboardLayout(props: { children: React.ReactNode }) {
-  const t = useTranslations('DashboardLayout');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -213,43 +210,57 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
           <li>
             <Link
               href="/dashboard/store"
-              className={pathname === '/dashboard/store' ? 'nav-button-selected' : 'nav-button-unselected'}
+              className={
+                pathname === '/dashboard/store'
+                  ? 'nav-button-selected'
+                  : 'nav-button-unselected'
+              }
             >
-              {"Store"}
+              Store
             </Link>
           </li>
           <li>
             <Link
               href="/dashboard/search"
-              className={pathname === '/dashboard/search' ? 'nav-button-selected' : 'nav-button-unselected'}
+              className={
+                pathname === '/dashboard/search'
+                  ? 'nav-button-selected'
+                  : 'nav-button-unselected'
+              }
             >
-              {"Search"}
+              Search
             </Link>
           </li>
           <li>
             <Link
               href="/dashboard/synthesize"
-              className={pathname === '/dashboard/synthesize' ? 'nav-button-selected' : 'nav-button-unselected'}
+              className={
+                pathname === '/dashboard/synthesize'
+                  ? 'nav-button-selected'
+                  : 'nav-button-unselected'
+              }
             >
-              {"Synthesize"}
+              Synthesize
             </Link>
           </li>
           <li>
             <Link
               href="/dashboard/share"
-              className={pathname === '/dashboard/share' ? 'nav-button-selected' : 'nav-button-unselected'}
+              className={
+                pathname === '/dashboard/share'
+                  ? 'nav-button-selected'
+                  : 'nav-button-unselected'
+              }
             >
-              {"Share"}
+              Share
             </Link>
           </li>
         </>
       }
       rightNav={
-        <>
-          <li>
-            <LogOutButton />
-          </li>
-        </>
+        <li>
+          <LogOutButton />
+        </li>
       }
     >
       <SearchModalBeta
