@@ -6,7 +6,7 @@ const BaseTemplate = (props: {
   children: React.ReactNode;
 }) => {
   return (
-    <div className="w-full text-gray-700 antialiased">
+    <div className="w-full antialiased">
       <div className="mx-auto max-w-screen-md">
         <header className="mb-10">
           <div className="flex justify-between items-center">

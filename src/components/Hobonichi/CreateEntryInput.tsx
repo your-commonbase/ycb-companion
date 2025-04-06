@@ -199,7 +199,7 @@ const CreateEntryInput = () => {
               setImageFile(null);
             }} 
             disabled={loading}
-            className={entryType === 'text' ? 'custom-button-selected' : 'custom-button-unselected'}
+            className={entryType === 'text' ? 'custom-button-selected aspect-square' : 'custom-button-unselected aspect-square'}
           >
             <img src="/text-entry-icon.svg" alt="text-entry" className="w-6" />
           </button>
@@ -211,7 +211,7 @@ const CreateEntryInput = () => {
               setTextAreaValue('');
             }} 
             disabled={loading}
-            className={entryType === 'image' ? 'custom-button-selected' : 'custom-button-unselected'}
+            className={entryType === 'image' ? 'custom-button-selected aspect-square' : 'custom-button-unselected aspect-square'}
           >
             <img src="/image-entry-icon.svg" alt="image-entry" className="w-6" />
           </button>
@@ -223,7 +223,7 @@ const CreateEntryInput = () => {
               setImageFile(null);
             }} 
             disabled={loading}
-            className={entryType === 'url' ? 'custom-button-selected' : 'custom-button-unselected'}
+            className={entryType === 'url' ? 'custom-button-selected aspect-square' : 'custom-button-unselected aspect-square'}
           >
             <img src="/url-entry-icon.svg" alt="url-entry" className="w-6" />
           </button>
@@ -236,7 +236,7 @@ const CreateEntryInput = () => {
               setImageFile(null);
             }} 
             disabled={loading}
-            className={entryType === 'qr' ? 'custom-button-selected' : 'custom-button-unselected'}
+            className={entryType === 'qr' ? 'custom-button-selected aspect-square' : 'custom-button-unselected aspect-square'}
           >
             <img src="/qr-entry-icon.svg" alt="qr-entry" className="w-6" />
           </button>

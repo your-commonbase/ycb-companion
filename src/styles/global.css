@@ -89,9 +89,9 @@
 
 @layer components {
   .custom-button-base {
-    @apply flex justify-center items-center gap-2.5 
-           rounded-[20px] text-sm
-           w-full aspect-square /* full width and square aspect ratio */;
+    @apply flex justify-center items-center gap-2.5 text-gray-400
+           rounded-[20px]
+           w-full /* full width and square aspect ratio */;
   }
 
   .custom-button-selected {
@@ -105,7 +105,7 @@
   }
 
   .nav-button-base {
-    @apply flex justify-center items-center gap-2.5 
+    @apply flex justify-center items-center gap-2.5 text-gray-400
            rounded-[20px] text-sm
            w-48
            h-10
@@ -120,5 +120,13 @@
   .nav-button-unselected {
     @apply nav-button-base
            bg-custom-unselected shadow-custom-unselected;
+  }
+
+  .custom-button-pressable {
+    @apply custom-button-unselected
+  }
+
+  .custom-button-pressable:active {
+    @apply custom-button-selected
   }
 }

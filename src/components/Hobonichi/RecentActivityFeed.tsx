@@ -7,9 +7,14 @@ import Link from 'next/link';
 import LiteYouTubeEmbed from 'react-lite-youtube-embed';
 import { Spotify } from 'react-spotify-embed';
 import { fetchByID } from '@/helpers/functions';
+import { v4 as uuidv4 } from 'uuid';
+import { updateEntry } from '@/helpers/functions';
 
 const RecentActivityFeed = () => {
   const [logEntries, setLogEntries] = useState<any[]>([]);
+  const [openCommentInputs, setOpenCommentInputs] = useState<Set<string>>(new Set());
+  const [tempComments, setTempComments] = useState<{ [key: string]: any[] }>({});
+  const [isSaving, setIsSaving] = useState<{ [key: string]: boolean }>({});
   
   const EXCLUDED_DOMAINS = ['youtube.com', 'imagedelivery.net', 'yourcommonbase.com', 'open.spotify.com'];
   
@@ -67,6 +72,99 @@ const RecentActivityFeed = () => {
     fetchLogEntries();
   }, []);
 
+  // Handle comment input for entries
+  const addCommentToEntry = async (
+    commentText: string,
+    parentEntry: { id: string, data: string; metadata: any }
+  ) => {
+    // add temporary comment to the UI immediately
+    const tempCommentId = `temp-${uuidv4()}`;
+    setTempComments(prev => ({
+      ...prev,
+      [parentEntry.id]: [
+        ...(prev[parentEntry.id] || []),
+        {
+          aliasId: tempCommentId,
+          aliasData: commentText,
+          aliasCreatedAt: new Date().toISOString(),
+          aliasUpdatedAt: new Date().toISOString(),
+          aliasMetadata: {
+            title: parentEntry.metadata.title,
+            author: parentEntry.metadata.author,
+            parent_id: parentEntry.id,
+          }
+        }
+      ]
+    }));
+
+    // set saving state for entry
+    setIsSaving(prev => ({...prev, [parentEntry.id]: true}));
+
+    try {
+      // Add the comment to the database
+      const addedComment = await fetch('/api/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: commentText,
+          metadata: {
+            title: parentEntry.metadata.title,
+            author: parentEntry.metadata.author,
+            parent_id: parentEntry.id,
+          },
+        }),
+      });
+
+      if (!addedComment.ok) {
+        throw new Error(`Failed to add comment: ${addedComment.status} ${addedComment.statusText}`);
+      }
+
+      const addedCommentRespData = await addedComment.json();
+      const addedCommentData = addedCommentRespData.respData;
+
+      // update parent entry's metadata
+      const parentRes = await fetchByID(parentEntry.id);
+      const parentResMetadata = parentRes.metadata;
+
+      const updatedAliasIds = parentResMetadata.alias_ids
+        ? [...parentResMetadata.alias_ids, addedCommentData.id]
+        : [addedCommentData.id];
+
+      await updateEntry(parentEntry.id, parentEntry.data, {
+        ...parentResMetadata,
+        alias_ids: updatedAliasIds,
+      });
+
+      // Remove the temporary comment first
+      setTempComments(prev => ({
+        ...prev,
+        [parentEntry.id]: []
+      }));
+
+      // Fetch fresh data to ensure we have the correct state
+      await fetchLogEntries();
+
+      // Close the comment input
+      setOpenCommentInputs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(parentEntry.id);
+        return newSet;
+      });
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      // Clean up the temporary comment if save failed
+      setTempComments(prev => ({
+        ...prev,
+        [parentEntry.id]: prev[parentEntry.id]?.filter(c => c.aliasId !== tempCommentId) || []
+      }));
+      alert('Failed to save comment. Please try again.');
+    } finally {
+      setIsSaving(prev => ({...prev, [parentEntry.id]: false}));
+    }
+  };
+
   return (
     <div className="w-full flex flex-col gap-4">
       <h1 className="text-xl font-bold">Activity Log</h1>
@@ -112,17 +210,68 @@ const RecentActivityFeed = () => {
               </div>
               {entry.metadata.aliasData && entry.metadata.aliasData.length > 0 && (
                 <div className="flex flex-col">
-                {entry.metadata.aliasData.map((alias: any) => (
-                  <div key={alias.id} className="flex flex-col gap-2 p-4 border-t border-black">
-                    <div className="text-gray-500 italic">{alias.data}</div>
-                    <div className="text-xs text-gray-500">
-                      {"Comment Added "}
-                      {new Date(alias.createdAt).toLocaleDateString()}
+                {entry.metadata.aliasData.map((alias: any) => {
+                  console.log('Rendering alias data:', alias);
+                  return (
+                    <div key={alias.id} className="flex flex-col gap-2 p-4 border-t border-black">
+                      <div className="text-gray-500 italic">{alias.data || alias.aliasData}</div>
+                      <div className="text-xs text-gray-500">
+                        {"Comment Added "}
+                        {(alias.createdAt || alias.aliasCreatedAt) ? 
+                          new Date(alias.createdAt || alias.aliasCreatedAt).toLocaleDateString() 
+                          : 'Just now'}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 </div>
               )}
+              {/* Display temporary comments */}
+              {tempComments[entry.id]?.map((tempComment: any) => (
+                <div key={tempComment.aliasId} className="flex flex-col gap-2 p-4 border-t border-black">
+                  <div className="text-gray-500 italic">{tempComment.aliasData}</div>
+                  <div className="text-xs text-gray-500">
+                    Saving...
+                  </div>
+                </div>
+              ))}
+              {!isSaving[entry.id] && (<div className="border-t border-black">
+                 {openCommentInputs.has(entry.id) ? (
+                  <div className="flex flex-col w-full">
+                    <textarea 
+                      className="w-full h-full p-4 resize-none overflow-hidden
+                        outline-none focus:outline-none
+                        border-none focus:ring-0
+                        bg-transparent"
+                    />
+                    <button className="w-full bg-black flex justify-center items-center py-4"
+                      onClick={(e) => {
+                        const textarea = e.currentTarget.parentElement?.querySelector('textarea') as HTMLTextAreaElement | null;
+                        if (!textarea) return;
+                        const commentText = textarea.value.trim();
+                        if (commentText) {
+                          addCommentToEntry(commentText, entry);
+                          textarea.value = '';
+                        }
+                      }}
+                      disabled={isSaving[entry.id]}
+                    >
+                      {isSaving[entry.id] ? <span className="text-white">{'Saving...'}</span> : <img src="/light-plus.svg" alt="plus" className="w-4" /> }
+                    </button>
+                  </div>
+                ) 
+                : (<div className="p-4">
+                <button className="custom-button-pressable py-3 text-xs" 
+                  onClick={() => {
+                    // Clear any other open comment inputs and set only this one
+                    setOpenCommentInputs(new Set([entry.id]));
+                  }}
+                  disabled={isSaving[entry.id] || Object.values(isSaving).some(saving => saving)}
+                >
+                  New Comment
+                </button>
+                </div>)}
+              </div>)}
             </div>
         ))}
       </div>
