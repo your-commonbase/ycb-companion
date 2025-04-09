@@ -28,6 +28,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/openai": "^0.0.72",
+		"@apollo/client": "^3.13.6",
 		"@clerk/localizations": "^2.4.8",
 		"@clerk/nextjs": "^5.3.7",
 		"@electric-sql/pglite": "^0.1.5",
@@ -47,6 +48,7 @@
 		"class-variance-authority": "^0.7.0",
 		"clsx": "^2.1.1",
 		"d3": "^7.9.0",
+		"date-fns": "^4.1.0",
 		"drizzle-orm": "^0.32.0",
 		"formidable": "^3.5.1",
 		"he": "^1.2.0",
@@ -75,6 +77,7 @@
 		"react-markdown": "^9.0.1",
 		"react-modal": "^3.16.1",
 		"react-qr-code": "^2.0.15",
+		"react-router-dom": "^7.5.0",
 		"react-scroll-to-top": "^3.0.0",
 		"react-social-media-embed": "^2.5.13",
 		"react-spotify-embed": "^2.0.4",

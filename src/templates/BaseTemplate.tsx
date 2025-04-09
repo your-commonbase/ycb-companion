@@ -1,3 +1,5 @@
+import { usePathname } from 'next/navigation';
+
 import { AppConfig } from '@/utils/AppConfig';
 
 const BaseTemplate = (props: {
@@ -5,27 +7,32 @@ const BaseTemplate = (props: {
   rightNav?: React.ReactNode;
   children: React.ReactNode;
 }) => {
+  const pathname = usePathname();
+  const showHeader = !pathname?.includes('/dashboard/entry');
+
   return (
     <div className="w-full antialiased">
       <div className="w-full px-4">
-        <header>
-          <div className="flex items-center justify-between">
-            <div className="flex w-32 flex-row items-center py-8">
-              <img src="/logomark-ycb.svg" className="h-10" alt="favicon" />
-              <img src="/wordmark-ycb.svg" className="h-16" alt="favicon" />
+        {showHeader && (
+          <header>
+            <div className="flex items-center justify-between">
+              <div className="flex w-32 flex-row items-center py-8">
+                <img src="/logomark-ycb.svg" className="h-10" alt="favicon" />
+                <img src="/wordmark-ycb.svg" className="h-16" alt="favicon" />
+              </div>
+              <nav>
+                <ul className="flex flex-wrap gap-x-5 text-xl">
+                  {props.leftNav}
+                </ul>
+              </nav>
+              <nav>
+                <ul className="flex w-32 flex-wrap justify-end">
+                  {props.rightNav}
+                </ul>
+              </nav>
             </div>
-            <nav>
-              <ul className="flex flex-wrap gap-x-5 text-xl">
-                {props.leftNav}
-              </ul>
-            </nav>
-            <nav>
-              <ul className="flex w-32 flex-wrap justify-end">
-                {props.rightNav}
-              </ul>
-            </nav>
-          </div>
-        </header>
+          </header>
+        )}
         <main>{props.children}</main>
 
         <footer className="py-8 text-center text-sm">

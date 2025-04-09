@@ -207,6 +207,18 @@ const RecentActivityFeed = forwardRef((props, ref) => {
               <button
                 type="button"
                 className="custom-button-pressable w-full p-2"
+                onClick={() => {
+                  // open entry route in new browser window
+                  const screenHeight = window.screen?.availHeight || 768;
+                  const newWindowHeight = screenHeight - 100;
+                  const newWindowTop = (screenHeight - newWindowHeight) / 2;
+
+                  window.open(
+                    `/dashboard/entry/${entry.id}`,
+                    '_blank',
+                    `width=${800},height=${newWindowHeight},left=${50},top=${newWindowTop},menubar=no,toolbar=no,location=no,status=no`,
+                  );
+                }}
               >
                 <img src="/graph-icon.svg" alt="graph-icon" />
               </button>

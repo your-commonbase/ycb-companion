@@ -7,7 +7,6 @@ import Modal from 'react-modal';
 
 import { LogOutButton } from '@/components/LogOutButton';
 import SearchModalBeta from '@/components/SearchModalBeta';
-import SpeedDial from '@/components/SpeedDial';
 import Uploader from '@/components/Uploader';
 import UploaderModalWrapper from '@/components/UploaderModalWrapper';
 import ShareUploader from '@/components/uploaders/share';
@@ -29,37 +28,37 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
   const [uploaderModalType, setUploaderModalType] = useState('');
   const [isUploaderModalOpen, setUploaderModalOpen] = useState(false);
 
-  const openFastEntryModal = () => setFastEntryModalOpen(true);
+  // const openFastEntryModal = () => setFastEntryModalOpen(true);
   const closeFastEntryModal = () => setFastEntryModalOpen(false);
 
   const openSearchModalBeta = () => setSearchModalBetaOpen(true);
   const closeSearchModalBeta = () => setSearchModalBetaOpen(false);
 
-  const onOpenModal = (which: string) => {
-    if (which === 'upload') {
-      openFastEntryModal();
-      const intervalId = setInterval(() => {
-        const input = document.getElementById('modal-message');
-        if (input) {
-          setTimeout(() => {
-            input.focus();
-          }, 100);
-          clearInterval(intervalId); // Stop the interval once the input is focused
-        }
-      }, 100);
-    } else if (which === 'search') {
-      openSearchModalBeta();
-      const intervalId = setInterval(() => {
-        const input = document.getElementById('modal-beta-search');
-        if (input) {
-          setTimeout(() => {
-            input.focus();
-          }, 100);
-          clearInterval(intervalId); // Stop the interval once the input is focused
-        }
-      }, 100);
-    }
-  };
+  // const onOpenModal = (which: string) => {
+  //   if (which === 'upload') {
+  //     openFastEntryModal();
+  //     const intervalId = setInterval(() => {
+  //       const input = document.getElementById('modal-message');
+  //       if (input) {
+  //         setTimeout(() => {
+  //           input.focus();
+  //         }, 100);
+  //         clearInterval(intervalId); // Stop the interval once the input is focused
+  //       }
+  //     }, 100);
+  //   } else if (which === 'search') {
+  //     openSearchModalBeta();
+  //     const intervalId = setInterval(() => {
+  //       const input = document.getElementById('modal-beta-search');
+  //       if (input) {
+  //         setTimeout(() => {
+  //           input.focus();
+  //         }, 100);
+  //         clearInterval(intervalId); // Stop the interval once the input is focused
+  //       }
+  //     }, 100);
+  //   }
+  // };
 
   const closeModal = () => {
     setSearchModalBetaOpen(false);
@@ -280,7 +279,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
         ariaHideApp={false}
         // apply custom styles using tailwind classes
         className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm
-        -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-4 shadow-lg"
+    -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-4 shadow-lg"
       >
         <button onClick={closeFastEntryModal} type="button">
           (close)
@@ -306,7 +305,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
           ariaHideApp={false}
           // apply custom styles using tailwind classes
           className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm
-        -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-4 shadow-lg"
+    -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-4 shadow-lg"
         >
           <button onClick={() => setShowShareModal(false)} type="button">
             (close)
@@ -325,7 +324,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
           />
         </Modal>
       )}
-      <SpeedDial onOpenModal={onOpenModal} openRandom={handleRandom} />
+      {/* <SpeedDial onOpenModal={onOpenModal} openRandom={handleRandom} /> */}
       {props.children}
     </BaseTemplate>
   );

@@ -808,13 +808,21 @@ const ForceDirectedGraph: React.FC<ForceDirectedGraphProps> = ({
       updateMiniMap(uniqueNodes, uniqueLinks);
     });
 
-    // zoom/pan
+    // zoom/pan - disabled scroll zoom
     svg.call(
       d3
         .zoom<SVGSVGElement, unknown>()
         .scaleExtent([0.5, 3])
         .on('zoom', (event) => {
           g.attr('transform', event.transform);
+        })
+        .filter((event) => {
+          // Only allow zooming with mouse wheel if Ctrl/Cmd key is pressed
+          if (event.type === 'wheel') {
+            return event.ctrlKey || event.metaKey;
+          }
+          // Allow all other zoom interactions (like dragging)
+          return true;
         }),
     );
 
