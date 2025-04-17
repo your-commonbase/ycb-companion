@@ -9,7 +9,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Roboto Mono', 'system-ui', 'sans-serif'],
-        mono: ['Roboto Mono', 'monospace']
+        mono: ['Roboto Mono', 'monospace'],
       },
       colors: {
         brand: {
@@ -79,8 +79,10 @@ export default {
         '28': '7rem',
       },
       boxShadow: {
-        'custom-selected': '10px 10px 10px 0px rgba(174, 174, 192, 0.20) inset, -10px -10px 10px 0px rgba(255, 255, 255, 0.70) inset',
-        'custom-unselected': '10px 10px 30px 0px rgba(174, 174, 192, 0.40), -10px -10px 10px 0px #FFF',
+        'custom-selected':
+          '10px 10px 10px 0px rgba(174, 174, 192, 0.20) inset, -10px -10px 10px 0px rgba(255, 255, 255, 0.70) inset',
+        'custom-unselected':
+          '10px 10px 30px 0px rgba(174, 174, 192, 0.40), -10px -10px 10px 0px #FFF',
       },
       backgroundImage: {
         'custom-selected': 'linear-gradient(135deg, #EBEBEB 0%, #FFF 100%)',
@@ -88,8 +90,5 @@ export default {
       },
     },
   },
-  plugins: [
-    tailwindcssAnimate,
-    typography,
-  ],
+  plugins: [tailwindcssAnimate, typography],
 } satisfies Config;
