@@ -31,6 +31,14 @@ export default withSentryConfig(
       devIndicators: {
         autoPrerender: false, // Disable auto-prerendering
       },
+      images: {
+        remotePatterns: [
+          {
+            protocol: 'https',
+            hostname: 'imagedelivery.net',
+          },
+        ],
+      },
       async headers() {
         return [
           {
@@ -80,13 +88,5 @@ export default withSentryConfig(
 
     // Disable Sentry telemetry
     telemetry: false,
-    images: {
-      remotePatterns: [
-        {
-          protocol: 'https',
-          hostname: 'imagedelivery.net',
-        },
-      ],
-    },
   },
 );

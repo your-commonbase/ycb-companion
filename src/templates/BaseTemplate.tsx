@@ -1,75 +1,82 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { MobileNav } from '@/components/updated/MobileNav';
+import { ProfileMenu } from '@/components/updated/ProfileMenu';
+import type { SliderItem } from '@/components/updated/Slider';
+import { Slider } from '@/components/updated/Slider';
 import { AppConfig } from '@/utils/AppConfig';
 
-const BaseTemplate = (props: {
-  leftNav: React.ReactNode;
-  rightNav?: React.ReactNode;
-  children: React.ReactNode;
-}) => {
-  const [profilePicture, setProfilePicture] = useState<string>('');
+const navigationItems: SliderItem[] = [
+  { id: 'store', label: 'Store', href: '/dashboard/store' },
+  { id: 'search', label: 'Search', href: '/dashboard/search' },
+  { id: 'synthesize', label: 'Synthesize', href: '/dashboard/synthesize' },
+  { id: 'share', label: 'Share', href: '/dashboard/share' },
+];
 
-  // call /api/getProfilePicture to get the profile picture
+const BaseTemplate = ({ children }: { children: React.ReactNode }) => {
+  const [profilePicture, setProfilePicture] = useState<string>('');
+  const pathname = usePathname();
+
   useEffect(() => {
     const fetchProfilePicture = async () => {
-      const response = await fetch('/api/getProfilePicture', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
-      console.log('data:', data);
-      setProfilePicture(data.data.profilePicture.text);
+      try {
+        const response = await fetch('/api/getProfilePicture', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await response.json();
+        setProfilePicture(data.data.profilePicture.text);
+      } catch (error) {
+        console.error('Error fetching profile picture:', error);
+      }
     };
 
     fetchProfilePicture();
   }, []);
 
   return (
-    <div className="w-full px-1 text-gray-700 antialiased">
-      <div className="mx-auto max-w-screen-md">
-        <header className="border-b border-gray-300">
-          <div className="pb-8 pt-16">
-            <h1 className="text-3xl font-bold text-gray-900">
-              {profilePicture !== '' ? (
-                <img
-                  src={profilePicture}
-                  alt="profile"
-                  className="size-16 rounded-full"
-                />
-              ) : (
-                <img
-                  src="/favicon.ico"
-                  className="mr-2 inline-block"
-                  width={28}
-                  height={28}
-                  alt="favicon"
-                />
-              )}
-              {AppConfig.name}
-            </h1>
-            {/* <h2 className="text-xl">{t('description')}</h2> */}
+    <div className="w-full bg-[#f5f5f5] antialiased">
+      <div>
+        <header className="flex flex-row items-center justify-between">
+          <div className="flex flex-row items-center gap-3 p-4">
+            {profilePicture ? (
+              <ProfileMenu profilePicture={profilePicture} />
+            ) : (
+              <img
+                src="/logomark.svg"
+                className="inline-block"
+                width={28}
+                height={28}
+                alt="logomark"
+              />
+            )}
+            <div className="flex flex-col">
+              <div className="font-besley text-2xl font-bold tracking-tight">
+                yCB
+              </div>
+              &lt;companion&gt;
+            </div>
           </div>
-
-          <div className="flex justify-between">
-            <nav>
-              <ul className="flex flex-wrap gap-x-5 text-xl">
-                {props.leftNav}
-              </ul>
-            </nav>
-
-            <nav>
-              <ul className="flex flex-wrap gap-x-5 text-xl">
-                {props.rightNav}
-              </ul>
-            </nav>
+          {/* Desktop Navigation */}
+          <div className="hidden lg:block">
+            <Slider
+              items={navigationItems}
+              selectedId={pathname.split('/').pop() || ''}
+              showLinks
+            />
+          </div>
+          {/* Mobile Navigation */}
+          <div className="flex flex-1 justify-end lg:hidden">
+            <MobileNav items={navigationItems} />
           </div>
         </header>
 
-        <main>{props.children}</main>
+        <main>{children}</main>
 
         <footer className="border-t border-gray-300 py-8 text-center text-sm">
           <a
@@ -101,12 +108,6 @@ const BaseTemplate = (props: {
             CreativeDesignsGuru
           </a>
           .
-          {/*
-           * PLEASE READ THIS SECTION
-           * I'm an indie maker with limited resources and funds, I'll really appreciate if you could have a link to my website.
-           * The link doesn't need to appear on every pages, one link on one page is enough.
-           * For example, in the `About` page. Thank you for your support, it'll mean a lot to me.
-           */}
         </footer>
       </div>
     </div>

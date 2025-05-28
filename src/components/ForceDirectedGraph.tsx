@@ -1003,7 +1003,7 @@ const ForceDirectedGraph: React.FC<ForceDirectedGraphProps> = ({
               <div className="float-right my-2 justify-end">
                 <Link
                   href={modalContent.author}
-                  className=" float-right inline-flex items-center font-medium text-brand hover:underline"
+                  className=" text-brand float-right inline-flex items-center font-medium hover:underline"
                   target="_blank"
                 >
                   {/* <img src={favicon} alt="favicon" className="h-6 w-6 mr-2" /> */}
@@ -1020,7 +1020,7 @@ const ForceDirectedGraph: React.FC<ForceDirectedGraphProps> = ({
                     .map((d) => (d.length === 1 ? `0${d}` : d))
                     .join('-')}
                 `}
-                  className="float-right inline-flex items-center font-medium text-brand hover:underline"
+                  className="text-brand float-right inline-flex items-center font-medium hover:underline"
                 >
                   {timeAgo(new Date(modalContent.createdAt))}
                 </a>

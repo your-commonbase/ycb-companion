@@ -1,12 +1,12 @@
 'use client';
 
-import Link from 'next/link';
+// import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+// import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import Modal from 'react-modal';
 
-import { LogOutButton } from '@/components/LogOutButton';
+// import { LogOutButton } from '@/components/LogOutButton';
 import SearchModalBeta from '@/components/SearchModalBeta';
 import SpeedDial from '@/components/SpeedDial';
 import Uploader from '@/components/Uploader';
@@ -16,7 +16,7 @@ import { fetchRandomEntry } from '@/helpers/functions';
 import { BaseTemplate } from '@/templates/BaseTemplate';
 
 export default function DashboardLayout(props: { children: React.ReactNode }) {
-  const t = useTranslations('DashboardLayout');
+  // const t = useTranslations('DashboardLayout');
   const router = useRouter();
   const searchParams = useSearchParams();
   const shareParam = searchParams!.get('share') || '';
@@ -35,16 +35,6 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
 
   const openSearchModalBeta = () => setSearchModalBetaOpen(true);
   const closeSearchModalBeta = () => setSearchModalBetaOpen(false);
-
-  const [isStoreOpen, setIsStoreOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isSynthesizeOpen, setIsSynthesizeOpen] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
-
-  const toggleStore = () => setIsStoreOpen((prev) => !prev);
-  const toggleSearch = () => setIsSearchOpen((prev) => !prev);
-  const toggleSynthesize = () => setIsSynthesizeOpen((prev) => !prev);
-  const toggleShare = () => setIsShareOpen((prev) => !prev);
 
   const onOpenModal = (which: string) => {
     if (which === 'upload') {
@@ -291,301 +281,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
   // }, []);
 
   return (
-    <BaseTemplate
-      leftNav={
-        <>
-          <li className="border-none text-gray-700 hover:text-gray-900">
-            <Link href="/" className="border-none">
-              Landing Page
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/dashboard/"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('dashboard_link')}
-            </Link>
-          </li>
-          <li>
-            <button onClick={toggleStore} className="border-none" type="button">
-              {isStoreOpen ? '-' : '+'}
-              Store
-            </button>
-            {isStoreOpen && (
-              <ul className="ml-4">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploaderModalType('text');
-                      setUploaderModalOpen(true);
-                      const intervalId = setInterval(() => {
-                        const input = document.getElementById('modal-message');
-                        if (input) {
-                          setTimeout(() => {
-                            input.focus();
-                          }, 100);
-                          clearInterval(intervalId); // Stop the interval once the input is focused
-                        }
-                      }, 100);
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Text [t]
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploaderModalType('url');
-                      setUploaderModalOpen(true);
-                      const intervalId = setInterval(() => {
-                        const input = document.getElementById(
-                          'modal-message-author',
-                        );
-                        if (input) {
-                          setTimeout(() => {
-                            input.focus();
-                          }, 100);
-                          clearInterval(intervalId); // Stop the interval once the input is focused
-                        }
-                      }, 100);
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    URL [u]
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploaderModalType('image');
-                      setUploaderModalOpen(true);
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Image [i]
-                  </button>
-                </li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.open(
-                      'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
-                      '_blank',
-                    );
-                  }}
-                  className="border-none text-gray-700 hover:text-gray-900"
-                >
-                  Roadmap
-                </button>
-              </ul>
-            )}
-          </li>
-          <li>
-            <button
-              onClick={toggleSearch}
-              className="border-none"
-              type="button"
-            >
-              {isSearchOpen ? '-' : '+'}
-              Search
-            </button>
-            {isSearchOpen && (
-              <ul className="ml-4">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/dashboard/garden/')}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Calendar
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleRandom();
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Random [r]
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      openSearchModalBeta();
-                      const intervalId = setInterval(() => {
-                        const input =
-                          document.getElementById('modal-beta-search');
-                        if (input) {
-                          setTimeout(() => {
-                            input.focus();
-                          }, 100);
-                          clearInterval(intervalId); // Stop the interval once the input is focused
-                        }
-                      }, 100);
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Search [/]
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.open(
-                        'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
-                        '_blank',
-                      );
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Roadmap
-                  </button>
-                </li>
-              </ul>
-            )}
-          </li>
-          <li>
-            <button
-              onClick={toggleSynthesize}
-              className="border-none"
-              type="button"
-            >
-              {isSynthesizeOpen ? '-' : '+'}
-              Synthesize
-            </button>
-            {isSynthesizeOpen && (
-              <ul className="ml-4">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.open(
-                        'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
-                        '_blank',
-                      );
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Roadmap
-                  </button>
-                </li>
-              </ul>
-            )}
-          </li>
-          <li>
-            <button onClick={toggleShare} className="border-none" type="button">
-              {isShareOpen ? '-' : '+'}
-              Share
-            </button>
-            {isShareOpen && (
-              <ul className="ml-4">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.open('https://www.sharecommonbase.com/', '_blank');
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Share Commonbase
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.open(
-                        'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
-                        '_blank',
-                      );
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Roadmap
-                  </button>
-                </li>
-              </ul>
-            )}
-          </li>
-          {/* <li className="border-none text-gray-700 hover:text-gray-900">
-            <Link href="/dashboard/flow/" className="border-none">
-              {t('flow_link')}
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/dashboard/starred-entries/"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('starred_entries_link')}
-            </Link>
-          </li> */}
-          {/* <li>
-            <Link
-              href="/dashboard/flow-sessions/"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('flow_sessions_link')}
-            </Link>
-          </li>
-          <li className="border-none text-gray-700 hover:text-gray-900">
-            <Link href="/dashboard/inbox/" className="border-none">
-              {t('inbox_link')}
-            </Link>
-            <span> ({inboxCount.data.count})</span>
-          </li> */}
-          {/* <li>
-            <Link
-              href="/dashboard/garden/"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('garden_link')}
-            </Link>
-          </li> */}
-          {/* <li>
-            <Link
-              href="/dashboard/grid/"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('grid_link')}
-            </Link>
-          </li> */}
-          {/* <li>
-            <Link
-              href="/dashboard/user-profile/"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('user_profile_link')}
-            </Link>
-          </li> */}
-        </>
-      }
-      rightNav={
-        <>
-          <li>
-            <Link
-              href="/dashboard/settings/"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              Settings
-            </Link>
-          </li>
-          <li>
-            <LogOutButton />
-          </li>
-        </>
-      }
-    >
+    <BaseTemplate>
       <SearchModalBeta
         isOpen={isSearchModalBetaOpen || false}
         closeModalFn={closeSearchModalBeta}

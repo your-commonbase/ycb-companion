@@ -1825,13 +1825,13 @@ const EntryPage = () => {
                 editModal: true,
               }));
             }}
-            className="mt-2 text-neutral-dark [&_p]:my-6"
+            className="text-neutral-dark mt-2 [&_p]:my-6"
           >
             {processCustomMarkdown(data.data)}
             <div className="float-right mb-2">
               <Link
                 href={data.metadata.author}
-                className=" float-right inline-flex items-center font-medium text-brand hover:underline"
+                className=" text-brand float-right inline-flex items-center font-medium hover:underline"
                 target="_blank"
               >
                 <img src={favicon} alt="favicon" className="mr-2 size-6" />
@@ -1846,7 +1846,7 @@ const EntryPage = () => {
                   .map((d) => (d.length === 1 ? `0${d}` : d))
                   .join('-')}
                 `}
-                className="float-right inline-flex items-center font-medium text-brand hover:underline"
+                className="text-brand float-right inline-flex items-center font-medium hover:underline"
               >
                 {timeAgo(new Date(data.createdAt))}
               </a>
@@ -1960,7 +1960,7 @@ again:
         <textarea
           rows={3}
           style={{ fontSize: '17px' }}
-          className="mb-2 w-full rounded border border-neutral-dark bg-white px-4 py-2 text-neutral-dark transition hover:bg-neutral-light"
+          className="border-neutral-dark text-neutral-dark hover:bg-neutral-light mb-2 w-full rounded border bg-white px-4 py-2 transition"
           placeholder={randomCommentPlaceholder}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -2011,7 +2011,7 @@ again:
             // clear input field
             (aliasInput as HTMLInputElement).value = '';
           }}
-          className="w-full rounded border border-neutral-light bg-neutral-light p-2 text-neutral-dark focus:border-brand focus:ring-brand"
+          className="border-neutral-light bg-neutral-light text-neutral-dark focus:border-brand focus:ring-brand w-full rounded border p-2"
           aria-label="Add alias"
         >
           Add Comment
@@ -2115,7 +2115,7 @@ again:
         )} */}
       <div>
         {renderedData?.metadata?.aliasData?.map((alias: any) => (
-          <div key={alias.aliasId} className="my-6 border-neutral-light">
+          <div key={alias.aliasId} className="border-neutral-light my-6">
             <EditModal
               isOpen={modalStates[`alias-${alias.aliasId}`] || false}
               closeModalFn={() => closeModal(`alias-${alias.aliasId}`)}
@@ -2278,7 +2278,7 @@ again:
           <button
             onClick={() => setOpenShareModal(true)}
             type="button"
-            className="mt-2 w-full rounded border border-neutral-light bg-neutral-light p-2 text-neutral-dark focus:border-brand focus:ring-brand"
+            className="border-neutral-light bg-neutral-light text-neutral-dark focus:border-brand focus:ring-brand mt-2 w-full rounded border p-2"
           >
             Share
           </button>

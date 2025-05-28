@@ -569,7 +569,7 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
           <input
             type="text"
             placeholder="https://yourcommonbase.com/dashboard"
-            className="w-full rounded border border-neutral-dark bg-white px-4 py-2 pr-10 text-neutral-dark"
+            className="border-neutral-dark text-neutral-dark w-full rounded border bg-white px-4 py-2 pr-10"
             style={{ fontSize: '17px' }}
             id={`link-input-comment-${entry.id}`}
           />
@@ -595,7 +595,7 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
           <textarea
             rows={3}
             style={{ fontSize: '17px' }}
-            className="w-full rounded border border-neutral-dark bg-white px-4 py-2 pr-10 text-neutral-dark"
+            className="border-neutral-dark text-neutral-dark w-full rounded border bg-white px-4 py-2 pr-10"
             placeholder={randomCommentPlaceholder}
             // onKeyDown={(e) => {
             //   if (e.key === 'Enter') {
@@ -636,7 +636,7 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
 
               setIsAddingComment(false);
             }}
-            className="rounded-full border border-neutral-light bg-neutral-light px-3 pb-1 text-xl text-neutral-dark focus:border-brand focus:ring-brand"
+            className="border-neutral-light bg-neutral-light text-neutral-dark focus:border-brand focus:ring-brand rounded-full border px-3 pb-1 text-xl"
             aria-label="add alias"
           >
             +
