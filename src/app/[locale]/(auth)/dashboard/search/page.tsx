@@ -300,8 +300,7 @@ const Search = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="mb-6 text-2xl font-bold">Search</h1>
+    <div className="max-w-screen-md mx-auto my-8">
       {isSearchClient ? (
         <InstantSearch
           searchClient={isSearchClient}
@@ -409,49 +408,52 @@ const Search = () => {
         </InstantSearch>
       ) : (
         <div>
-          <input
-            id="search-input"
-            onChange={(e) => setInputValue(e.target.value)}
-            type="text"
-            style={{ fontSize: '17px' }}
-            value={inputValue}
-            className="mb-2 block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500"
-            placeholder="Search"
-          />
-          <div className="mt-4 flex space-x-2">
-            <button
-              type="button"
-              className="mb-2 me-2 w-full rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-800 hover:text-white focus:outline-none focus:ring-4 focus:ring-gray-300"
-              onClick={async () => {
-                const query = (
-                  document.getElementById(
-                    'search-input',
-                  ) as HTMLInputElement
-                ).value;
-                if (!query) {
-                  return;
-                }
-                setIsLoading(true);
-                await handleSearch(query, '');
-                setIsLoading(false);
-              }}
-            >
-              {isLoading ? 'Loading...' : 'Search'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                window.open(
-                  `https://www.google.com/search?q=${inputValue}`,
-                  '_blank',
-                );
-              }}
-              className="mb-2 me-2 w-full rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-800 hover:text-white focus:outline-none focus:ring-4 focus:ring-gray-300"
-            >
-              Search the Web
-            </button>
+          <div className="flex flex-row items-center border border-black">
+            <div className="h-full w-full p-2">
+              <input
+                id="search-input"
+                onChange={(e) => setInputValue(e.target.value)}
+                type="text"
+                style={{ fontSize: '17px' }}
+                value={inputValue}
+                className="h-14 w-full rounded-xl bg-slider-track p-4 shadow-slider-track-shadow"
+                placeholder="Search"
+              />
+            </div>
+            <div className="flex flex-row">
+              <button
+                type="button"
+                className="w-24 aspect-square border-l border-black hover:bg-black hover:text-white"
+                onClick={async () => {
+                  const query = (
+                    document.getElementById(
+                      'search-input',
+                    ) as HTMLInputElement
+                  ).value;
+                  if (!query) {
+                    return;
+                  }
+                  setIsLoading(true);
+                  await handleSearch(query, '');
+                  setIsLoading(false);
+                }}
+              >
+                {isLoading ? 'Loading...' : 'Search'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  window.open(
+                    `https://www.google.com/search?q=${inputValue}`,
+                    '_blank',
+                  );
+                }}
+                className="w-24 aspect-square border-l border-black hover:bg-black hover:text-white"
+              >
+                Web Search
+              </button>
+            </div>
           </div>
-
           <div>
             {searchResults.map((result) => (
               <div key={result.id}>
@@ -545,12 +547,12 @@ const Search = () => {
               </div>
             ))}
           </div>
-          <div className="text-sm text-gray-500">
+          {/* <div className="text-sm text-gray-500">
             <span className="font-normal">
               To get full text search on Companion, upgrade to the search or
               synthesis plan!
             </span>
-          </div>
+          </div> */}
         </div>
       )}
     </div>
