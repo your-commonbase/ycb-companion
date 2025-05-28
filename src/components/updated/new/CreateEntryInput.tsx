@@ -2,191 +2,180 @@
 
 import { useState } from 'react';
 
-import TextEntry from './TextEntry';
-import ImageEntry from './ImageEntry';
-import URLEntry from './URLEntry';
-import { authedFetch } from '@/utils/authedFetch';
+type EntryType = 'text' | 'image' | 'url' | 'qr';
 
-// Types
-export type EntryType = 'text' | 'image' | 'url' | 'qr';
-
-interface EntryMetadata {
-  author: string;
-  title: string;
-  type?: EntryType;
-}
-
-interface CreateEntryInputProps {
+type Props = {
   onEntryAdded?: () => void;
-  defaultMetadata?: Partial<EntryMetadata>;
-}
+};
 
-// Component
-const CreateEntryInput = ({ 
-  onEntryAdded,
-  defaultMetadata = {
-    author: 'https://yourcommonbase.com/dashboard',
-    title: '',
-  }
-}: CreateEntryInputProps) => {
-  const [entryType, setEntryType] = useState<EntryType>('text');
+const CreateEntryInput = ({ onEntryAdded }: Props) => {
+  const [textAreaValue, setTextAreaValue] = useState('');
+  const [titleAreaValue, setTitleAreaValue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [content, setContent] = useState('');
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [metadata, setMetadata] = useState<EntryMetadata>({
-    author: defaultMetadata.author || 'https://yourcommonbase.com/dashboard',
-    title: defaultMetadata.title || '',
-    type: 'text'
-  });
+  const [entryType, setEntryType] = useState<EntryType>('text');
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const handleAdd = async (data: string, argMetadata: Record<string, string> = {}) => {
-    try {
-      setLoading(true);
-      setError(null);
-      setDebugInfo({ status: 'loading', message: 'Adding entry...' });
+  const apiKey = process.env.NEXT_PUBLIC_API_KEY_CF_IMG;
 
-      // Process metadata similar to current implementation
-      const processedMetadata: Record<string, string> = {};
-      for (const field of Object.keys(argMetadata)) {
-        if (argMetadata[field] !== undefined) {
-          processedMetadata[field] = argMetadata[field]!;
-        }
-      }
+  const resetInputs = () => {
+    setTextAreaValue('');
+    setTitleAreaValue('');
+    setImageFile(null);
+    setEntryType('text');
 
-      const response = await authedFetch('/api/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          data,
-          metadata: {
-            ...metadata,
-            ...processedMetadata,
-            type: entryType
-          },
-        }),
-      });
-
-      const responseData = await response.json();
-      setDebugInfo({ status: 'success', data: responseData });
-
-      if (!response.ok) {
-        throw new Error(responseData.message || 'Failed to add entry');
-      }
-
-      if (responseData.respData) {
-        onEntryAdded?.();
-        // Reset form after successful submission
-        setContent('');
-        setMetadata(prev => ({ ...prev, title: '' }));
-      }
-
-      return responseData;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage);
-      setDebugInfo({ status: 'error', error: errorMessage });
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    // Reset textarea height
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach((tarea) => {
+      const textarea = tarea as HTMLTextAreaElement;
+      textarea.style.height = 'auto';
+    });
   };
 
-  const handleImageUpload = async (file: File) => {
+  const add = async (
+    data: string,
+    argMetadata: Record<string, string> = {
+      author: '',
+      title: '',
+    },
+  ) => {
+    setLoading(true);
+    const metadata: Record<string, string> = {};
+    for (const field of Object.keys(argMetadata)) {
+      if (argMetadata[field] !== undefined) {
+        metadata[field] = argMetadata[field]!;
+      }
+    }
+
+    const response = await fetch('/api/add', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        data,
+        metadata,
+      }),
+    });
+    const responseData = await response.json();
+    setLoading(false);
+
+    if (responseData.respData) {
+      onEntryAdded?.();
+      resetInputs();
+    }
+    return responseData;
+  };
+
+  const uploadImage = async (file: File) => {
     if (!file) return;
 
-    try {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const arrayBuffer = reader.result;
       setLoading(true);
-      setError(null);
-      setDebugInfo({ status: 'loading', message: 'Processing image...' });
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        const arrayBuffer = reader.result;
-        const worker = new Worker('/imageWorker.js');
-        worker.postMessage({ 
-          file: arrayBuffer, 
-          apiKey: process.env.NEXT_PUBLIC_API_KEY_CF_IMG 
-        });
+      const worker = new Worker('/imageWorker.js');
+      worker.postMessage({ file: arrayBuffer, apiKey });
 
-        worker.onmessage = async (e) => {
-          const { success, data, error } = e.data;
-          if (success) {
-            setDebugInfo({ status: 'processing', message: 'Image processed, adding entry...' });
-            await handleAdd(data.data, {
-              author: data.metadata.imageUrl,
-              title: 'Image',
-            });
-          } else {
-            const errorMessage = error || 'Failed to process image';
-            setError(errorMessage);
-            setDebugInfo({ status: 'error', error: errorMessage });
+      worker.onmessage = async (e) => {
+        const { success, data, error } = e.data;
+        if (success) {
+          const responseEntry = await add(data.data, {
+            author: data.metadata.imageUrl,
+            title: 'Image',
+          });
+          if (responseEntry.respData) {
+            onEntryAdded?.();
           }
-          setLoading(false);
-        };
+        } else {
+          console.error('Error:', error);
+        }
+        setLoading(false);
       };
-      reader.readAsArrayBuffer(file);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to upload image';
-      setError(errorMessage);
-      setDebugInfo({ status: 'error', error: errorMessage });
-      setLoading(false);
-    }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
-  const handleFetchURLMetadata = async (url: string) => {
-    try {
-      setDebugInfo({ status: 'loading', message: 'Fetching URL metadata...' });
-      const response = await authedFetch(`/api/get-title?url=${url}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
-      setDebugInfo({ status: 'success', data });
-
-      if (data.title) {
-        setContent(data.description ? `${data.description} | ${data.title}` : data.title);
-        setMetadata(prev => ({ ...prev, title: data.title }));
-      } else {
-        throw new Error('No title found');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch URL metadata';
-      setError(errorMessage);
-      setDebugInfo({ status: 'error', error: errorMessage });
-      throw err;
-    }
-  };
-
-  const renderContent = () => {
+  const renderInput = () => {
     switch (entryType) {
       case 'text':
         return (
-          <TextEntry
-            value={content}
-            onChange={setContent}
-            disabled={loading}
-          />
+          <div className="min-h-64 w-full">
+            <textarea
+              className="size-full resize-none overflow-hidden border-none bg-transparent
+              p-4 outline-none
+              focus:outline-none focus:ring-0"
+              value={textAreaValue}
+              onChange={(e) => setTextAreaValue(e.target.value)}
+              disabled={loading}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                const scrollPos = window.scrollY;
+                target.style.height = 'auto';
+                target.style.height = `${target.scrollHeight}px`;
+                window.scrollTo(0, scrollPos);
+              }}
+              placeholder="Write your thoughts here..."
+            />
+          </div>
         );
       case 'image':
         return (
-          <ImageEntry
-            onImageSelect={handleImageUpload}
-            disabled={loading}
-          />
+          <div className="flex h-64 w-full flex-col items-center justify-center">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              id="image-upload"
+              disabled={loading}
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setImageFile(file);
+              }}
+            />
+            <label
+              htmlFor="image-upload"
+              className="flex cursor-pointer flex-col items-center"
+            >
+              {imageFile ? (
+                <>
+                  <img
+                    src={URL.createObjectURL(imageFile)}
+                    className="mb-2 max-h-48 object-contain"
+                  />
+                  <p className="text-sm text-gray-500">{imageFile.name}</p>
+                </>
+              ) : (
+                <div className="flex aspect-square w-48 flex-col items-center justify-center border-2 border-dotted border-gray-300 p-4 text-center">
+                  <p>Click to upload an image</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    PNG, JPG, GIF up to 10MB
+                  </p>
+                </div>
+              )}
+            </label>
+          </div>
         );
       case 'url':
         return (
-          <URLEntry
-            value={content}
-            onChange={setContent}
-            onFetchMetadata={handleFetchURLMetadata}
-            disabled={loading}
-          />
+          <div className="min-h-64 w-full">
+            <textarea
+              className="size-full resize-none overflow-hidden border-none bg-transparent
+              p-4 outline-none
+              focus:outline-none focus:ring-0"
+              value={textAreaValue}
+              onChange={(e) => setTextAreaValue(e.target.value)}
+              disabled={loading}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                const scrollPos = window.scrollY;
+                target.style.height = 'auto';
+                target.style.height = `${target.scrollHeight}px`;
+                window.scrollTo(0, scrollPos);
+              }}
+              placeholder="Enter a URL here..."
+            />
+          </div>
         );
       case 'qr':
         return (
@@ -205,39 +194,41 @@ const CreateEntryInput = ({
   return (
     <>
       <div className="w-full border border-black">
-        {/* Header */}
         <div className="flex w-full flex-row border-b border-black">
           <div className="w-2/3 border-r border-dotted border-black px-4 py-3">
-            {entryType === 'text' && (
+            {entryType === 'text' ? (
               <input
-                className="resize-none overflow-hidden border-none bg-transparent outline-none focus:outline-none focus:ring-0"
+                className="resize-none overflow-hidden
+              border-none bg-transparent
+              outline-none focus:outline-none
+              focus:ring-0"
                 placeholder="Click to edit title"
-                value={metadata.title}
-                onChange={(e) => setMetadata(prev => ({ ...prev, title: e.target.value }))}
+                value={titleAreaValue}
+                onChange={(e) => setTitleAreaValue(e.target.value)}
               />
+            ) : (
+              ''
             )}
           </div>
           <div className="w-1/3 px-4 py-3 text-center">
             {new Date().toDateString()}
           </div>
         </div>
-
-        {/* Content Area */}
-        {renderContent()}
-
-        {/* Footer */}
+        {renderInput()}
         <div className="flex w-full flex-row border-t border-black">
-          {/* Entry Type Selectors */}
           <div className="aspect-square w-1/5 border-r border-black p-6">
             <button
               type="button"
-              onClick={() => setEntryType('text')}
+              onClick={() => {
+                setEntryType('text');
+                setImageFile(null);
+              }}
               disabled={loading}
-              className={`aspect-square ${
+              className={
                 entryType === 'text'
-                  ? 'custom-button-selected'
-                  : 'custom-button-unselected'
-              }`}
+                  ? 'custom-button-selected aspect-square'
+                  : 'custom-button-unselected aspect-square'
+              }
             >
               <img
                 src="/icons/text-icon-gray.svg"
@@ -249,13 +240,16 @@ const CreateEntryInput = ({
           <div className="aspect-square w-1/5 border-r border-black p-6">
             <button
               type="button"
-              onClick={() => setEntryType('image')}
+              onClick={() => {
+                setEntryType('image');
+                setTextAreaValue('');
+              }}
               disabled={loading}
-              className={`aspect-square ${
+              className={
                 entryType === 'image'
-                  ? 'custom-button-selected'
-                  : 'custom-button-unselected'
-              }`}
+                  ? 'custom-button-selected aspect-square'
+                  : 'custom-button-unselected aspect-square'
+              }
             >
               <img
                 src="/icons/image-icon-gray.svg"
@@ -267,13 +261,16 @@ const CreateEntryInput = ({
           <div className="aspect-square w-1/5 border-r border-black p-6">
             <button
               type="button"
-              onClick={() => setEntryType('url')}
+              onClick={() => {
+                setEntryType('url');
+                setImageFile(null);
+              }}
               disabled={loading}
-              className={`aspect-square ${
+              className={
                 entryType === 'url'
-                  ? 'custom-button-selected'
-                  : 'custom-button-unselected'
-              }`}
+                  ? 'custom-button-selected aspect-square'
+                  : 'custom-button-unselected aspect-square'
+              }
             >
               <img
                 src="/icons/link-icon-gray.svg"
@@ -285,13 +282,17 @@ const CreateEntryInput = ({
           <div className="aspect-square w-1/5 border-r border-black p-6">
             <button
               type="button"
-              onClick={() => setEntryType('qr')}
+              onClick={() => {
+                setEntryType('qr');
+                setTextAreaValue('');
+                setImageFile(null);
+              }}
               disabled={loading}
-              className={`aspect-square ${
+              className={
                 entryType === 'qr'
-                  ? 'custom-button-selected'
-                  : 'custom-button-unselected'
-              }`}
+                  ? 'custom-button-selected aspect-square'
+                  : 'custom-button-unselected aspect-square'
+              }
             >
               <img
                 src="/icons/qr-icon-gray.svg"
@@ -302,35 +303,13 @@ const CreateEntryInput = ({
           </div>
           <button
             type="button"
-            onClick={() => handleAdd(content)}
-            disabled={loading || !content.trim()}
+            onClick={() => add(textAreaValue, { title: titleAreaValue })}
+            disabled={loading || !textAreaValue.trim()}
             className="flex aspect-square w-1/5 items-center justify-center bg-black transition-colors disabled:opacity-50"
           >
             <img src="/icons/plus-icon-light.svg" alt="plus" className="w-6" />
           </button>
         </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="mt-2 text-red-500">
-            {error}
-          </div>
-        )}
-
-        {/* Loading Indicator */}
-        {loading && (
-          <div className="w-full py-2 text-center">
-            Adding entry...
-          </div>
-        )}
-      </div>
-
-      {/* Debug Info */}
-      <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
-        <h3 className="mb-2 font-semibold">Debug Info:</h3>
-        <pre className="whitespace-pre-wrap">
-          {JSON.stringify(debugInfo, null, 2)}
-        </pre>
       </div>
     </>
   );
