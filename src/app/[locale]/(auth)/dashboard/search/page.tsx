@@ -322,7 +322,7 @@ const Search = () => {
   };
 
   return (
-    <div className="max-w-screen-md mx-auto my-8">
+    <div className="mx-auto my-8 max-w-screen-md">
       {isSearchClient ? (
         <InstantSearch
           searchClient={isSearchClient}
@@ -442,7 +442,7 @@ const Search = () => {
             <div className="flex flex-row">
               <button
                 type="button"
-                className="w-24 aspect-square border-l border-black hover:bg-black hover:text-white"
+                className="aspect-square w-24 border-l border-black hover:bg-black hover:text-white"
                 onClick={async () => {
                   const query = (
                     document.getElementById('search-input') as HTMLInputElement
@@ -465,7 +465,7 @@ const Search = () => {
                     '_blank',
                   );
                 }}
-                className="w-24 aspect-square border-l border-black hover:bg-black hover:text-white"
+                className="aspect-square w-24 border-l border-black hover:bg-black hover:text-white"
               >
                 Web Search
               </button>
@@ -501,7 +501,8 @@ const Search = () => {
                         {result.parentData ? (
                           <>
                             <div className="mr-2 flex size-6 shrink-0 items-center justify-center rounded-full bg-gray-300 text-xs font-bold text-white">
-                              {firstLastName.firstName && firstLastName.lastName ? (
+                              {firstLastName.firstName &&
+                              firstLastName.lastName ? (
                                 <>
                                   {firstLastName.firstName[0]}
                                   {firstLastName.lastName[0]}

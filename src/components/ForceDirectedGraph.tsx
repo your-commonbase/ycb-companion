@@ -21,12 +21,10 @@ import UrlSVG from './UrlSVG';
 interface ForceDirectedGraphProps {
   data: any;
   onExpand: (id: string, initNodeData: string | null) => void;
-  onAddComment: (comment: string, parent: any) => void;
   isGraphLoading: boolean;
   graphNodes: any[];
   setGraphNodes: Dispatch<SetStateAction<any[]>>;
   currentIndex: number | null;
-  setCurrentIndex: Dispatch<SetStateAction<number | null>>;
   showModal: boolean;
   setShowModal: Dispatch<SetStateAction<boolean>>;
 }

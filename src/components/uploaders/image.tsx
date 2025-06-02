@@ -10,17 +10,9 @@ import ImageUpload from '../ImageUpload';
 
 interface UploaderProps {
   closeModal: () => void;
-  textDefault: string;
-  titleDefault: string;
-  authorDefault: string;
 }
 
-const Uploader = ({
-  closeModal,
-  textDefault,
-  titleDefault,
-  authorDefault,
-}: UploaderProps) => {
+const Uploader = ({ closeModal }: UploaderProps) => {
   const router = useRouter();
 
   const handleUploadComplete = (result: any) => {

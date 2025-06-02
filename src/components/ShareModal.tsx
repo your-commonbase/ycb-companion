@@ -444,10 +444,7 @@ export default function Share({
           </Link>
         )}
 
-        <button
-          type="button"
-          style={{ marginLeft: '8px' }}
-        >
+        <button type="button" style={{ marginLeft: '8px' }}>
           close
         </button>
       </Modal>

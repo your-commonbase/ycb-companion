@@ -691,7 +691,9 @@ export default function Thread({ inputId }: { inputId: string }) {
   const [parent, setParent] = useState<Entry | null>(null);
   const [neighbors, setNeighbors] = useState<{ [key: string]: Entry[] }>({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<FuseResultWithMatches[]>([]);
+  const [searchResults, setSearchResults] = useState<FuseResultWithMatches[]>(
+    [],
+  );
   const [fetchedEntries, setFetchedEntries] = useState<{
     [key: string]: Entry;
   }>({});

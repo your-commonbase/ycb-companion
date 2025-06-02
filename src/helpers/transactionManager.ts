@@ -49,7 +49,6 @@ export class TransactionManager {
 
       // Execute transactions sequentially to handle dependencies
       for (const { transaction } of sortedTransactions) {
-
         // eslint-disable-next-line no-await-in-loop
         await transaction(context);
       }

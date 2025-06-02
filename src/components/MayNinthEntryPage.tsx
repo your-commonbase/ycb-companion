@@ -23,7 +23,6 @@ import { Tweet } from 'react-tweet';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
-  addEntry,
   // createAmalgam,
   deleteEntry as apiDeleteEntry,
   fetchByID,
@@ -1158,35 +1157,35 @@ const EntryPage = () => {
   };
 
   // add a comment to the specified parent and update it
-  const handleAddCommentGraph = async (comment: string, parent: any) => {
-    // add the comment to the parent's aliasData
+  // const handleAddCommentGraph = async (comment: string, parent: any) => {
+  //   // add the comment to the parent's aliasData
 
-    const commentRes = await addEntry(comment, {
-      author: parent.author,
-      title: parent.title,
-      parent_id: parent.id,
-    });
+  //   const commentRes = await addEntry(comment, {
+  //     author: parent.author,
+  //     title: parent.title,
+  //     parent_id: parent.id,
+  //   });
 
-    const addedComment = commentRes.respData;
+  //   const addedComment = commentRes.respData;
 
-    // update parent aliasIds and aliasData
-    const parentRes = await fetchByID(parent.id);
+  //   // update parent aliasIds and aliasData
+  //   const parentRes = await fetchByID(parent.id);
 
-    // append to parentRes metadata alias ids
-    let parentMetadata = parentRes.metadata;
-    try {
-      parentMetadata = parentRes.metadata;
-    } catch (err) {
-      console.error('Error parsing parent metadata:', err);
-    }
-    if (parentMetadata.alias_ids) {
-      parentMetadata.alias_ids = [...parentMetadata.alias_ids, addedComment.id];
-    } else {
-      parentMetadata.alias_ids = [addedComment.id];
-    }
+  //   // append to parentRes metadata alias ids
+  //   let parentMetadata = parentRes.metadata;
+  //   try {
+  //     parentMetadata = parentRes.metadata;
+  //   } catch (err) {
+  //     console.error('Error parsing parent metadata:', err);
+  //   }
+  //   if (parentMetadata.alias_ids) {
+  //     parentMetadata.alias_ids = [...parentMetadata.alias_ids, addedComment.id];
+  //   } else {
+  //     parentMetadata.alias_ids = [addedComment.id];
+  //   }
 
-    await apiUpdateEntry(parent.id, parent.content, parentMetadata);
-  };
+  //   await apiUpdateEntry(parent.id, parent.content, parentMetadata);
+  // };
 
   const [fData, setFData] = useState<any>({
     neighbors: [],
@@ -2312,11 +2311,9 @@ again:
               data={fData}
               onExpand={handleExpand}
               isGraphLoading={isGraphLoading}
-              onAddComment={handleAddCommentGraph}
               graphNodes={graphNodes}
               setGraphNodes={setGraphNodes}
               currentIndex={currentIndex}
-              setCurrentIndex={setCurrentIndex}
               showModal={showModal}
               setShowModal={setShowModal}
             />

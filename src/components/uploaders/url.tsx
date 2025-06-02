@@ -8,17 +8,9 @@ import { useState } from 'react';
 
 interface UploaderProps {
   closeModal: () => void;
-  textDefault: string;
-  titleDefault: string;
-  authorDefault: string;
 }
 
-const Uploader = ({
-  closeModal,
-  textDefault,
-  titleDefault,
-  authorDefault,
-}: UploaderProps) => {
+const Uploader = ({ closeModal }: UploaderProps) => {
   // const { user, isLoaded } = useUser();
   const router = useRouter();
   const [author, setAuthor] = useState('');

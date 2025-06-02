@@ -335,12 +335,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
           >
             Share
           </h2>
-          <ShareUploader
-            closeModal={closeFastEntryModal}
-            textDefault={shareParam}
-            titleDefault=""
-            authorDefault="https://yourcommonbase.com/dashboard"
-          />
+          <ShareUploader closeModal={closeFastEntryModal} textDefault="" />
         </Modal>
       )}
       <SpeedDial onOpenModal={onOpenModal} openRandom={handleRandom} />

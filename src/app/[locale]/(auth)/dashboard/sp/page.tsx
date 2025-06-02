@@ -48,7 +48,7 @@ export default function StarterPackUploader() {
     worker.postMessage({ file: base64ToArrayBuffer(dataURI), apiKey });
 
     worker.onmessage = async (e) => {
-      const { success, data, error } = e.data;
+      const { success, data } = e.data;
       if (success) {
         try {
           const response = await fetch('/api/add', {
@@ -73,11 +73,11 @@ export default function StarterPackUploader() {
           if (!responseData) {
             throw new Error('No data received from server');
           }
-        } catch (error) {
-          console.error('Error uploading image:', error);
+        } catch (err) {
+          console.error('Error uploading image:', err);
         }
       } else {
-        console.error('Error:', error);
+        console.error('Error:', e.data.error);
       }
     };
   };
@@ -120,8 +120,8 @@ export default function StarterPackUploader() {
             if (!responseData) {
               throw new Error('No data received from server');
             }
-          } catch (error) {
-            console.error('Error uploading entry:', error);
+          } catch (err) {
+            console.error('Error uploading entry:', err);
             // Consider adding error handling UI feedback here
           }
         }

@@ -9,16 +9,9 @@ import { useEffect, useState } from 'react';
 interface UploaderProps {
   closeModal: () => void;
   textDefault: string;
-  titleDefault: string;
-  authorDefault: string;
 }
 
-const Uploader = ({
-  closeModal,
-  textDefault,
-  titleDefault,
-  authorDefault,
-}: UploaderProps) => {
+const Uploader = ({ closeModal, textDefault }: UploaderProps) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [shareYCBLoadingPct, setShareYCBLoadingPct] = useState(0);
@@ -119,7 +112,7 @@ const Uploader = ({
             },
           }),
         });
-        const zaddrData = await zresponse.json();
+        await zresponse.json();
       }
     };
 

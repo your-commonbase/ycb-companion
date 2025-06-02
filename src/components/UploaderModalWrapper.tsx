@@ -26,10 +26,9 @@
 
 import Modal from 'react-modal';
 
-import Uploader from './Uploader';
 import ImageUploader from './uploaders/image';
 import ShareUploader from './uploaders/share';
-import TextUploader from './uploaders/text';
+import Uploader from './uploaders/text';
 import URLUploader from './uploaders/url';
 
 const UploaderModal = ({
@@ -81,12 +80,7 @@ const UploaderModal = ({
           >
             URL Entry
           </h2>
-          <URLUploader
-            closeModal={closeModalFn}
-            textDefault=""
-            titleDefault=""
-            authorDefault="https://yourcommonbase.com/dashboard"
-          />
+          <URLUploader closeModal={closeModalFn} />
         </>
       )}
       {type === 'image' && (
@@ -97,12 +91,7 @@ const UploaderModal = ({
           >
             Image Entry
           </h2>
-          <ImageUploader
-            closeModal={closeModalFn}
-            textDefault=""
-            titleDefault=""
-            authorDefault="https://yourcommonbase.com/dashboard"
-          />
+          <ImageUploader closeModal={closeModalFn} />
         </>
       )}
       {type === 'share' && (
@@ -113,12 +102,7 @@ const UploaderModal = ({
           >
             URL Entry
           </h2>
-          <ShareUploader
-            closeModal={closeModalFn}
-            textDefault=""
-            titleDefault=""
-            authorDefault="https://yourcommonbase.com/dashboard"
-          />
+          <ShareUploader closeModal={closeModalFn} textDefault="" />
         </>
       )}
       {type === 'text' && (
@@ -129,7 +113,7 @@ const UploaderModal = ({
           >
             Text Entry
           </h2>
-          <TextUploader
+          <Uploader
             closeModal={closeModalFn}
             textDefault=""
             titleDefault=""
