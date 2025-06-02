@@ -46,7 +46,6 @@ const CallAndResponse: React.FC<Props> = ({
       author: 'https://ycb-companion.onrender.com/dashboard',
     };
     if (!focused) {
-      console.log('adding new entry');
       const data = text;
       const response = await addEntry(data, metadata);
 
@@ -56,11 +55,8 @@ const CallAndResponse: React.FC<Props> = ({
         autoAddInstance();
         setInstanceAdded(true);
       }
-      console.log('response:', response);
-      console.log('response.respData:', response.respData);
       return response.respData;
     }
-    console.log('focused:', focused);
     let inputMetadata = focused.metadata;
     try {
       inputMetadata =
@@ -71,7 +67,6 @@ const CallAndResponse: React.FC<Props> = ({
       // no-op
     }
 
-    console.log('inputMetadata:', inputMetadata);
     if (inputMetadata && 'parent_id' in inputMetadata) {
       const parentId = inputMetadata.parent_id;
       (metadata as any).parent_id = parentId;
@@ -84,11 +79,8 @@ const CallAndResponse: React.FC<Props> = ({
     const response = await addEntry(data, metadata);
     const childId = response.respData.id;
 
-    console.log('childid:', childId);
-
     // Update the parent entry
     const parentId = (metadata as any).parent_id;
-    console.log('parentId:', parentId);
     const parentEntry = await fetchByID(parentId);
     let parentEntryMetadata = parentEntry.metadata;
     try {
@@ -170,9 +162,7 @@ const CallAndResponse: React.FC<Props> = ({
     });
 
     if (allEntries.length === 0) {
-      const responseEntry = await handleAdd(null);
-      console.log('responseEntry:', responseEntry);
-      console.log('sessionStarter:', responseEntry);
+      await handleAdd(null);
     } else {
       const sessionStarter = allEntries[0];
       await handleAdd(sessionStarter!);

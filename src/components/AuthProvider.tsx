@@ -13,7 +13,6 @@ export default function AuthProvider({
   useEffect(() => {
     const renew = async () => {
       try {
-        console.log('authprovider useeffect');
         await userManager.signinSilent();
         const user = await userManager.getUser();
         const currentTime = Math.floor(Date.now() / 1000);
@@ -27,12 +26,9 @@ export default function AuthProvider({
       }
     };
 
-    console.log('[authprovider] userManager:', userManager);
-
     userManager.events.addAccessTokenExpiring(renew);
     userManager.events.addAccessTokenExpired(renew);
     userManager.events.addUserLoaded((user) => {
-      console.log('userManager.events.addUserLoaded:', user);
       Cookies.set('user', JSON.stringify(user));
     });
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface TextEntryProps {
   value: string;
@@ -13,7 +13,7 @@ const TextEntry = ({
   value,
   onChange,
   disabled = false,
-  placeholder = 'Write your thoughts here...'
+  placeholder = 'Write your thoughts here...',
 }: TextEntryProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -45,4 +45,4 @@ const TextEntry = ({
   );
 };
 
-export default TextEntry; 
+export default TextEntry;

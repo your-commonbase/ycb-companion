@@ -319,10 +319,6 @@ export async function getPageTitle(url: string) {
 
 export const updateEntry = async (id: string, data: string, metadata: any) => {
   try {
-    console.log('metadata:', metadata);
-    console.log('metadata type:', typeof metadata);
-    console.log('id:', id);
-    console.log('data:', data);
     const response = await fetch('/api/update', {
       method: 'POST',
       headers: {
@@ -336,7 +332,6 @@ export const updateEntry = async (id: string, data: string, metadata: any) => {
     });
     const responseData = await response.json();
 
-    console.log('Updated entry:', responseData);
     return responseData;
   } catch (error) {
     console.error('Error updating entry:', error);
@@ -346,10 +341,8 @@ export const updateEntry = async (id: string, data: string, metadata: any) => {
 
 export const handleAliasAdd = async (entry: any) => {
   try {
-    console.log('entry [handleAliasAdd]:', entry);
     const parentId = entry.id;
     const parentEntry = await fetchByID(parentId);
-    console.log('parentEntry:', parentEntry);
     let parentAliases = parentEntry.metadata.alias_ids;
     try {
       parentAliases = JSON.parse(parentEntry.metadata).alias_ids;
@@ -364,14 +357,12 @@ export const handleAliasAdd = async (entry: any) => {
       parent_id: parentId,
     };
     const aliasRes = await addEntry(entry.alias, newMetadata);
-    console.log('aliasRes:', aliasRes);
     const aliasId = aliasRes.respData.id;
     // update the original entry's metadata with the new alias id in the alias_ids array
     const updatedMetadata = {
       ...entry.metadata,
       alias_ids: parentAliases ? [parentAliases, aliasId].flat() : [aliasId],
     };
-    console.log('updatedMetadata:', updatedMetadata);
     await updateEntry(parentId, entry.data.data, updatedMetadata);
 
     return aliasRes;
@@ -538,14 +529,11 @@ export const fetchList = async (
           aliasIds.includes(Number(searchResult.id)),
         );
         if (index !== -1) {
-          console.log('splice:', updatedEntries[entryIdx]);
-
           updatedEntries.splice(entryIdx, 1);
         }
       }
     });
 
-    console.log('updatedEntries:', updatedEntries);
     // Return updated entries immediately
     setSearchResults(updatedEntries);
 

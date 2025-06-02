@@ -57,33 +57,40 @@ const CustomHit = ({ hit }: any) => {
               <span
                 className="font-normal"
                 dangerouslySetInnerHTML={{
-                  __html: hit._highlightResult.data.value,
+                  __html: hit.highlightResult?.data?.value || '',
                 }}
               />
             </div>
           </Link>
-          {hit._highlightResult.metadata.author && (
+          {hit.highlightResult?.metadata?.author && (
             <>
               <span>Author: </span>
-              <span
+              <button
+                type="button"
                 className="font-normal text-gray-500 underline hover:text-blue-600"
                 dangerouslySetInnerHTML={{
-                  __html: hit._highlightResult.metadata.author.value,
+                  __html: hit.highlightResult.metadata.author.value,
                 }}
                 onClick={() => {
                   window.open(hit.metadata.author, '_blank');
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    window.open(hit.metadata.author, '_blank');
+                  }
+                }}
+                aria-label={`Open author link: ${hit.highlightResult.metadata.author.value}`}
               />
               <br />
             </>
           )}
-          {hit._highlightResult.metadata.title && (
+          {hit.highlightResult?.metadata?.title && (
             <>
               <span>Title: </span>
               <span
                 className="font-normal text-gray-500"
                 dangerouslySetInnerHTML={{
-                  __html: hit._highlightResult.metadata.title.value,
+                  __html: hit.highlightResult.metadata.title.value,
                 }}
               />
             </>
@@ -128,7 +135,6 @@ const Search = () => {
 
   const handleSearch = async (entryData: string, _: string) => {
     const parsedEntries = await handleSearchHelper(entryData);
-    console.log(`setting to ${parsedEntries}`);
     setSearchResults(parsedEntries);
   };
 
@@ -172,7 +178,7 @@ const Search = () => {
 
       setSearchClient(searchClient);
     } catch (err) {
-      console.error('Error fetching search token:', err);
+      // Handle error silently
     }
   };
 
@@ -209,7 +215,15 @@ const Search = () => {
       result.author &&
       result.author.includes('imagedelivery.net')
     ) {
-      return <img src={result.author} alt="Image" />;
+      return (
+        <Image
+          src={result.author}
+          alt="Content"
+          width={500}
+          height={300}
+          className="object-contain"
+        />
+      );
     }
 
     if (result && result.code) {
@@ -250,7 +264,15 @@ const Search = () => {
       result.metadata.author &&
       result.metadata.author.includes('imagedelivery.net')
     ) {
-      return <img src={result.metadata.author} alt="Image" />;
+      return (
+        <Image
+          src={result.metadata.author}
+          alt="Content"
+          width={500}
+          height={300}
+          className="object-contain"
+        />
+      );
     }
 
     if (result.metadata && result.metadata.code) {
@@ -293,7 +315,7 @@ const Search = () => {
     if (searchResults.length > 0) {
       setSearchResults([]);
     }
-  }, [inputValue]);
+  }, [inputValue, searchResults.length]);
 
   const setSemanticSearchResults = () => {
     setSearchResults([]);
@@ -316,9 +338,7 @@ const Search = () => {
                 className="mb-2 me-2 w-full rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-800 hover:text-white focus:outline-none focus:ring-4 focus:ring-gray-300"
                 onClick={async () => {
                   const query = (
-                    document.getElementById(
-                      'search-input',
-                    ) as HTMLInputElement
+                    document.getElementById('search-input') as HTMLInputElement
                   ).value;
                   if (!query) {
                     return;
@@ -348,8 +368,7 @@ const Search = () => {
                     {result.parentData ? (
                       <>
                         <div className="mr-2 flex size-6 shrink-0 items-center justify-center rounded-full bg-gray-300 text-xs font-bold text-white">
-                          {firstLastName.firstName &&
-                          firstLastName.lastName ? (
+                          {firstLastName.firstName && firstLastName.lastName ? (
                             <>
                               {firstLastName.firstName[0]}
                               {firstLastName.lastName[0]}
@@ -409,7 +428,7 @@ const Search = () => {
       ) : (
         <div>
           <div className="flex flex-row items-center border border-black">
-            <div className="h-full w-full p-2">
+            <div className="size-full p-2">
               <input
                 id="search-input"
                 onChange={(e) => setInputValue(e.target.value)}
@@ -426,9 +445,7 @@ const Search = () => {
                 className="w-24 aspect-square border-l border-black hover:bg-black hover:text-white"
                 onClick={async () => {
                   const query = (
-                    document.getElementById(
-                      'search-input',
-                    ) as HTMLInputElement
+                    document.getElementById('search-input') as HTMLInputElement
                   ).value;
                   if (!query) {
                     return;
@@ -484,8 +501,7 @@ const Search = () => {
                         {result.parentData ? (
                           <>
                             <div className="mr-2 flex size-6 shrink-0 items-center justify-center rounded-full bg-gray-300 text-xs font-bold text-white">
-                              {firstLastName.firstName &&
-                              firstLastName.lastName ? (
+                              {firstLastName.firstName && firstLastName.lastName ? (
                                 <>
                                   {firstLastName.firstName[0]}
                                   {firstLastName.lastName[0]}

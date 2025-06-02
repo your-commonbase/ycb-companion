@@ -21,14 +21,9 @@ const Uploader = ({
   titleDefault,
   authorDefault,
 }: UploaderProps) => {
-  console.log('[img] textDefault:', textDefault);
-  console.log('[img] titleDefault:', titleDefault);
-  console.log('[img] authorDefault:', authorDefault);
-
   const router = useRouter();
 
   const handleUploadComplete = (result: any) => {
-    console.log('Upload complete:', result);
     router.push(`/dashboard/entry/${result.id}`);
   };
 

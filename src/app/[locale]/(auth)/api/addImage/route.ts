@@ -17,7 +17,6 @@ export async function POST(request: NextRequest) {
   try {
     const contentType = request.headers.get('content-type') || '';
     if (!contentType.includes('multipart/form-data')) {
-      console.log('invalid content-type:', contentType);
       return NextResponse.json(
         { error: 'Invalid content type' },
         { status: 400 },
@@ -34,7 +33,6 @@ export async function POST(request: NextRequest) {
         entries.push([key, value]);
       }
     }
-    console.log('formData entries:', entries);
 
     const fileField = formData.get('file');
     if (!fileField) {

@@ -40,7 +40,6 @@ export class TransactionManager {
   async executeTransactions() {
     try {
       // Sort transactions based on dependencies
-      console.log('Transactions prior to sorting:', this.transactions);
       const sortedTransactions = this.sortTransactionsByDependencies();
 
       const context: TransactionContext = {
@@ -48,11 +47,8 @@ export class TransactionManager {
         errorLog: this.errorLog,
       };
 
-      console.log('Sorted Transactions:', sortedTransactions);
-
       // Execute transactions sequentially to handle dependencies
       for (const { transaction } of sortedTransactions) {
-        console.log('Transaction:', context);
 
         // eslint-disable-next-line no-await-in-loop
         await transaction(context);
@@ -83,19 +79,13 @@ export class TransactionManager {
       transaction: Transaction;
       options: TransactionOptions;
     }) => {
-      console.log('Visiting transaction:', tx);
-      console.log('tx to str:', JSON.stringify(tx));
-      console.log('Visited transactions:', visited);
       if (visited.has(JSON.stringify(tx))) {
-        console.log('Visited transaction:', tx);
         return;
       }
       visited.add(JSON.stringify(tx));
 
       if (tx.options.dependencies) {
-        console.log('tx.options.dependencies:', tx.options.dependencies);
         for (const dep of tx.options.dependencies) {
-          console.log('dep:', dep);
           const depTx = this.transactions.find((t) => t.options.tempId === dep);
           if (depTx) {
             visit(depTx);

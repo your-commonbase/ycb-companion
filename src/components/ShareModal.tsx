@@ -234,7 +234,6 @@ const replaceImagesWithBase64 = async (json: any) => {
     );
   }
 
-  console.log('modifiedJsonWithImages:', modifiedJsonWithImages);
   return modifiedJsonWithImages;
 };
 
@@ -245,7 +244,6 @@ export default function Share({
   entryId,
 }: any) {
   const [checkedNodes, setCheckedNodes] = useState<any>({});
-  const [modalOpen, setModalOpen] = useState(true);
   const [showShareButton, setShowShareButton] = useState(true);
 
   const { user, isLoaded } = useUser();
@@ -253,10 +251,6 @@ export default function Share({
     firstName: '',
     lastName: '',
   });
-
-  useEffect(() => {
-    console.log(modalOpen);
-  }, [modalOpen]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -316,7 +310,6 @@ export default function Share({
   assignIds(originalData);
 
   useEffect(() => {
-    console.log('originalData:', originalData);
     const initChecked: any = {};
     function markAllChecked(node: any) {
       if (node && typeof node === 'object') {
@@ -408,7 +401,6 @@ export default function Share({
       },
     })
       .then((response) => response.json())
-      .then((data) => console.log(data))
       .catch((error) => console.error('Error:', error));
   };
 
@@ -454,7 +446,6 @@ export default function Share({
 
         <button
           type="button"
-          onClick={() => setModalOpen(false)}
           style={{ marginLeft: '8px' }}
         >
           close

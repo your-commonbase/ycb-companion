@@ -42,7 +42,6 @@ const replaceImagesWithBase64 = async (entry: any, comments: any[] = []) => {
     modifiedJsonWithImages.comments = comments;
   }
 
-  console.log('modifiedJsonWithImages:', modifiedJsonWithImages);
   return modifiedJsonWithImages;
 };
 
@@ -79,7 +78,6 @@ export default function Share({
 
   const handleDownload = async () => {
     // replace any images in json with b64 strings
-    console.log('comments:', comments);
     const modifiedJsonWithImages = await replaceImagesWithBase64(
       entry,
       comments,
@@ -125,8 +123,6 @@ export default function Share({
     if (includeComments) {
       body.comments = modifiedJsonWithImages.comments;
     }
-
-    console.log('body:', body);
 
     fetch('https://share-ycbs.onrender.com/api/add', {
       // todo https://share-ycbs.onrender.com

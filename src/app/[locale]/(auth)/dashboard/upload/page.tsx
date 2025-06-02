@@ -74,9 +74,8 @@ const Upload = () => {
         metadata,
       }),
     });
-    const responseData = await response.json();
+    await response.json();
 
-    console.log('Added entry:', responseData);
     // clear input fields
     setTextAreaValue('');
   };
@@ -101,7 +100,6 @@ const Upload = () => {
         worker.onmessage = (e) => {
           const { success, data, error } = e.data;
           if (success) {
-            console.log('Image description:', data);
             add(data.data, {
               author: data.metadata.imageUrl,
               title: 'Image',

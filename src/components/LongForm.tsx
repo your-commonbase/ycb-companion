@@ -23,11 +23,8 @@ const LongForm = () => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const handleSave = async () => {
-    console.log('heading:', heading);
-    console.log('content:', content);
     // // split the content into paragraphs
     const paragraphs = content.split('\n\n');
-    console.log('paragraphs:', paragraphs);
 
     // add the heading as entry and get the id
     const metadata = {
@@ -36,7 +33,6 @@ const LongForm = () => {
     };
     setLoading(true);
     const parentEntry = await addEntry(heading, metadata);
-    console.log('entry:', parentEntry);
     const parentId = parentEntry.respData.id;
 
     // add the paragraphs as entries and get the ids
@@ -47,11 +43,9 @@ const LongForm = () => {
           title,
           parent_id: parentId,
         });
-        console.log('alias entry:', entry);
         return entry.respData.id;
       }),
     );
-    console.log('paragraphsIds:', paragraphsIds);
 
     // update the parent entry with the paragraphs ids
     await updateEntry(parentId, heading, {
@@ -115,7 +109,6 @@ const LongForm = () => {
           }
 
           const data = await response.json();
-          console.log('Transcribe response:', data);
 
           if (data && data.data && data.data.transcription) {
             setTranscription(data.data.transcription);
@@ -131,7 +124,6 @@ const LongForm = () => {
 
         // Create a URL for the audio blob and set it to state
         const audioUrlRes = URL.createObjectURL(audioBlob);
-        console.log('audioUrlRes:', audioUrlRes);
         setAudioUrl(audioUrlRes);
         setLoading(false);
       };
@@ -143,7 +135,6 @@ const LongForm = () => {
   };
 
   // const handlePlayAudio = () => {
-  //   console.log('audioUrl click:', audioUrl);
   //   if (audioUrl) {
   //     const audio = new Audio(audioUrl);
   //     audio.play().catch((error) => {

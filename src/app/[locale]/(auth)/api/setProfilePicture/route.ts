@@ -1,5 +1,4 @@
 // Import the cookies utility
-import console from 'console';
 import { NextResponse } from 'next/server';
 
 import { getAccessToken } from '@/utils/getAccessToken';
@@ -17,7 +16,6 @@ export const POST = async (request: Request) => {
 
   const contentType = request.headers.get('content-type') || '';
   if (!contentType.includes('multipart/form-data')) {
-    console.log('invalid content-type:', contentType);
     return NextResponse.json(
       { error: 'Invalid content type' },
       { status: 400 },
@@ -58,8 +56,6 @@ export const POST = async (request: Request) => {
     },
     body: forwardForm,
   });
-
-  console.log('proxyRes:', proxyRes);
 
   const data = await proxyRes.json();
   return NextResponse.json(data, { status: proxyRes.status });

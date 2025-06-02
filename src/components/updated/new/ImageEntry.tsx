@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import Image from 'next/image';
+import { useRef, useState } from 'react';
 
 interface ImageEntryProps {
   onImageSelect: (file: File) => void;
@@ -22,12 +23,19 @@ const ImageEntry = ({ onImageSelect, disabled = false }: ImageEntryProps) => {
     onImageSelect(file);
 
     // Cleanup preview URL when component unmounts
-    return () => URL.revokeObjectURL(objectUrl);
+    URL.revokeObjectURL(objectUrl);
   };
 
   const handleClick = () => {
     if (disabled) return;
     fileInputRef.current?.click();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
   };
 
   return (
@@ -42,15 +50,20 @@ const ImageEntry = ({ onImageSelect, disabled = false }: ImageEntryProps) => {
       />
       <div
         onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
         className={`flex cursor-pointer flex-col items-center ${
           disabled ? 'opacity-50' : ''
         }`}
       >
         {preview ? (
           <>
-            <img
+            <Image
               src={preview}
               alt="Preview"
+              width={192}
+              height={192}
               className="mb-2 max-h-48 object-contain"
             />
             <p className="text-sm text-gray-500">{fileName}</p>
@@ -68,4 +81,4 @@ const ImageEntry = ({ onImageSelect, disabled = false }: ImageEntryProps) => {
   );
 };
 
-export default ImageEntry; 
+export default ImageEntry;

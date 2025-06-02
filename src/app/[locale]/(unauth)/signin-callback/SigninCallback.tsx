@@ -12,8 +12,6 @@ export default function SigninCallback() {
 
   useEffect(() => {
     async function handleCallback() {
-      console.log('signinRedirectCallback');
-      console.log('callbackUrl:', searchParams.get('callbackUrl'));
       await userManager.signinCallback();
       const user = await userManager.getUser();
 

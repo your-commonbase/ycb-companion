@@ -217,8 +217,6 @@ const Entry = ({
                 submitButton.textContent = 'Loading...';
                 // disable button
                 submitButton.disabled = true;
-                console.log('id', id);
-                console.log('newData', newData);
                 const pmetadata: {
                   title: string;
                   author: string;

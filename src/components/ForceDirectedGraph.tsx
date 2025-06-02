@@ -34,12 +34,10 @@ interface ForceDirectedGraphProps {
 const ForceDirectedGraph: React.FC<ForceDirectedGraphProps> = ({
   data,
   onExpand,
-  onAddComment,
   isGraphLoading,
   graphNodes,
   setGraphNodes,
   currentIndex,
-  setCurrentIndex,
   showModal,
   setShowModal,
 }) => {
@@ -56,11 +54,6 @@ const ForceDirectedGraph: React.FC<ForceDirectedGraphProps> = ({
   // hovered over main graph
   const [hovered, setHovered] = useState(false);
   const [showComments, setShowComments] = useState(false);
-
-  useEffect(() => {
-    console.log('currentIndex:', setCurrentIndex);
-    console.log(onAddComment);
-  }, []);
 
   // all node objects
   // const [graphNodes, setGraphNodes] = useState<any[]>([]);

@@ -20,10 +20,6 @@ const Uploader = ({
   authorDefault,
 }: UploaderProps) => {
   const router = useRouter();
-  console.log(textDefault);
-  console.log(titleDefault);
-  console.log(authorDefault);
-
   const [loading, setLoading] = useState(false);
   const [shareYCBLoadingPct, setShareYCBLoadingPct] = useState(0);
   const [shareYCBInput, setShareYCBInput] = useState(textDefault || '');
@@ -80,10 +76,7 @@ const Uploader = ({
       });
       const addrData = await yresponse.json();
       const parentId = addrData.respData.id;
-      console.log('addrData:', addrData);
       lastEntryId = addrData.respData.id;
-
-      console.log('lastEntryId', lastEntryId);
 
       const aliasIDs = [];
       for await (const comment of data.json.comments) {
@@ -127,7 +120,6 @@ const Uploader = ({
           }),
         });
         const zaddrData = await zresponse.json();
-        console.log('zaddrData:', zaddrData);
       }
     };
 
@@ -161,7 +153,6 @@ const Uploader = ({
               try {
                 setLoading(true);
                 const lastID = await uploadFromShareYCB(shareYCBInput);
-                console.log('lastID', lastID);
                 setLoading(false);
                 setShareYCBLoadingPct(0);
                 router.push(`/dashboard/entry/${lastID}`);

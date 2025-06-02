@@ -349,11 +349,6 @@ const SearchBox = () => {
         ? [...metadataJSON.links, { url, name }]
         : [{ url, name }];
 
-      console.log('metadataJSON:', metadataJSON);
-      console.log('metadataJSON.links:', metadataJSON.links);
-      console.log('data:', data);
-      console.log('id:', id);
-
       // update the entry with the new metadata
       await updateEntry(id, data, metadataJSON, false);
 

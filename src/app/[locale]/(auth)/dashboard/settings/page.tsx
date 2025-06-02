@@ -87,7 +87,6 @@ export default function SettingsPage() {
       },
     });
     const data = await res.json();
-    console.log('data:', data);
     return data.data;
   };
 
@@ -99,7 +98,6 @@ export default function SettingsPage() {
       },
     });
     const data = await res.json();
-    console.log('data:', data);
     return data.data;
   };
 
@@ -109,11 +107,6 @@ export default function SettingsPage() {
         const resPlan = await getPlan();
         const resMonthlyTextEntries = await getMonthlyTextEntries();
 
-        console.log('plan:', resPlan.plan);
-        console.log(
-          'monthlyTextEntries:',
-          resMonthlyTextEntries.monthlyStoreEntries.text,
-        );
         setPlan(resPlan.plan);
         setMonthlyTextEntries(resMonthlyTextEntries.monthlyStoreEntries.text);
       } catch (error) {

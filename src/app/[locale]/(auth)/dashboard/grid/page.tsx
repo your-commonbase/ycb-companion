@@ -30,7 +30,6 @@ import { useCallback, useState } from 'react';
 //   };
 
 //   const getValue = () => {
-//     console.log('textAreaRef.current?.value:', textAreaRef.current?.value);
 //     // return initial value if no change
 //     return textAreaRef.current?.value || metadata;
 //   };
@@ -68,8 +67,6 @@ const Grid = () => {
 
     const dataRes = await dataList.json();
     const { data } = dataRes;
-
-    console.log('Data received:', data);
 
     setGridApi(params.api);
 
@@ -191,7 +188,6 @@ const Grid = () => {
       }),
     })
       .then((response) => response.json())
-      .then((data) => console.log(data))
       .catch((error) => console.error('Error:', error));
   };
 
@@ -236,7 +232,6 @@ const Grid = () => {
             }),
           })
             .then((response) => response.json())
-            .then((data) => console.log(data))
             .then(() => gridApi.refreshInfiniteCache())
             .catch((error) => console.error('Error:', error));
         },
@@ -254,7 +249,6 @@ const Grid = () => {
         cellEditorPopup: true,
         editable: true,
         onCellValueChanged: (params: any) => {
-          console.log('changed params:', params);
           const { metadata } = params.data;
           let parsedMetadata = metadata;
           try {
@@ -274,7 +268,6 @@ const Grid = () => {
             }),
           })
             .then((response) => response.json())
-            .then((data) => console.log(data))
             .then(() => gridApi.refreshInfiniteCache())
             .catch((error) => console.error('Error:', error));
         },
@@ -319,7 +312,6 @@ const Grid = () => {
               }
               const selectedNodes = gridApi.getSelectedNodes();
               const selectedData = selectedNodes.map((node: any) => node.data);
-              console.log('selectedData:', selectedData);
               deleteEntry(selectedData[0].id);
               gridApi.refreshInfiniteCache();
             }}
@@ -351,7 +343,6 @@ const Grid = () => {
           type="button"
           onClick={() => {
             downloadEntries();
-            console.log('Downloading data...');
           }}
           disabled={isDownloading}
           className="mt-2 w-full rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"

@@ -27,7 +27,6 @@ export default function AuthLayout(props: {
   }
 
   userManager.events.addAccessTokenExpired(() => {
-    console.log('Access token expired -- silent renewing');
     userManager.signinSilent().catch(console.warn);
   });
 

@@ -118,7 +118,6 @@ const InstagramSaved = () => {
 
     // read the file contents as json
     const fileContents = await file.text();
-    console.log('File contents:', fileContents);
 
     try {
       // parse the JSON file contents
@@ -133,7 +132,6 @@ const InstagramSaved = () => {
 
       const fetchPromises = jsonData.saved_saved_media.map(
         async (item: any) => {
-          console.log('item:', item);
           const { title } = item;
           const { href } = item.string_map_data['Saved on'];
           const { timestamp } = item.string_map_data['Saved on'];
@@ -176,9 +174,6 @@ const InstagramSaved = () => {
             author: href,
           };
 
-          console.log('Adding data:', addData);
-          console.log('Adding metadata:', addMetadata);
-
           const xresponse = await fetch('/api/add', {
             method: 'POST',
             headers: {
@@ -191,7 +186,10 @@ const InstagramSaved = () => {
               duplicateCheck,
             }),
           });
-          console.log('Response:', xresponse);
+
+          if (!xresponse.ok) {
+            throw new Error(`Failed to add item: ${xresponse.statusText}`);
+          }
         },
       );
 

@@ -50,22 +50,32 @@ export default function StarterPackUploader() {
     worker.onmessage = async (e) => {
       const { success, data, error } = e.data;
       if (success) {
-        console.log('Image description:', data);
-
-        const response = await fetch('/api/add', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            data: data.data,
-            metadata: {
-              title: 'Image',
-              author: data.metadata.imageUrl,
+        try {
+          const response = await fetch('/api/add', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
             },
-          }),
-        });
-        console.log('responseEntry:', response);
+            body: JSON.stringify({
+              data: data.data,
+              metadata: {
+                title: 'Image',
+                author: data.metadata.imageUrl,
+              },
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const responseData = await response.json();
+          if (!responseData) {
+            throw new Error('No data received from server');
+          }
+        } catch (error) {
+          console.error('Error uploading image:', error);
+        }
       } else {
         console.error('Error:', error);
       }
@@ -89,19 +99,31 @@ export default function StarterPackUploader() {
         } else {
           setEntryBeingAdded(entry);
 
-          // Handle data upload
-          const response = await fetch('/api/add', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              data: entry.data,
-              metadata: entry.metadata,
-            }),
-          });
-          const responseData = await response.json();
-          console.log('responseData:', responseData);
+          try {
+            // Handle data upload
+            const response = await fetch('/api/add', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                data: entry.data,
+                metadata: entry.metadata,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+            if (!responseData) {
+              throw new Error('No data received from server');
+            }
+          } catch (error) {
+            console.error('Error uploading entry:', error);
+            // Consider adding error handling UI feedback here
+          }
         }
       }),
     );

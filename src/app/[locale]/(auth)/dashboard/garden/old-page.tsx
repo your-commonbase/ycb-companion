@@ -23,14 +23,12 @@ const GardenDaily = () => {
     async (id: string) => {
       const cachedAlias = cache.aliases[id];
       if (cachedAlias) {
-        // console.log('Returning cached alias:', cachedAlias);
         return { data: cachedAlias };
       }
 
       // TODO: this breaks w aliases updating and idk how to fix atm
       // const cachedParent = cache.parents[id];
       // if (cachedParent) {
-      //   // console.log('Returning cached parent:', cachedParent);
       //   return { data: cachedParent };
       // }
 
@@ -95,7 +93,6 @@ const GardenDaily = () => {
         body: JSON.stringify({ date: dateString }),
       });
       const responseData = await response.json();
-      // console.log('Fetched records:', responseData);
       // map over the response data and turn metadata into an object
       // set entries to the mapped data
 
@@ -197,7 +194,6 @@ const GardenDaily = () => {
       });
       const responseData = await response.json();
 
-      // console.log('Added entry:', responseData);
       return responseData;
     } catch (error) {
       console.error('Error adding entry:', error);
@@ -263,11 +259,6 @@ const GardenDaily = () => {
         ? [...metadataJSON.links, { url, name }]
         : [{ url, name }];
 
-      console.log('metadataJSON:', metadataJSON);
-      console.log('metadataJSON.links:', metadataJSON.links);
-      console.log('data:', data);
-      console.log('id:', id);
-
       // update the entry with the new metadata
       await updateEntry(id, data, metadataJSON, false);
 
@@ -310,7 +301,6 @@ const GardenDaily = () => {
   };
 
   const onDelve = async (data: string) => {
-    // console.log('Delving into:', data);
     const search = new URLSearchParams();
     search.set('q', data);
     router.push(`/dashboard?${search.toString()}`);

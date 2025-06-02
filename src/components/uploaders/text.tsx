@@ -37,7 +37,6 @@ const Uploader = ({
   useEffect(() => {
     // get plan from cookies
     const plan = Cookies.get('plan');
-    console.log('plan:', plan);
     if (plan) {
       setUserPlan(plan.replace(/"/g, ''));
     }
@@ -60,7 +59,6 @@ const Uploader = ({
 
     try {
       const metadata: Record<string, string> = {};
-      console.log('argMetadata:', argMetadata);
       for (const field of Object.keys(argMetadata)) {
         if (argMetadata[field] !== undefined) {
           metadata[field] = argMetadata[field]!;

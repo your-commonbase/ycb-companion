@@ -25,7 +25,7 @@ interface Entry {
 interface ThreadEntryProps {
   entry: Entry;
   neighbors: { [key: string]: Entry[] };
-  fetchNeighbors: (query: string, id: string) => void;
+  fetchNeighbors: (id: string) => void;
   idSet: React.MutableRefObject<Set<string>>;
   recordExpanded: (entry: Entry) => void;
   recordFetched: (entry: Entry) => void;
@@ -99,7 +99,7 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
     if (details.open) {
       recordExpanded(entry);
       if (!neighbors[entry.id]) {
-        fetchNeighbors(entry.data, entry.id);
+        fetchNeighbors(entry.id);
       }
       if (parentId && !parentCommentLoaded && !idSet.current.has(parentId)) {
         const parent = await fetch('/api/fetch', {
@@ -625,8 +625,6 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
               if (!aliasInput) return;
               const alias = (aliasInput as HTMLInputElement).value.trim();
               if (!alias) return;
-              console.log('alias:', alias);
-              console.log('parent:', entry.data);
               addComment(alias, {
                 id: entry.id,
                 data: entry.data,
@@ -692,20 +690,13 @@ interface FuseResultWithMatches {
 export default function Thread({ inputId }: { inputId: string }) {
   const [parent, setParent] = useState<Entry | null>(null);
   const [neighbors, setNeighbors] = useState<{ [key: string]: Entry[] }>({});
-  const [expandedEntries, setExpandedEntries] = useState<Entry[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<FuseResultWithMatches[]>(
-    [],
-  );
+  const [searchResults, setSearchResults] = useState<FuseResultWithMatches[]>([]);
   const [fetchedEntries, setFetchedEntries] = useState<{
     [key: string]: Entry;
   }>({});
   const idSet = useRef(new Set<string>());
   useAddQueueProcessor(); // kick off background processor
-
-  useEffect(() => {
-    console.log('expandedEntries:', expandedEntries);
-  }, [expandedEntries]);
 
   const recordFetched = (entry: Entry) => {
     setFetchedEntries((prev) => {
@@ -714,15 +705,11 @@ export default function Thread({ inputId }: { inputId: string }) {
     });
   };
 
-  const recordExpanded = (entry: Entry) => {
-    setExpandedEntries((prev) => {
-      if (prev.some((e) => e.id === entry.id)) return prev;
-      return [...prev, entry];
-    });
+  const recordExpanded = () => {
+    // No need to track expanded entries since we're not using this information
   };
-  const fetchNeighbors = async (query: string, id: string) => {
+  const fetchNeighbors = async (id: string) => {
     try {
-      console.log('fetching neighbors for', `${id} query: ${query}`);
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -754,7 +741,6 @@ export default function Thread({ inputId }: { inputId: string }) {
   //       recordFetched(entry);
   //     }
   //     setParent(entry);
-  //     setExpandedEntries([]);
   //     if (entry.comments && entry.comments.length) {
   //       const validComments = entry.comments.filter((comment: Entry) => {
   //         if (idSet.current.has(comment.id)) return false;
@@ -786,7 +772,6 @@ export default function Thread({ inputId }: { inputId: string }) {
           recordFetched(entry);
         }
         setParent(entry);
-        setExpandedEntries([]);
         if (entry.comments && entry.comments.length) {
           const validComments = entry.comments.filter((comment: Entry) => {
             if (idSet.current.has(comment.id)) return false;
@@ -796,7 +781,7 @@ export default function Thread({ inputId }: { inputId: string }) {
           });
           setNeighbors((prev) => ({ ...prev, [entry.id]: validComments }));
         }
-        fetchNeighbors(entry.data, entry.id);
+        fetchNeighbors(entry.id);
       } catch (error) {
         console.error('error fetching random:', error);
       }

@@ -43,7 +43,6 @@ export default function ImageUploader({
       });
       const json = await res.json();
 
-      console.log('metadata:', metadata);
       if (metadata.parent_id) {
         const parent = await fetchByID(metadata.parent_id);
         let parentResMetadata = parent.metadata;

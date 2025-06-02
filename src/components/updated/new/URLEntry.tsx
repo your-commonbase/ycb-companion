@@ -13,13 +13,12 @@ const URLEntry = ({
   value,
   onChange,
   onFetchMetadata,
-  disabled = false
+  disabled = false,
 }: URLEntryProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFetchMetadata = async () => {
     if (!value.trim()) return;
-    
     try {
       setIsLoading(true);
       await onFetchMetadata(value);
@@ -53,4 +52,4 @@ const URLEntry = ({
   );
 };
 
-export default URLEntry; 
+export default URLEntry;

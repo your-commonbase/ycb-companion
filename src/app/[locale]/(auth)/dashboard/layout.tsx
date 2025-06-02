@@ -260,7 +260,6 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
   //     },
   //   });
   //   const inboxCountData = await inboxCountResponse.json();
-  //   console.log('Inbox count:', inboxCountData);
   //   setInboxCount({
   //     data: {
   //       count: inboxCountData.data,

@@ -14,7 +14,6 @@ const Flow = () => {
 
   const updateAllEntries = (newEntry: any) => {
     setAllEntries((prevEntries: any) => {
-      console.log(prevEntries);
       const isDuplicate = prevEntries.some(
         (entry: any) => entry.id === newEntry.id,
       );

@@ -2,12 +2,10 @@
 
 self.onmessage = async (event) => {
   const { file } = event.data;
-  console.log('file:', file);
 
   try {
     const formData = new FormData();
     formData.append('audio', new Blob([file], { type: 'audio/m4a' }));
-    console.log('formData:', formData);
 
     // fetch from /api/transcribe
     const response = await fetch('/api/transcribe', {

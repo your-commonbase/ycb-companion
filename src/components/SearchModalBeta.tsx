@@ -152,7 +152,6 @@ const SearchModalBeta = ({
 
   const handleSearch = async (entryData: string, _: string) => {
     const parsedEntries = await handleSearchHelper(entryData);
-    console.log(`setting to ${parsedEntries}`);
     setSearchResults(parsedEntries);
   };
 
@@ -313,7 +312,6 @@ const SearchModalBeta = ({
   };
 
   const renderResultDataWMetaData = (result: any) => {
-    console.log('result:', result);
     if (
       result.metadata &&
       result.metadata.author &&

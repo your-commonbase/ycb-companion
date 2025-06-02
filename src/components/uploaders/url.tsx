@@ -19,9 +19,6 @@ const Uploader = ({
   titleDefault,
   authorDefault,
 }: UploaderProps) => {
-  console.log(textDefault);
-  console.log(titleDefault);
-  console.log(authorDefault);
   // const { user, isLoaded } = useUser();
   const router = useRouter();
   const [author, setAuthor] = useState('');
@@ -46,10 +43,6 @@ const Uploader = ({
     // };
 
     const metadata: Record<string, string> = {};
-    console.log('submitting:', {
-      url: data,
-      metadata,
-    });
     for (const field of Object.keys(argMetadata)) {
       if (argMetadata[field] !== undefined) {
         metadata[field] = argMetadata[field]!;

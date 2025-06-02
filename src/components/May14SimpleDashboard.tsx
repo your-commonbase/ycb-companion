@@ -142,7 +142,6 @@ const SimpleDashboard = () => {
       });
       const responseData = await response.json();
 
-      // console.log('Fetched records:', responseData);
       // set entries to the mapped data
       setEntries(responseData.data);
       setDateSelected(date);
@@ -257,17 +256,14 @@ const SimpleDashboard = () => {
         },
       });
       const data = await response.json();
-      console.log('data:', data);
       setCurrentPlan(data.data);
       const user = Cookies.get('user');
       if (user) {
         const userData = JSON.parse(user);
-        console.log('userData:', userData);
         const expiresAt = userData.expires_at;
 
         const currentTime = Math.floor(Date.now() / 1000);
         if (userData.expires_at! < currentTime) {
-          console.log('renewing');
           router.push('/signin-silent');
           return;
         }
@@ -276,8 +272,6 @@ const SimpleDashboard = () => {
         Cookies.set('plan', JSON.stringify(data.data.plan), {
           expires: expiresAt,
         });
-      } else {
-        console.log('no user');
       }
     };
     fetchPlan();
@@ -310,7 +304,6 @@ const SimpleDashboard = () => {
       });
       const responseData = await response.json();
 
-      // console.log('Fetched records:', responseData);
       // set entries to the mapped data
       setTodaysEntriesLength(responseData.data.length);
     };
@@ -971,12 +964,6 @@ const SimpleDashboard = () => {
                       className="inline-flex items-center rounded-full border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
                       onClick={() => {
                         // if entry is a youtube video, display the embed
-                        console.log(`show embed for ${entry.id}`);
-                        console.log(entry.metadata.author);
-                        console.log(
-                          entry.metadata.author.split('v=')[1]?.split('&')[0],
-                        );
-                        console.log(showLogEmbed);
                         setShowLogEmbed((prev) => ({
                           ...prev,
                           [entry.id]: true,

@@ -10,7 +10,6 @@ export const POST = async () => {
   const { CLOUD_URL } = process.env;
 
   const TOKEN = getAccessToken();
-  console.log(TOKEN); // Retrieve the token from cookies
 
   if (!TOKEN) {
     return NextResponse.json({ error: 'No token provided' }, { status: 401 });

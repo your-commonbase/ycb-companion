@@ -32,7 +32,6 @@ const oidcConfig = {
 const userManager = new UserManager(oidcConfig);
 
 userManager.events.addAccessTokenExpired(() => {
-  console.log('Access token expired');
   userManager
     .signinSilent()
     .then((user) => Cookies.set('user', JSON.stringify(user)))

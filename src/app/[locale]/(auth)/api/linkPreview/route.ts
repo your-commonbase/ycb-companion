@@ -15,13 +15,6 @@ export async function GET(request: NextRequest) {
     ? result.ogImage[0]?.url
     : result.ogImage || '';
 
-  console.log({
-    title: result.ogTitle || result.twitterTitle || '',
-    description: result.ogDescription || result.twitterDescription || '',
-    image: imageUrl || '',
-    domain: new URL(url).hostname.replace('www.', ''),
-  });
-
   return NextResponse.json({
     title: result.ogTitle || result.twitterTitle || '',
     description: result.ogDescription || result.twitterDescription || '',

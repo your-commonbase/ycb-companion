@@ -443,7 +443,6 @@ const EntryPage = () => {
         event.preventDefault();
         return 'leaving the page will discard your changes';
       }
-      console.log('not in draft state');
       return null;
     };
 
@@ -475,17 +474,10 @@ const EntryPage = () => {
     window.addEventListener('popstate', handlePopState);
     document.addEventListener('click', handleLinkClick);
 
-    console.log(
-      'Added event listeners for beforeunload, popstate, and link clicks',
-    );
-
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
       document.removeEventListener('click', handleLinkClick);
-      console.log(
-        'Removed event listeners for beforeunload, popstate, and link clicks',
-      );
     };
   }, [isInDraftState]);
 
@@ -509,11 +501,6 @@ const EntryPage = () => {
           }),
         });
         const cdnData = await cdnResp.json();
-        console.log('cdnData:', cdnData);
-        console.log('cdndata.data', cdnData.data);
-        console.log('cdndata.data.body', cdnData.data.body);
-        console.log('cdndata.data.body.urls', cdnData.data.body.urls);
-        console.log('cdndata.data.body.urls[id]', cdnData.data.body.urls[id]);
 
         setCdnImageUrl(
           cdnData.data.body.urls[id] ? cdnData.data.body.urls[id] : '',
@@ -526,7 +513,6 @@ const EntryPage = () => {
 
   // const handleAddComment = (aliasInput: string) => {
   //   if (!transactionManager || !data) return;
-  //   console.log('alias:', aliasInput);
 
   //   // Assign a temporary ID
   //   const tempAliasId = `temp-${uuidv4()}`;
@@ -575,7 +561,6 @@ const EntryPage = () => {
   //   //       (id: string) => id !== tempAliasId,
   //   //     ) || []),
   //   //   ];
-  //   //   console.log('updatedAliasIds:', updatedAliasIds);
 
   //   //   // remove aliasData from metadata
   //   //   delete data.metadata.aliasData;
@@ -598,8 +583,6 @@ const EntryPage = () => {
   // todo: implement image upload
   // const handleImageUploadComment = async (input: any, imageUrl: any) => {
   //   if (!transactionManager || !data) return;
-  //   console.log('input:', input);
-  //   console.log('imageUrl:', imageUrl);
   //   // Assign a temporary ID
   //   const tempAliasId = `temp-${uuidv4()}`;
 
@@ -670,7 +653,6 @@ const EntryPage = () => {
     // for each tempCommentIDs add a transaction
     for (const tempCommentId of tempCommentIDs) {
       const { tempAliasId, aliasInput, aliasImageUrl } = tempCommentId;
-      console.log('tempCommentId and aliasInput:', { tempAliasId, aliasInput });
       if (!aliasImageUrl) {
         transactionManager.addTransaction(
           createEntryTransaction(tempAliasId, aliasInput, {
@@ -715,7 +697,6 @@ const EntryPage = () => {
           (id: string) => !tempCommentIDs.includes(id),
         ) || []),
       ];
-      console.log('updatedAliasIds:', updatedAliasIds);
 
       // remove aliasData from metadata
       delete data.metadata.aliasData;
@@ -889,7 +870,6 @@ const EntryPage = () => {
 
     const handleLinkClick =
       (link: string | undefined) => (_: React.MouseEvent<HTMLSpanElement>) => {
-        // console.log('link:', link);
         if (!link) return;
 
         // Handle link click here, like opening a modal or navigating
@@ -1262,8 +1242,6 @@ const EntryPage = () => {
         (neighbor: any) => !existingNodeIds.includes(neighbor.id),
       );
 
-      console.log('newNeighbors', newNeighbors);
-
       // Update 'fData' with new neighbors
       setFData((prevData: any) => ({
         ...prevData,
@@ -1358,15 +1336,12 @@ const EntryPage = () => {
     const allEmbeddingsComplete = await checkEmbeddingsWithDelay(entry.id, 10);
 
     if (!allEmbeddingsComplete) {
-      console.log('Embeddings not complete after 10 tries -- try again later');
       alert('Failed to complete embeddings. Please try again later.');
       // Optionally, you can redirect the user or take other actions
       return;
     }
 
     const commentIDs = comments.map((comment: any) => comment.aliasId);
-
-    // console.log(entry)
 
     // Create a promise for neighbors
     // TODO im rolling over to a platform_id search
@@ -1502,7 +1477,6 @@ const EntryPage = () => {
     );
 
     if (!allEmbeddingsComplete) {
-      console.log('Embeddings not complete after 10 tries -- try again later');
       alert('Failed to complete embeddings. Please try again later.');
       // Optionally, you can redirect the user or take other actions
       return;
@@ -1684,11 +1658,7 @@ const EntryPage = () => {
       }));
 
       // reload graph
-      // console.log('reloading graph');
       // generateFData(data, data.metadata.aliasData);
-
-      // Optionally, update any other state or UI elements as needed
-      console.log('Entry updated successfully');
     } catch (error) {
       console.error('Failed to update entry:', error);
     } finally {
@@ -1745,7 +1715,6 @@ const EntryPage = () => {
         return;
       }
       await generateFData(data, data.metadata.aliasData);
-      // console.log('setting fdata:', fdata);
       // setFData(fdata);
     };
     asyncFn();
@@ -1975,7 +1944,6 @@ again:
               const alias = (aliasInput as HTMLInputElement).value;
               // if empty alias, do not add
               if (!alias || alias.trim() === '') {
-                console.log('empty alias');
                 return;
               }
               // handleAddComment(alias);
@@ -1999,7 +1967,6 @@ again:
             const alias = (aliasInput as HTMLInputElement).value;
             // if empty alias, do not add
             if (!alias || alias.trim() === '') {
-              console.log('empty alias');
               return;
             }
             // handleAddComment(alias);
@@ -2093,7 +2060,6 @@ again:
               worker.onmessage = (e) => {
                 const { success, data, error } = e.data;
                 if (success) {
-                  console.log('Image description:', data);
                   handleImageUploadComment(data.data, data.metadata.imageUrl);
                 } else {
                   console.error('Error uploading image:', error);

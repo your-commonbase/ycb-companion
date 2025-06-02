@@ -36,16 +36,12 @@ export const appendCache = (id: string, entry: any, isAlias: boolean) => {
 };
 
 export const invalidateCache = (id: string, isAlias: boolean) => {
-  console.log('Invalidating cache for:', id);
   const cache = getCache();
   if (isAlias) {
     delete cache.aliases[id];
-    console.log('Deleted alias:', id);
   } else {
     delete cache.parents[id];
   }
-
-  console.log('Cache after invalidation:', cache);
   setCache(cache);
 };
 

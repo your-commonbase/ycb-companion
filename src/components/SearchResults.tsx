@@ -127,15 +127,12 @@ const SearchResults = () => {
     }
     const searchQuery = query || textAreaValue;
 
-    console.log('Searching for:', searchQuery);
     setShowLoading(true);
     setSearchResults([]);
     setShowPieChart(false);
 
     // check if the query is in cache
     if (cache.searches[searchQuery]) {
-      console.log('Cache hit!');
-      console.log('cache.searches[searchQuery]:', cache.searches[searchQuery]);
       setSearchResults(cache.searches[searchQuery]);
       setShowLoading(false);
       return;
@@ -208,7 +205,6 @@ const SearchResults = () => {
         }),
       });
       const data = await response.json();
-      console.log('Entries summary:', data);
       setEntriesCreated(data.data.created);
       setEntriesUpdated(data.data.updated);
     } catch (error) {
@@ -229,7 +225,6 @@ const SearchResults = () => {
 
   useEffect(() => {
     const query = searchParams.get('query');
-    console.log('query:', query);
     if (query) {
       setTextAreaValue(query);
       handleSearch(query);
