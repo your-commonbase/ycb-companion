@@ -294,18 +294,19 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
       leftNav={
         <>
           <li className="border-none text-gray-700 hover:text-gray-900">
-            <Link href="/" className="border-none">
+            <Link href="/" className="border-none" prefetch={false}>
               Landing Page
             </Link>
           </li>
           <li>
-            <Link
-              href="/dashboard/"
-              className="border-none text-gray-700 hover:text-gray-900"
-              prefetch={false}
+            <button
+              // eslint-disable-next-line
+              onClick={() => (window.location.href = '/dashboard/')}
+              className="cursor-pointer border-none bg-transparent text-gray-700 hover:text-gray-900"
+              type="button"
             >
               {t('dashboard_link')}
-            </Link>
+            </button>
           </li>
           <li>
             <button onClick={toggleStore} className="border-none" type="button">

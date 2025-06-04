@@ -124,6 +124,7 @@ const GardenDaily = () => {
             <Link
               href={{ pathname: `/dashboard/entry/${result.id}` }}
               className="block"
+              prefetch={false}
             >
               <div className="flex items-center text-blue-600 hover:underline">
                 <Image

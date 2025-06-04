@@ -417,6 +417,7 @@ const SimpleDashboard = () => {
                     pathname: `/dashboard/entry/${entry.id}`,
                   }}
                   className="block text-gray-900 no-underline"
+                  prefetch={false}
                 >
                   <div className="relative">
                     {entry.metadata.author &&
