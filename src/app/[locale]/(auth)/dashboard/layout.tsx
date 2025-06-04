@@ -302,6 +302,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
             <Link
               href="/dashboard/"
               className="border-none text-gray-700 hover:text-gray-900"
+              prefetch={false}
             >
               {t('dashboard_link')}
             </Link>
