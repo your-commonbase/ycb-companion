@@ -285,7 +285,12 @@ export default function FeedPage() {
                   </span>
                 )}
               </div>
-              <div className="text-xs text-gray-400">ID: {currentEntry.id}</div>
+              <a
+                href={`/dashboard/entry/${currentEntry.id}`}
+                className="text-xs text-gray-400"
+              >
+                ID: {currentEntry.id}
+              </a>
             </div>
           </div>
 
@@ -333,14 +338,6 @@ export default function FeedPage() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Keyboard Shortcuts Help */}
-      <div className="fixed bottom-4 right-4 rounded-lg bg-white p-3 text-xs text-gray-500 shadow-lg">
-        <div className="font-semibold">Shortcuts:</div>
-        <div>Cmd+Enter: Submit comment</div>
-        <div>R: Next random entry</div>
-        <div>C: Focus comment box</div>
       </div>
     </div>
   );

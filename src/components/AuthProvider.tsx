@@ -2,7 +2,7 @@
 
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import userManager from '@/libs/oidc';
 
@@ -46,6 +46,83 @@ export default function AuthProvider({
   // }, []);
 
   const router = useRouter();
+  const tokenCheckInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Periodic token check - runs every 2 minutes
+  useEffect(() => {
+    const checkTokenExpiry = async () => {
+      try {
+        const user = await userManager.getUser();
+        if (!user) {
+          // No user, clear any stale cookie
+          Cookies.remove('user');
+          return;
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const timeUntilExpiry = (user.expires_at || 0) - now;
+
+        // If token expires within 10 minutes, try to renew it
+        if (timeUntilExpiry < 600) {
+          try {
+            const renewedUser = await userManager.signinSilent();
+            if (renewedUser) {
+              const cookieOptions = {
+                path: '/',
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax' as const,
+                domain: undefined as string | undefined,
+              };
+
+              if (
+                typeof window !== 'undefined' &&
+                window.location.hostname !== 'localhost'
+              ) {
+                cookieOptions.domain = window.location.hostname;
+              }
+
+              Cookies.set('user', JSON.stringify(renewedUser), cookieOptions);
+            }
+          } catch (error) {
+            // Silent renewal failed, clear cookie and let bootstrap handle redirect
+            Cookies.remove('user');
+          }
+        } else {
+          // Token is still valid, ensure cookie is set
+          const cookieOptions = {
+            path: '/',
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax' as const,
+            domain: undefined as string | undefined,
+          };
+
+          if (
+            typeof window !== 'undefined' &&
+            window.location.hostname !== 'localhost'
+          ) {
+            cookieOptions.domain = window.location.hostname;
+          }
+
+          Cookies.set('user', JSON.stringify(user), cookieOptions);
+        }
+      } catch (error) {
+        // Error checking token, clear cookie
+        Cookies.remove('user');
+      }
+    };
+
+    // Start periodic token checking (every 2 minutes)
+    tokenCheckInterval.current = setInterval(checkTokenExpiry, 120000);
+
+    // Run initial check
+    checkTokenExpiry();
+
+    return () => {
+      if (tokenCheckInterval.current) {
+        clearInterval(tokenCheckInterval.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     async function bootstrap() {

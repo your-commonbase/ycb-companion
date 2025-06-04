@@ -14,33 +14,77 @@ const oidcConfig = {
   scope: 'openid profile email',
   automaticSilentRenew: true,
   silent_redirect_uri: process.env.NEXT_PUBLIC_OIDC_SILENT_REDIRECT_URI!,
-  accessTokenExpiringNotificationTime: 60,
+  accessTokenExpiringNotificationTime: 300, // 5 minutes before expiry
   // userStore: new WebStorageStateStore({ store }),
 };
 
 const userManager = new UserManager(oidcConfig);
 
-userManager.events.addAccessTokenExpired(() => {
-  console.log('Access token expired');
+// Handle token expiring (before it expires) - this is the main renewal mechanism
+userManager.events.addAccessTokenExpiring(() => {
+  // This fires when token is about to expire (5 min before)
   userManager
     .signinSilent()
-    .then((user) => Cookies.set('user', JSON.stringify(user)))
+    .then((user) => {
+      if (user) {
+        const cookieOptions = {
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax' as const,
+          domain: undefined as string | undefined,
+        };
+
+        if (
+          typeof window !== 'undefined' &&
+          window.location.hostname !== 'localhost'
+        ) {
+          cookieOptions.domain = window.location.hostname;
+        }
+
+        Cookies.set('user', JSON.stringify(user), cookieOptions);
+      }
+    })
     .catch((error) => {
-      console.warn('silent renew expired, sending to login', error);
-      userManager.signinRedirect();
+      // If silent renewal fails, don't redirect immediately
+      // Let the app handle it when API calls fail
+      console.warn('Silent token renewal failed:', error);
     });
 });
 
-// userManager.events.addUserLoaded(() => {
-//   // once we’ve got a valid user, turn on silent renew
-//   // userManager.settings.automaticSilentRenew = true;
-//   userManager.startSilentRenew();
-// });
+// Handle token already expired
+userManager.events.addAccessTokenExpired(() => {
+  // Clear the expired user data
+  Cookies.remove('user');
+  // Don't automatically redirect - let AuthProvider handle it
+});
 
+// Handle successful user load
+userManager.events.addUserLoaded((user) => {
+  // Update cookie whenever user is loaded/renewed
+  if (user) {
+    const cookieOptions = {
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      domain: undefined as string | undefined,
+    };
+
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hostname !== 'localhost'
+    ) {
+      cookieOptions.domain = window.location.hostname;
+    }
+
+    Cookies.set('user', JSON.stringify(user), cookieOptions);
+  }
+});
+
+// Handle silent renewal errors
 userManager.events.addSilentRenewError((error) => {
-  console.log('oi window.location.href:', window.location.href);
-  console.log('silent renew failed, sending to login', error);
-  userManager.signinRedirect();
+  console.warn('Silent renewal error:', error);
+  // Don't automatically redirect - let the app handle expired state
+  Cookies.remove('user');
 });
 
 export default userManager;
