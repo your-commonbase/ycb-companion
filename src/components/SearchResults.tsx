@@ -477,6 +477,7 @@ const SearchResults = () => {
                   pathname: `/dashboard/entry/${result.id}`,
                 }}
                 className="block text-gray-900 no-underline"
+                prefetch={false}
                 onClick={() => {
                   if (textAreaValue === '') {
                     return;

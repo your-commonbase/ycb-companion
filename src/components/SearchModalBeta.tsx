@@ -56,6 +56,7 @@ const CustomHit = ({ hit, closeModalFn }: any) => {
               closeModalFn();
             }}
             className="block text-gray-900 no-underline"
+            prefetch={false}
           >
             <div
               className="w-full max-w-full overflow-visible whitespace-normal break-words"
@@ -403,6 +404,7 @@ const SearchModalBeta = ({
                       closeModalFn();
                     }}
                     className="block text-gray-900 no-underline"
+                    prefetch={false}
                   >
                     <div className="relative">
                       <span className="font-normal">
@@ -526,6 +528,7 @@ const SearchModalBeta = ({
                         closeModalFn();
                       }}
                       className="block text-gray-900 no-underline"
+                      prefetch={false}
                     >
                       <div className="relative">
                         <Image

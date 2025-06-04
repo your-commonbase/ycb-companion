@@ -927,13 +927,19 @@ const ForceDirectedGraph: React.FC<ForceDirectedGraphProps> = ({
                   }}
                 >
                   {currentIndex === null && (
-                    <Link href={`/dashboard/entry/${modalContent.id}`}>
+                    <Link
+                      href={`/dashboard/entry/${modalContent.id}`}
+                      prefetch={false}
+                    >
                       view entry
                     </Link>
                   )}
                   {modalContent.group !== 'comment' &&
                     modalContent.group !== 'main' && (
-                      <Link href={`/dashboard/entry/${modalContent.id}`}>
+                      <Link
+                        href={`/dashboard/entry/${modalContent.id}`}
+                        prefetch={false}
+                      >
                         view entry
                       </Link>
                     )}
