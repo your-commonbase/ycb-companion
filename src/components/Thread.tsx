@@ -1,10 +1,10 @@
 'use client';
 
-import Fuse from 'fuse.js';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { InstagramEmbed } from 'react-social-media-embed';
+import { Tweet } from 'react-tweet';
 
 import ImageUpload from '@/components/ImageUpload';
 import PendingQueue from '@/components/PendingQueue';
@@ -565,6 +565,11 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
         {entry.metadata.author.includes('instagram.com') && (
           <InstagramEmbed url={entry.metadata.author} />
         )}
+        {entry.metadata.author.includes('twitter.com') ||
+          entry.metadata.author.includes('t.co') ||
+          (entry.metadata.author.includes('x.com') && (
+            <Tweet id={entry.metadata.author.split('status/')[1]} />
+          ))}
       </summary>
       <div className="mb-2 mt-3 flex flex-wrap gap-4">
         <button
@@ -708,19 +713,10 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
   );
 };
 
-interface FuseResultWithMatches {
-  item: Entry;
-  matches?: Array<{ key: string; indices: [number, number][] }>;
-}
-
 export default function Thread({ inputId }: { inputId: string }) {
   const [parent, setParent] = useState<Entry | null>(null);
   const [neighbors, setNeighbors] = useState<{ [key: string]: Entry[] }>({});
   const [expandedEntries, setExpandedEntries] = useState<Entry[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<FuseResultWithMatches[]>(
-    [],
-  );
   const [fetchedEntries, setFetchedEntries] = useState<{
     [key: string]: Entry;
   }>({});
@@ -729,7 +725,8 @@ export default function Thread({ inputId }: { inputId: string }) {
 
   useEffect(() => {
     console.log('expandedEntries:', expandedEntries);
-  }, [expandedEntries]);
+    console.log('fetchedEntries:', fetchedEntries);
+  }, []);
 
   const recordFetched = (entry: Entry) => {
     setFetchedEntries((prev) => {
@@ -830,49 +827,6 @@ export default function Thread({ inputId }: { inputId: string }) {
     fetchEntry();
   }, []);
 
-  const allFetchedEntries = useMemo(
-    () => Object.values(fetchedEntries),
-    [fetchedEntries],
-  );
-
-  useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setSearchResults([]);
-      return;
-    }
-    const fuse = new Fuse(allFetchedEntries, {
-      keys: ['data', 'metadata'],
-      includeMatches: true,
-      // // loosen these so partial matches are more likely to be found:
-      threshold: 0.25, // default is 0.6, try 0.4–0.6
-      // distance: 10000,     // let it match text far apart
-      ignoreLocation: true, // skip exact positioning
-      minMatchCharLength: 4,
-      // findAllMatches: true // find all matches, not just best
-    });
-    const results = fuse.search<Entry>(searchTerm) as FuseResultWithMatches[];
-    setSearchResults(results);
-  }, [searchTerm, allFetchedEntries]);
-
-  const highlightText = (text: string, indices: [number, number][]) => {
-    if (!indices || indices.length === 0) return text;
-    const result = [];
-    let lastIndex = 0;
-    indices.forEach(([start, end]) => {
-      if (start > lastIndex) {
-        result.push(
-          <span key={lastIndex}>{text.slice(lastIndex, start)}</span>,
-        );
-      }
-      result.push(<mark key={start}>{text.slice(start, end + 1)}</mark>);
-      lastIndex = end + 1;
-    });
-    if (lastIndex < text.length) {
-      result.push(<span key={lastIndex}>{text.slice(lastIndex)}</span>);
-    }
-    return result;
-  };
-
   return (
     <div>
       {parent && (
@@ -890,48 +844,6 @@ export default function Thread({ inputId }: { inputId: string }) {
           />
         </div>
       )}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          width: '100%',
-          background: '#fff',
-          padding: '10px',
-          borderTop: '1px solid #ccc',
-        }}
-      >
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="search..."
-          style={{ width: '100%', padding: '8px' }}
-        />
-        {searchResults.length > 0 && (
-          <ul style={{ listStyle: 'none', padding: 0, marginTop: '5px' }}>
-            {searchResults.map((result) => {
-              const dataMatch = result.matches?.find((m) => m.key === 'data');
-              return (
-                <li
-                  key={`${result.item.id}-key`}
-                  style={{ marginBottom: '5px' }}
-                >
-                  <a
-                    href={`/dashboard/entry/${result.item.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ textDecoration: 'underline', color: 'blue' }}
-                  >
-                    {dataMatch
-                      ? highlightText(result.item.data, dataMatch.indices)
-                      : result.item.data}
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
     </div>
   );
 }
