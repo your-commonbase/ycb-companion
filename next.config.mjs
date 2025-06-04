@@ -154,6 +154,14 @@ export default withSentryConfig(
           protocol: 'https',
           hostname: 'imagedelivery.net',
         },
+        {
+          protocol: 'https',
+          hostname: 'djeod2qvj3cms.cloudfront.net',
+        },
+        {
+          protocol: 'https',
+          hostname: '*.cloudfront.net',
+        },
       ],
     },
   },
