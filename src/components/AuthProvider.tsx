@@ -1,5 +1,6 @@
 'use client';
 
+import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -70,11 +71,45 @@ export default function AuthProvider({
       if (user.expired) {
         try {
           console.log('token expired, doing silent renew');
-          await userManager.signinSilent({ state: path });
+          const renewedUser = await userManager.signinSilent({ state: path });
+          if (renewedUser) {
+            const cookieOptions = {
+              path: '/',
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax' as const,
+              domain: undefined as string | undefined,
+            };
+
+            if (
+              typeof window !== 'undefined' &&
+              window.location.hostname !== 'localhost'
+            ) {
+              cookieOptions.domain = window.location.hostname;
+            }
+
+            Cookies.set('user', JSON.stringify(renewedUser), cookieOptions);
+          }
         } catch {
-          console.log('silent renew failed, interactive login');
+          // Silent renew failed, redirecting to interactive login
           userManager.signinRedirect({ state: path });
         }
+      } else {
+        // User is valid, ensure cookie is set
+        const cookieOptions = {
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax' as const,
+          domain: undefined as string | undefined,
+        };
+
+        if (
+          typeof window !== 'undefined' &&
+          window.location.hostname !== 'localhost'
+        ) {
+          cookieOptions.domain = window.location.hostname;
+        }
+
+        Cookies.set('user', JSON.stringify(user), cookieOptions);
       }
       // if we get here, session is valid
     }
