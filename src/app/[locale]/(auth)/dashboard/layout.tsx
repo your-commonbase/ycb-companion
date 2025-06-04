@@ -400,6 +400,15 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
                 <li>
                   <button
                     type="button"
+                    onClick={() => router.push('/dashboard/feed/')}
+                    className="border-none text-gray-700 hover:text-gray-900"
+                  >
+                    Feed
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
                     onClick={() => router.push('/dashboard/garden/')}
                     className="border-none text-gray-700 hover:text-gray-900"
                   >
