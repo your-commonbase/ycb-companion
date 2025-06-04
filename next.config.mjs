@@ -31,6 +31,42 @@ export default withSentryConfig(
       devIndicators: {
         autoPrerender: false, // Disable auto-prerendering
       },
+
+      // Add compression
+      compress: true,
+
+      // Optimize bundle splitting
+      webpack: (config, { isServer }) => {
+        if (!isServer) {
+          // eslint-disable-next-line
+          config.optimization.splitChunks = {
+            chunks: 'all',
+            cacheGroups: {
+              vendor: {
+                test: /[\\/]node_modules[\\/]/,
+                name: 'vendors',
+                chunks: 'all',
+                priority: 10,
+              },
+              common: {
+                name: 'common',
+                minChunks: 2,
+                chunks: 'all',
+                priority: 5,
+                reuseExistingChunk: true,
+              },
+              ui: {
+                test: /[\\/]src[\\/]components[\\/]ui[\\/]/,
+                name: 'ui',
+                chunks: 'all',
+                priority: 8,
+              },
+            },
+          };
+        }
+        return config;
+      },
+
       async headers() {
         return [
           {
@@ -39,6 +75,33 @@ export default withSentryConfig(
               {
                 key: 'Upgrade',
                 value: 'websocket',
+              },
+            ],
+          },
+          {
+            source: '/assets/:path*',
+            headers: [
+              {
+                key: 'Cache-Control',
+                value: 'public, max-age=31536000, immutable',
+              },
+            ],
+          },
+          {
+            source: '/_next/static/:path*',
+            headers: [
+              {
+                key: 'Cache-Control',
+                value: 'public, max-age=31536000, immutable',
+              },
+            ],
+          },
+          {
+            source: '/api/((?!auth).*)',
+            headers: [
+              {
+                key: 'Cache-Control',
+                value: 'public, max-age=300, stale-while-revalidate=600',
               },
             ],
           },
@@ -81,6 +144,10 @@ export default withSentryConfig(
     // Disable Sentry telemetry
     telemetry: false,
     images: {
+      formats: ['image/webp', 'image/avif'],
+      deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+      imageSizes: [16, 32, 48, 64, 96, 128, 256],
+      minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
       remotePatterns: [
         {
           protocol: 'https',
