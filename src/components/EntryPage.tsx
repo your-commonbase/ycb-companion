@@ -120,7 +120,6 @@ const EntryPage = () => {
       {showAliasError && (
         <div className="text-red-500">Error adding comment. Try again.</div>
       )}
-      <hr className="my-8 h-px w-full border-0 bg-gray-200 dark:bg-gray-700" />
       <button
         type="button"
         onClick={handleDeleteEntryV2}

@@ -24,6 +24,7 @@ export const POST = async (request: Request) => {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${TOKEN}`,
+        'x-companion-secret': process.env.COMPANION_SECRET!,
       },
       body: JSON.stringify({ plan }),
     });

@@ -393,6 +393,10 @@ export default function SettingsPage() {
               <span className="mr-2 text-blue-500">+</span>
               Image OCR
             </li>
+            <li className="flex items-center">
+              <span className="mr-2 text-blue-500">+</span>
+              Support the project
+            </li>
           </ul>
           {plan === 'search' ? (
             <div className="rounded bg-blue-100 p-3 text-center text-blue-800">

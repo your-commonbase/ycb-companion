@@ -576,6 +576,14 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
             <ReactMarkdown>{entry.data}</ReactMarkdown>
           )}
 
+          <a
+            className="text-sm text-gray-500 hover:text-blue-600 hover:underline"
+            href={entry.metadata.author}
+            target="_blank"
+          >
+            {entry.metadata.title}
+          </a>
+
           {metadata.type === 'image' ? (
             <img src={cdnImageUrl} alt="author" />
           ) : (
@@ -626,6 +634,8 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
           )}
         </div>
         {!entry.metadata.author.includes('yourcommonbase.com') &&
+          !entry.metadata.author.includes('instagram.com') &&
+          !entry.metadata.author.includes('x.com') &&
           (entry.metadata.ogTitle || entry.metadata.ogDescription) &&
           entry.metadata.ogImages &&
           entry.metadata.ogImages.length > 0 && (
