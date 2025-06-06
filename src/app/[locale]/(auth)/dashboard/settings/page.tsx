@@ -47,6 +47,7 @@ export default function SettingsPage() {
   const [result, setResult] = useState<any>(null);
   const [plan, setPlan] = useState<string>('');
   const [monthlyTextEntries, setMonthlyTextEntries] = useState<number>(0);
+  const [monthlyImageEntries, setMonthlyImageEntries] = useState<number>(0);
   const [changingPlan, setChangingPlan] = useState<string | null>(null);
   const [syncingPlan, setSyncingPlan] = useState(false);
   const [planChangeStatus, setPlanChangeStatus] = useState<string>('');
@@ -159,7 +160,10 @@ export default function SettingsPage() {
 
       // Refresh the current plan and plan status
       const updatedPlan = await getPlan();
+      const updatedEntries = await getMonthlyTextEntries();
       setPlan(updatedPlan.plan);
+      setMonthlyTextEntries(updatedEntries.monthlyStoreEntries.text);
+      setMonthlyImageEntries(updatedEntries.monthlyStoreEntries.images || 0);
       await fetchPlanStatus();
       setPlanChangeStatus(`Successfully changed to ${newPlan} plan!`);
 
@@ -193,7 +197,10 @@ export default function SettingsPage() {
 
       // Refresh the current plan and plan status
       const updatedPlan = await getPlan();
+      const updatedEntries = await getMonthlyTextEntries();
       setPlan(updatedPlan.plan);
+      setMonthlyTextEntries(updatedEntries.monthlyStoreEntries.text);
+      setMonthlyImageEntries(updatedEntries.monthlyStoreEntries.images || 0);
       await fetchPlanStatus();
     } catch (error) {
       console.error('Error syncing plan:', error);
@@ -214,8 +221,15 @@ export default function SettingsPage() {
           'monthlyTextEntries:',
           resMonthlyTextEntries.monthlyStoreEntries.text,
         );
+        console.log(
+          'monthlyImageEntries:',
+          resMonthlyTextEntries.monthlyStoreEntries.images,
+        );
         setPlan(resPlan.plan);
         setMonthlyTextEntries(resMonthlyTextEntries.monthlyStoreEntries.text);
+        setMonthlyImageEntries(
+          resMonthlyTextEntries.monthlyStoreEntries.images || 0,
+        );
 
         // Fetch plan status
         await fetchPlanStatus();
@@ -253,6 +267,9 @@ export default function SettingsPage() {
           <p className="mb-2 text-lg">Current Tier: {plan}</p>
           <p className="text-lg">
             Usage: {monthlyTextEntries} text entries / 3000 total
+          </p>
+          <p className="text-lg">
+            Images: {monthlyImageEntries} image entries / 300 total
           </p>
           {planStatus && (
             <div className="mt-2">

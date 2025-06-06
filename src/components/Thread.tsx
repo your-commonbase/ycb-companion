@@ -53,6 +53,8 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [isAddingURL, setIsAddingURL] = useState(false);
   const [isAddingImage, setIsAddingImage] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(entry.data);
   const [randomCommentPlaceholder, setRandomCommentPlaceholder] =
     useState('Add a comment...');
   const router = useRouter();
@@ -292,6 +294,42 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
     );
   };
 
+  const updateEntry = async (newText: string) => {
+    try {
+      const response = await fetch('/api/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: entry.id,
+          data: newText,
+          metadata: entry.metadata,
+        }),
+      });
+
+      if (response.ok) {
+        // Update the local state
+        // eslint-disable-next-line no-param-reassign
+        entry.data = newText;
+        setIsEditing(false);
+      } else {
+        console.error('Failed to update entry');
+      }
+    } catch (error) {
+      console.error('Error updating entry:', error);
+    }
+  };
+
+  const handleSave = () => {
+    updateEntry(editText);
+  };
+
+  const handleCancel = () => {
+    setEditText(entry.data);
+    setIsEditing(false);
+  };
+
   // const addCommentOld = async (
   //   aliasInput: string,
   //   parent: { id: string; data: string; metadata: any },
@@ -509,7 +547,34 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
             color: getColor(type),
           }}
         >
-          <ReactMarkdown>{entry.data}</ReactMarkdown>
+          {isEditing ? (
+            <div className="my-2">
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                className="w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-base text-gray-900"
+                rows={4}
+              />
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={handleSave}
+                  type="button"
+                  className="rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleCancel}
+                  type="button"
+                  className="rounded-md bg-gray-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <ReactMarkdown>{entry.data}</ReactMarkdown>
+          )}
 
           {metadata.type === 'image' ? (
             <img src={cdnImageUrl} alt="author" />
@@ -550,6 +615,15 @@ const ThreadEntry: React.FC<ThreadEntryProps> = ({
           >
             <em>{entry.id}</em>
           </button>
+          {!isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              type="button"
+              className="px-2 py-1 text-sm text-orange-600 hover:underline"
+            >
+              Edit
+            </button>
+          )}
         </div>
         {!entry.metadata.author.includes('yourcommonbase.com') &&
           (entry.metadata.ogTitle || entry.metadata.ogDescription) &&
