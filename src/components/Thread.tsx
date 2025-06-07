@@ -303,6 +303,18 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
 
   const handleNativeShare = async () => {
     try {
+      const isMobile =
+        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent,
+        );
+      const isSecureContext =
+        window.isSecureContext || window.location.protocol === 'https:';
+
+      console.log('Is mobile:', isMobile);
+      console.log('Is secure context:', isSecureContext);
+      console.log('Web Share API available:', 'share' in navigator);
+      console.log('Navigator canShare available:', 'canShare' in navigator);
+
       const shareText = `${entry.data}
 
 ${entry.metadata.author ? `Source: ${entry.metadata.author}` : ''}
@@ -310,16 +322,82 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
 
 Your Commonbase`;
 
-      if (navigator.share) {
-        await navigator.share({
-          title: `Thread Entry - ${entry.id.slice(0, 8)}`,
-          text: shareText,
-          url: window.location.href,
-        });
+      const shareData: ShareData = {
+        title: `Thread Entry - ${entry.id.slice(0, 8)}`,
+        text: shareText,
+        url: window.location.href,
+      };
+
+      // If this is an image entry and we're on mobile with share support, include the image file
+      if (
+        metadata.type === 'image' &&
+        cdnImageUrl &&
+        'share' in navigator &&
+        isMobile &&
+        isSecureContext
+      ) {
+        try {
+          console.log('Fetching image for native share:', cdnImageUrl);
+
+          // Fetch the image
+          const response = await fetch('/api/imageToBase64', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ imageUrl: cdnImageUrl }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const imageBase64 = data.base64;
+            const imageContentType = data.contentType;
+
+            // Convert base64 to blob
+            const byteCharacters = atob(imageBase64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i += 1) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: imageContentType });
+
+            // Create file from blob
+            const fileName = `thread-entry-${entry.id.slice(0, 8)}.${imageContentType.split('/')[1]}`;
+            const file = new File([blob], fileName, { type: imageContentType });
+
+            // Check if the browser supports sharing files
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              shareData.files = [file];
+              console.log('Including image file in share');
+            } else {
+              console.log(
+                'Browser does not support file sharing, sharing text only',
+              );
+            }
+          }
+        } catch (imageError) {
+          console.error('Error preparing image for share:', imageError);
+          // Continue with text-only share
+        }
+      }
+
+      // Check if we should use Web Share API (mobile + secure context)
+      if (navigator.share && isMobile && isSecureContext) {
+        console.log('Attempting native share:', shareData);
+        await navigator.share(shareData);
       } else {
-        // Fallback for browsers without Web Share API
+        console.log('Using clipboard fallback for desktop browser');
+        // For desktop browsers or unsupported environments, copy to clipboard
         await navigator.clipboard.writeText(shareText);
-        alert('Content copied to clipboard!');
+
+        if (metadata.type === 'image' && cdnImageUrl) {
+          alert(
+            'Text copied to clipboard! For images on desktop, try the "Screenshot" or "HTML File" options instead.',
+          );
+        } else {
+          alert('Content copied to clipboard!');
+        }
       }
     } catch (error) {
       console.error('Error sharing:', error);
@@ -330,7 +408,7 @@ Your Commonbase`;
 ${entry.metadata.author ? `Source: ${entry.metadata.author}` : ''}
 Created: ${new Date(entry.createdAt).toLocaleDateString()}
 
-Your Commonbase`;
+- <3, Your Commonbase`;
 
         await navigator.clipboard.writeText(shareText);
         alert('Content copied to clipboard!');
