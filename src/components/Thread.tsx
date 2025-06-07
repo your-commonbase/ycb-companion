@@ -171,6 +171,156 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
     setIsEditing(false);
   };
 
+  const getRelationshipLabel = () => {
+    switch (entry.relationshipType) {
+      case 'root':
+        return 'Main Entry';
+      case 'parent':
+        return 'Parent Entry';
+      case 'comment':
+        return 'Comment';
+      case 'neighbor':
+        return 'Related Entry';
+      default:
+        return '';
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      // Convert image to base64 first if needed
+      let imageBase64 = '';
+      let imageContentType = 'image/webp';
+      let imageConversionFailed = false;
+
+      if (metadata.type === 'image' && cdnImageUrl) {
+        console.log('Converting image to base64:', cdnImageUrl);
+        try {
+          const response = await fetch('/api/imageToBase64', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ imageUrl: cdnImageUrl }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            imageBase64 = data.base64;
+            imageContentType = data.contentType;
+            console.log('Base64 conversion result length:', imageBase64.length);
+
+            if (!imageBase64 || imageBase64.length < 100) {
+              console.warn(
+                'Base64 conversion resulted in empty or very short string',
+              );
+              imageConversionFailed = true;
+            }
+          } else {
+            throw new Error(`API error: ${response.status}`);
+          }
+        } catch (conversionError) {
+          console.error('Image conversion failed:', conversionError);
+          imageConversionFailed = true;
+        }
+      }
+
+      // Get the main content area (without action buttons)
+      const contentHtml = `
+        <div class="w-full rounded-xl border-2 bg-white shadow-lg p-6">
+          ${
+            entry.relationshipType !== 'root'
+              ? `
+            <div class="border-b border-gray-100 pb-3 mb-6">
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                ${getRelationshipLabel()}
+              </span>
+            </div>
+          `
+              : ''
+          }
+          
+          <div class="prose prose-lg max-w-none mb-6">
+            <div class="text-lg leading-relaxed text-gray-900">${entry.data}</div>
+          </div>
+
+          ${
+            entry.metadata.title
+              ? `
+            <a class="inline-block text-sm text-gray-500 hover:text-blue-600 hover:underline mb-4" 
+               href="${entry.metadata.author}" target="_blank">
+              ${entry.metadata.title}
+            </a>
+          `
+              : ''
+          }
+
+
+          ${
+            // eslint-disable-next-line no-nested-ternary
+            metadata.type === 'image' && imageBase64 && !imageConversionFailed
+              ? `
+            <div class="mt-4">
+              <img src="data:${imageContentType};base64,${imageBase64}" 
+                   alt="Entry content" 
+                   class="h-auto max-w-full rounded-lg shadow-md" />
+            </div>
+          `
+              : metadata.type === 'image' && cdnImageUrl
+                ? `
+            <div class="mt-4">
+              <div class="bg-gray-200 rounded-lg p-8 text-center text-gray-500">
+                <p class="font-medium mb-2">[Image could not be embedded]</p>
+                <p class="text-sm">This shared version could not include the original image due to technical limitations.</p>
+                <p class="text-xs mt-2 font-mono break-all">Source: ${cdnImageUrl.substring(0, 80)}${cdnImageUrl.length > 80 ? '...' : ''}</p>
+              </div>
+            </div>
+          `
+                : ''
+          }
+
+          <div class="mt-6 text-xs text-gray-400 text-center">
+            Generated from YCB Companion - ${new Date().toLocaleString()}
+          </div>
+        </div>
+      `;
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thread Entry - ${entry.id.slice(0, 8)}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .prose { max-width: none; }
+        .prose p { margin-bottom: 1rem; }
+        .prose h1, .prose h2, .prose h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="mx-auto max-w-2xl">
+        ${contentHtml}
+    </div>
+</body>
+</html>`;
+
+      // Create and download the HTML file
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `thread-entry-${entry.id.slice(0, 8)}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error creating HTML file:', error);
+    }
+  };
+
   const addComment = (
     aliasInput: string,
     parent: { id: string; data: string; metadata: any },
@@ -249,21 +399,6 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
         return 'border-l-4  bg-green-50';
       default:
         return 'border-l-4 -300 bg-white';
-    }
-  };
-
-  const getRelationshipLabel = () => {
-    switch (entry.relationshipType) {
-      case 'root':
-        return 'Main Entry';
-      case 'parent':
-        return 'Parent Entry';
-      case 'comment':
-        return 'Comment';
-      case 'neighbor':
-        return 'Related Entry';
-      default:
-        return '';
     }
   };
 
@@ -503,13 +638,22 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
                 {entry.id.slice(0, 8)}...
               </button>
               {!isEditing && (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  type="button"
-                  className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  Edit
-                </button>
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    type="button"
+                    className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    type="button"
+                    className="rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    Share
+                  </button>
+                </>
               )}
             </div>
           </div>
