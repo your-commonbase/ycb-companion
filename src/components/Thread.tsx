@@ -31,6 +31,8 @@ interface FlattenedEntry extends Entry {
   relationshipSource?: string;
   level: number;
   hasMoreRelations?: boolean;
+  isProcessing?: boolean;
+  tempImageUrl?: string;
 }
 
 interface ThreadEntryCardProps {
@@ -41,6 +43,7 @@ interface ThreadEntryCardProps {
   ) => void;
   onNavigateToEntry: (entryId: string) => void;
   onAddNewEntry: (newEntry: FlattenedEntry, parentId: string) => void;
+  onImageUpload: (result: any, parentId: string) => void;
   expandedRelationships?: Set<string>;
   allEntryIds?: Set<string>;
 }
@@ -50,6 +53,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   onRelationshipExpand,
   onNavigateToEntry,
   onAddNewEntry,
+  onImageUpload,
   expandedRelationships = new Set(),
   allEntryIds = new Set(),
 }) => {
@@ -356,20 +360,53 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
           )}
 
           {/* Image Display */}
-          {metadata.type === 'image' && cdnImageUrl && (
+          {metadata.type === 'image' && (
             <div className="mt-4">
-              <img
-                src={cdnImageUrl}
-                alt="Entry content"
-                className="h-auto max-w-full rounded-lg shadow-md"
-              />
+              {
+                // eslint-disable-next-line no-nested-ternary
+                entry.isProcessing ? (
+                  <div className="relative h-64 w-full overflow-hidden rounded-lg bg-gray-100">
+                    {entry.tempImageUrl ? (
+                      <img
+                        src={entry.tempImageUrl}
+                        alt="Processing..."
+                        className="size-full object-cover opacity-75"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <div className="text-center">
+                          <div className="mx-auto mb-2 size-8 animate-spin rounded-full border-b-2 border-blue-500" />
+                          <p className="text-sm text-gray-500">
+                            Processing image...
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                      <div className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-lg">
+                        <div className="flex items-center gap-2">
+                          <div className="size-4 animate-spin rounded-full border-b-2 border-blue-500" />
+                          Processing...
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : cdnImageUrl ? (
+                  <img
+                    src={cdnImageUrl}
+                    alt="Entry content"
+                    className="h-auto max-w-full rounded-lg shadow-md"
+                  />
+                ) : null
+              }
             </div>
           )}
         </div>
 
         {/* Social Media Embeds */}
         <div className="space-y-4">
-          {!entry.metadata.author.includes('yourcommonbase.com') &&
+          {entry.metadata.author &&
+            !entry.metadata.author.includes('yourcommonbase.com') &&
             !entry.metadata.author.includes('instagram.com') &&
             !entry.metadata.author.includes('x.com') &&
             (entry.metadata.ogTitle || entry.metadata.ogDescription) &&
@@ -382,15 +419,17 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
                 image={entry.metadata.ogImages[0]}
               />
             )}
-          {entry.metadata.author.includes('instagram.com') && (
-            <InstagramEmbed url={entry.metadata.author} />
-          )}
-          {(entry.metadata.author.includes('twitter.com') ||
-            entry.metadata.author.includes('t.co') ||
-            (entry.metadata.author.includes('x.com') &&
-              entry.metadata.author.includes('status'))) && (
-            <Tweet id={entry.metadata.author.split('status/')[1]} />
-          )}
+          {entry.metadata.author &&
+            entry.metadata.author.includes('instagram.com') && (
+              <InstagramEmbed url={entry.metadata.author} />
+            )}
+          {entry.metadata.author &&
+            (entry.metadata.author.includes('twitter.com') ||
+              entry.metadata.author.includes('t.co') ||
+              (entry.metadata.author.includes('x.com') &&
+                entry.metadata.author.includes('status'))) && (
+              <Tweet id={entry.metadata.author.split('status/')[1]} />
+            )}
         </div>
 
         {/* Metadata and Actions Footer */}
@@ -511,22 +550,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
             <ImageUpload
               metadata={{ parent_id: entry.id }}
               onUploadComplete={(result) => {
-                const newEntry: FlattenedEntry = {
-                  id: result.id,
-                  data: result.data || 'Image upload',
-                  comments: [],
-                  createdAt: result.createdAt || new Date().toISOString(),
-                  metadata: {
-                    ...result.metadata,
-                    parent_id: entry.id,
-                    type: 'image',
-                  },
-                  relationshipType: 'comment',
-                  relationshipSource: entry.id,
-                  level: entry.level + 1,
-                  hasMoreRelations: true,
-                };
-                onAddNewEntry(newEntry, entry.id);
+                onImageUpload(result, entry.id);
                 setIsAddingImage(false);
               }}
             />
@@ -630,6 +654,7 @@ export default function Thread({ inputId }: { inputId: string }) {
   const [expandedRelationships, setExpandedRelationships] = useState<
     Set<string>
   >(new Set());
+  const [, setProcessingImages] = useState<Set<string>>(new Set());
   const idSet = useRef(new Set<string>());
   const router = useRouter();
   useAddQueueProcessor();
@@ -774,6 +799,93 @@ export default function Thread({ inputId }: { inputId: string }) {
     idSet.current.add(newEntry.id);
   };
 
+  const pollImageProcessing = async (entryId: string) => {
+    const maxAttempts = 30; // 30 seconds max
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const response = await fetch('/api/fetch', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id: entryId }),
+        });
+        const data = await response.json();
+
+        if (data.data && data.data.data && data.data.data.trim() !== '') {
+          // Image processing is complete, update the entry
+          setFlattenedEntries((prev) =>
+            prev.map((entry) =>
+              entry.id === entryId
+                ? {
+                    ...entry,
+                    data: data.data.data,
+                    metadata: data.data.metadata,
+                    isProcessing: false,
+                  }
+                : entry,
+            ),
+          );
+          setProcessingImages((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(entryId);
+            return newSet;
+          });
+          return;
+        }
+
+        attempts += 1;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 1000); // Poll every second
+        } else {
+          // Stop polling after max attempts
+          setProcessingImages((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(entryId);
+            return newSet;
+          });
+        }
+      } catch (error) {
+        console.error('Error polling image processing:', error);
+        setProcessingImages((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(entryId);
+          return newSet;
+        });
+      }
+    };
+
+    poll();
+  };
+
+  const handleImageUpload = (result: any, parentId: string) => {
+    // Find the parent entry to get its level
+    const parentEntry = flattenedEntries.find((e) => e.id === parentId);
+    if (!parentEntry) return;
+
+    const newEntry: FlattenedEntry = {
+      id: result.id,
+      data: '', // Will be filled when processing completes
+      comments: [],
+      createdAt: result.createdAt || new Date().toISOString(),
+      metadata: {
+        parent_id: parentId,
+        type: 'image',
+        author: '',
+      },
+      relationshipType: 'comment',
+      relationshipSource: parentId,
+      level: parentEntry.level + 1,
+      hasMoreRelations: true,
+      isProcessing: true,
+      tempImageUrl: result.imageUrl,
+    };
+
+    handleAddNewEntry(newEntry, parentId);
+    setProcessingImages((prev) => new Set([...prev, result.id]));
+    pollImageProcessing(result.id);
+  };
+
   useEffect(() => {
     const fetchInitialEntry = async () => {
       try {
@@ -809,6 +921,7 @@ export default function Thread({ inputId }: { inputId: string }) {
               onRelationshipExpand={expandRelationships}
               onNavigateToEntry={navigateToEntry}
               onAddNewEntry={handleAddNewEntry}
+              onImageUpload={handleImageUpload}
               expandedRelationships={expandedRelationships}
               allEntryIds={new Set(flattenedEntries.map((e) => e.id))}
             />
