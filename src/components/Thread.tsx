@@ -783,6 +783,15 @@ export default function Thread({ inputId }: { inputId: string }) {
     router.push(`/dashboard/entry/${entryId}`);
   };
 
+  const handleRollTheDice = async () => {
+    try {
+      const randomEntry = await fetchRandomEntry();
+      router.push(`/dashboard/entry/${randomEntry.id}`);
+    } catch (error) {
+      console.error('Error fetching random entry:', error);
+    }
+  };
+
   const handleAddNewEntry = (newEntry: FlattenedEntry, parentId: string) => {
     // Find the parent entry index
     const parentIndex = flattenedEntries.findIndex((e) => e.id === parentId);
@@ -934,6 +943,17 @@ export default function Thread({ inputId }: { inputId: string }) {
             <div className="size-8 animate-spin rounded-full border-b-2 border-blue-500" />
           </div>
         )}
+
+        {/* Roll the Dice button */}
+        <div className="flex justify-center py-8">
+          <button
+            onClick={handleRollTheDice}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-medium text-white shadow-lg transition-all hover:scale-105 hover:from-purple-700 hover:to-pink-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+            type="button"
+          >
+            /random
+          </button>
+        </div>
       </div>
     </div>
   );
