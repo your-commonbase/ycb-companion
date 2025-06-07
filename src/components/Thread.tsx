@@ -40,6 +40,7 @@ interface ThreadEntryCardProps {
     type: 'parent' | 'comments' | 'neighbors',
   ) => void;
   onNavigateToEntry: (entryId: string) => void;
+  onAddNewEntry: (newEntry: FlattenedEntry, parentId: string) => void;
   expandedRelationships?: Set<string>;
   allEntryIds?: Set<string>;
 }
@@ -48,6 +49,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   entry,
   onRelationshipExpand,
   onNavigateToEntry,
+  onAddNewEntry,
   expandedRelationships = new Set(),
   allEntryIds = new Set(),
 }) => {
@@ -180,8 +182,21 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
         parentId: parent.id,
       },
       (addedCommentData) => {
-        // This will be handled by the parent component
-        console.log('Comment added:', addedCommentData);
+        const newEntry: FlattenedEntry = {
+          id: addedCommentData.id,
+          data: aliasInput,
+          comments: [],
+          createdAt: addedCommentData.createdAt,
+          metadata: {
+            ...addedCommentData.metadata,
+            parent_id: parent.id,
+          },
+          relationshipType: 'comment',
+          relationshipSource: parent.id,
+          level: entry.level + 1,
+          hasMoreRelations: true,
+        };
+        onAddNewEntry(newEntry, parent.id);
       },
     );
   };
@@ -198,8 +213,21 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
         },
       },
       (addedCommentData) => {
-        // This will be handled by the parent component
-        console.log('URL added:', addedCommentData);
+        const newEntry: FlattenedEntry = {
+          id: addedCommentData.id,
+          data: addedCommentData.data || url,
+          comments: [],
+          createdAt: addedCommentData.createdAt,
+          metadata: {
+            ...addedCommentData.metadata,
+            parent_id: parent.id,
+          },
+          relationshipType: 'comment',
+          relationshipSource: parent.id,
+          level: entry.level + 1,
+          hasMoreRelations: true,
+        };
+        onAddNewEntry(newEntry, parent.id);
       },
     );
   };
@@ -359,7 +387,8 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
           )}
           {(entry.metadata.author.includes('twitter.com') ||
             entry.metadata.author.includes('t.co') ||
-            entry.metadata.author.includes('x.com')) && (
+            (entry.metadata.author.includes('x.com') &&
+              entry.metadata.author.includes('status'))) && (
             <Tweet id={entry.metadata.author.split('status/')[1]} />
           )}
         </div>
@@ -479,7 +508,28 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
             <h4 className="mb-3 text-lg font-medium text-gray-900">
               Add Image
             </h4>
-            <ImageUpload metadata={{ parent_id: entry.id }} />
+            <ImageUpload
+              metadata={{ parent_id: entry.id }}
+              onUploadComplete={(result) => {
+                const newEntry: FlattenedEntry = {
+                  id: result.id,
+                  data: result.data || 'Image upload',
+                  comments: [],
+                  createdAt: result.createdAt || new Date().toISOString(),
+                  metadata: {
+                    ...result.metadata,
+                    parent_id: entry.id,
+                    type: 'image',
+                  },
+                  relationshipType: 'comment',
+                  relationshipSource: entry.id,
+                  level: entry.level + 1,
+                  hasMoreRelations: true,
+                };
+                onAddNewEntry(newEntry, entry.id);
+                setIsAddingImage(false);
+              }}
+            />
           </div>
         )}
 
@@ -708,6 +758,22 @@ export default function Thread({ inputId }: { inputId: string }) {
     router.push(`/dashboard/entry/${entryId}`);
   };
 
+  const handleAddNewEntry = (newEntry: FlattenedEntry, parentId: string) => {
+    // Find the parent entry index
+    const parentIndex = flattenedEntries.findIndex((e) => e.id === parentId);
+    if (parentIndex === -1) return;
+
+    // Add the new entry immediately after the parent
+    setFlattenedEntries((prev) => [
+      ...prev.slice(0, parentIndex + 1),
+      newEntry,
+      ...prev.slice(parentIndex + 1),
+    ]);
+
+    // Add to ID tracking sets
+    idSet.current.add(newEntry.id);
+  };
+
   useEffect(() => {
     const fetchInitialEntry = async () => {
       try {
@@ -742,6 +808,7 @@ export default function Thread({ inputId }: { inputId: string }) {
               entry={entry}
               onRelationshipExpand={expandRelationships}
               onNavigateToEntry={navigateToEntry}
+              onAddNewEntry={handleAddNewEntry}
               expandedRelationships={expandedRelationships}
               allEntryIds={new Set(flattenedEntries.map((e) => e.id))}
             />
