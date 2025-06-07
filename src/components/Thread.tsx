@@ -425,7 +425,6 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
             )}
           {entry.metadata.author &&
             (entry.metadata.author.includes('twitter.com') ||
-              entry.metadata.author.includes('t.co') ||
               (entry.metadata.author.includes('x.com') &&
                 entry.metadata.author.includes('status'))) && (
               <Tweet id={entry.metadata.author.split('status/')[1]} />
