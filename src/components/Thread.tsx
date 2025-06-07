@@ -1,7 +1,11 @@
 'use client';
 
+import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css';
+
+import html2canvas from 'html2canvas';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import LiteYouTubeEmbed from 'react-lite-youtube-embed';
 import ReactMarkdown from 'react-markdown';
 import { InstagramEmbed } from 'react-social-media-embed';
 import { Tweet } from 'react-tweet';
@@ -63,8 +67,10 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [isAddingURL, setIsAddingURL] = useState(false);
   const [isAddingImage, setIsAddingImage] = useState(false);
+  const [isShareDropdownOpen, setIsShareDropdownOpen] = useState(false);
   const [randomCommentPlaceholder, setRandomCommentPlaceholder] =
     useState('Add a comment...');
+  const shareDropdownRef = useRef<HTMLDivElement>(null);
 
   const { metadata } = entry;
   const aliasIds: string[] = metadata.alias_ids || [];
@@ -80,6 +86,25 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
     };
     asyncFn();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        shareDropdownRef.current &&
+        !shareDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsShareDropdownOpen(false);
+      }
+    };
+
+    if (isShareDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isShareDropdownOpen]);
 
   useEffect(() => {
     if (metadata.type === 'image') {
@@ -171,6 +196,315 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
     setIsEditing(false);
   };
 
+  const takeDirectScreenshot = async () => {
+    try {
+      const cardElement = document.getElementById(`entry-${entry.id}`);
+      if (!cardElement) {
+        console.error('Card element not found');
+        return;
+      }
+
+      // Convert CDN image to base64 if needed for screenshot
+      let originalImageSrc = '';
+      let imageElement: HTMLImageElement | null = null;
+
+      if (metadata.type === 'image' && cdnImageUrl) {
+        console.log('Converting image to base64 for screenshot:', cdnImageUrl);
+
+        try {
+          const response = await fetch('/api/imageToBase64', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ imageUrl: cdnImageUrl }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const imageBase64 = data.base64;
+            const imageContentType = data.contentType;
+
+            // Find the image element and replace its src temporarily
+            imageElement = cardElement.querySelector(
+              'img[src*="cloudfront"]',
+            ) as HTMLImageElement;
+            if (imageElement && imageBase64) {
+              originalImageSrc = imageElement.src;
+              imageElement.src = `data:${imageContentType};base64,${imageBase64}`;
+              console.log('Temporarily replaced image src for screenshot');
+
+              // Wait for image to load
+              await new Promise((resolve) => {
+                if (imageElement!.complete) {
+                  resolve(0);
+                } else {
+                  imageElement!.onload = () => resolve(0);
+                  imageElement!.onerror = () => resolve(0);
+                }
+              });
+            }
+          }
+        } catch (conversionError) {
+          console.error(
+            'Image conversion failed for screenshot:',
+            conversionError,
+          );
+        }
+      }
+
+      // Hide action buttons during screenshot
+      const actionButtons = cardElement.querySelector(
+        '.border-t.border-gray-100.pt-4',
+      );
+      const addButtons = cardElement.querySelector(
+        '.mt-4.flex.flex-wrap.gap-3.border-t.border-gray-100.pt-4',
+      );
+
+      if (actionButtons) (actionButtons as HTMLElement).style.display = 'none';
+      if (addButtons) (addButtons as HTMLElement).style.display = 'none';
+
+      const canvas = await html2canvas(cardElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      // Restore original image src if it was changed
+      if (imageElement && originalImageSrc) {
+        imageElement.src = originalImageSrc;
+        console.log('Restored original image src');
+      }
+
+      // Restore buttons
+      if (actionButtons) (actionButtons as HTMLElement).style.display = '';
+      if (addButtons) (addButtons as HTMLElement).style.display = '';
+
+      // Download screenshot
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `thread-entry-${entry.id.slice(0, 8)}-screenshot.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/png');
+    } catch (error) {
+      console.error('Error taking screenshot:', error);
+    }
+  };
+
+  const handleShareHTML = async () => {
+    try {
+      // Convert image to base64 first if needed
+      let imageBase64 = '';
+      let imageContentType = 'image/webp';
+      let imageConversionFailed = false;
+
+      if (metadata.type === 'image' && cdnImageUrl) {
+        console.log('Converting image to base64:', cdnImageUrl);
+        try {
+          const response = await fetch('/api/imageToBase64', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ imageUrl: cdnImageUrl }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            imageBase64 = data.base64;
+            imageContentType = data.contentType;
+            console.log('Base64 conversion result length:', imageBase64.length);
+
+            if (!imageBase64 || imageBase64.length < 100) {
+              console.warn(
+                'Base64 conversion resulted in empty or very short string',
+              );
+              imageConversionFailed = true;
+            }
+          } else {
+            throw new Error(`API error: ${response.status}`);
+          }
+        } catch (conversionError) {
+          console.error('Image conversion failed:', conversionError);
+          imageConversionFailed = true;
+        }
+      }
+
+      // Get the main content area (without action buttons)
+      const contentHtml = `
+        <div class="w-full rounded-xl border-2 bg-white shadow-lg p-6">
+          <div class="prose prose-lg max-w-none mb-6">
+            <div class="text-lg leading-relaxed text-gray-900">${entry.data}</div>
+          </div>
+
+          ${
+            entry.metadata.title
+              ? `
+            <a class="inline-block text-sm text-gray-500 hover:text-blue-600 hover:underline mb-4" 
+               href="${entry.metadata.author}" target="_blank">
+              ${entry.metadata.title}
+            </a>
+          `
+              : ''
+          }
+
+
+          ${
+            // eslint-disable-next-line no-nested-ternary
+            metadata.type === 'image' && imageBase64 && !imageConversionFailed
+              ? `
+            <div class="mt-4">
+              <img src="data:${imageContentType};base64,${imageBase64}" 
+                   alt="Entry content" 
+                   class="h-auto max-w-full rounded-lg shadow-md" />
+            </div>
+          `
+              : metadata.type === 'image' && cdnImageUrl
+                ? `
+            <div class="mt-4">
+              <div class="bg-gray-200 rounded-lg p-8 text-center text-gray-500">
+                <p class="font-medium mb-2">[Image could not be embedded]</p>
+                <p class="text-sm">This shared version could not include the original image due to technical limitations.</p>
+                <p class="text-xs mt-2 font-mono break-all">Source: ${cdnImageUrl.substring(0, 80)}${cdnImageUrl.length > 80 ? '...' : ''}</p>
+              </div>
+            </div>
+          `
+                : ''
+          }
+
+          <div class="mt-6 text-xs text-gray-400 text-center">
+            Generated from YCB Companion - ${new Date().toLocaleString()}
+          </div>
+        </div>
+      `;
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thread Entry - ${entry.id.slice(0, 8)}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .prose { max-width: none; }
+        .prose p { margin-bottom: 1rem; }
+        .prose h1, .prose h2, .prose h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .screenshot-btn { 
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            z-index: 1000;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        .screenshot-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .screenshot-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        @media print {
+            .screenshot-btn { display: none; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 p-8">
+    <button class="screenshot-btn" onclick="takeScreenshot()" id="screenshotBtn">
+        📸 Download Screenshot
+    </button>
+    
+    <div class="mx-auto max-w-2xl" id="content">
+        ${contentHtml}
+    </div>
+
+    <script>
+        async function takeScreenshot() {
+            const button = document.getElementById('screenshotBtn');
+            const content = document.getElementById('content');
+            
+            // Disable button and show loading state
+            button.disabled = true;
+            button.textContent = '📸 Creating screenshot...';
+            
+            try {
+                // Hide the button temporarily
+                button.style.display = 'none';
+                
+                // Create canvas from the content
+                const canvas = await html2canvas(content, {
+                    backgroundColor: '#f9fafb',
+                    scale: 2, // Higher resolution
+                    useCORS: true,
+                    allowTaint: true,
+                    scrollX: 0,
+                    scrollY: 0,
+                    width: content.scrollWidth,
+                    height: content.scrollHeight
+                });
+                
+                // Convert to blob and download
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'thread-entry-${entry.id.slice(0, 8)}-screenshot.png';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                }, 'image/png');
+                
+            } catch (error) {
+                console.error('Error taking screenshot:', error);
+                alert('Failed to create screenshot. Please try again.');
+            } finally {
+                // Restore button
+                button.style.display = 'block';
+                button.disabled = false;
+                button.textContent = '📸 Download Screenshot';
+            }
+        }
+    </script>
+</body>
+</html>`;
+
+      // Create and download the HTML file
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `thread-entry-${entry.id.slice(0, 8)}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error creating HTML file:', error);
+    }
+  };
+
   const addComment = (
     aliasInput: string,
     parent: { id: string; data: string; metadata: any },
@@ -252,21 +586,6 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
     }
   };
 
-  const getRelationshipLabel = () => {
-    switch (entry.relationshipType) {
-      case 'root':
-        return 'Main Entry';
-      case 'parent':
-        return 'Parent Entry';
-      case 'comment':
-        return 'Comment';
-      case 'neighbor':
-        return 'Related Entry';
-      default:
-        return '';
-    }
-  };
-
   return (
     <div
       id={`entry-${entry.id}`}
@@ -276,9 +595,6 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
       {entry.relationshipType !== 'root' && (
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-3">
           <div className="flex items-center gap-3">
-            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-              {getRelationshipLabel()}
-            </span>
             {entry.relationshipSource && (
               <button
                 onClick={() => {
@@ -409,6 +725,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
             !entry.metadata.author.includes('yourcommonbase.com') &&
             !entry.metadata.author.includes('instagram.com') &&
             !entry.metadata.author.includes('x.com') &&
+            !entry.metadata.author.includes('youtube.com') &&
             (entry.metadata.ogTitle || entry.metadata.ogDescription) &&
             entry.metadata.ogImages &&
             entry.metadata.ogImages.length > 0 && (
@@ -422,6 +739,13 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
           {entry.metadata.author &&
             entry.metadata.author.includes('instagram.com') && (
               <InstagramEmbed url={entry.metadata.author} />
+            )}
+          {entry.metadata.author &&
+            entry.metadata.author.includes('youtube.com') && (
+              <LiteYouTubeEmbed
+                id={entry.metadata.author.split('v=')[1]?.split('&')[0]}
+                title="YouTube video"
+              />
             )}
           {entry.metadata.author &&
             (entry.metadata.author.includes('twitter.com') ||
@@ -503,13 +827,64 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
                 {entry.id.slice(0, 8)}...
               </button>
               {!isEditing && (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  type="button"
-                  className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  Edit
-                </button>
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    type="button"
+                    className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  >
+                    Edit
+                  </button>
+                  <div className="relative" ref={shareDropdownRef}>
+                    <button
+                      onClick={() =>
+                        setIsShareDropdownOpen(!isShareDropdownOpen)
+                      }
+                      type="button"
+                      className="flex items-center gap-1 rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      Share
+                      <svg
+                        className="size-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+
+                    {isShareDropdownOpen && (
+                      <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-lg border border-gray-200 bg-white shadow-lg">
+                        <button
+                          onClick={async () => {
+                            setIsShareDropdownOpen(false);
+                            await takeDirectScreenshot();
+                          }}
+                          type="button"
+                          className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                        >
+                          📸 Screenshot
+                        </button>
+                        <button
+                          onClick={async () => {
+                            setIsShareDropdownOpen(false);
+                            await handleShareHTML();
+                          }}
+                          type="button"
+                          className="flex w-full items-center gap-2 rounded-b-lg border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                        >
+                          📄 HTML File
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>

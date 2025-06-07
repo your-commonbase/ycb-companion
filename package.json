@@ -50,6 +50,7 @@
     "drizzle-orm": "^0.32.0",
     "fuse.js": "^7.1.0",
     "he": "^1.2.0",
+    "html2canvas": "^1.4.1",
     "husky": "^9.1.1",
     "instantsearch.js": "^4.75.6",
     "js-cookie": "^3.0.5",
