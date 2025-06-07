@@ -301,6 +301,45 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
     }
   };
 
+  const handleNativeShare = async () => {
+    try {
+      const shareText = `${entry.data}
+
+${entry.metadata.author ? `Source: ${entry.metadata.author}` : ''}
+Created: ${new Date(entry.createdAt).toLocaleDateString()}
+
+Your Commonbase`;
+
+      if (navigator.share) {
+        await navigator.share({
+          title: `Thread Entry - ${entry.id.slice(0, 8)}`,
+          text: shareText,
+          url: window.location.href,
+        });
+      } else {
+        // Fallback for browsers without Web Share API
+        await navigator.clipboard.writeText(shareText);
+        alert('Content copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      // Fallback to clipboard if share fails
+      try {
+        const shareText = `${entry.data}
+
+${entry.metadata.author ? `Source: ${entry.metadata.author}` : ''}
+Created: ${new Date(entry.createdAt).toLocaleDateString()}
+
+Your Commonbase`;
+
+        await navigator.clipboard.writeText(shareText);
+        alert('Content copied to clipboard!');
+      } catch (clipboardError) {
+        console.error('Clipboard fallback failed:', clipboardError);
+      }
+    }
+  };
+
   const handleShareHTML = async () => {
     try {
       // Convert image to base64 first if needed
@@ -860,14 +899,24 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
                     </button>
 
                     {isShareDropdownOpen && (
-                      <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-lg border border-gray-200 bg-white shadow-lg">
+                      <div className="absolute right-0 top-full z-10 mt-1 w-44 rounded-lg border border-gray-200 bg-white shadow-lg">
+                        <button
+                          onClick={async () => {
+                            setIsShareDropdownOpen(false);
+                            await handleNativeShare();
+                          }}
+                          type="button"
+                          className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                        >
+                          📱 Share Text
+                        </button>
                         <button
                           onClick={async () => {
                             setIsShareDropdownOpen(false);
                             await takeDirectScreenshot();
                           }}
                           type="button"
-                          className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                          className="flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
                         >
                           📸 Screenshot
                         </button>
