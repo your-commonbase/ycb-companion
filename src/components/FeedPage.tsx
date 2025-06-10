@@ -7,7 +7,6 @@ import { InstagramEmbed } from 'react-social-media-embed';
 import { Tweet } from 'react-tweet';
 
 import { fetchRandomEntry } from '@/helpers/functions';
-import { enqueueAddText, useAddQueueProcessor } from '@/hooks/useAddQueue';
 
 interface Entry {
   id: string;
@@ -38,9 +37,8 @@ export default function FeedPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingParent, setLoadingParent] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
-
-  // Initialize queue processor for comment submission
-  useAddQueueProcessor();
+  const [streakCount, setStreakCount] = useState(0);
+  const [showStreakAnimation, setShowStreakAnimation] = useState(false);
 
   const generateRandomPlaceholder = async () => {
     try {
@@ -156,34 +154,67 @@ export default function FeedPage() {
 
     setIsSubmittingComment(true);
     try {
-      enqueueAddText(
-        {
+      // Direct API call to add comment
+      const response = await fetch('/api/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           data: comment.trim(),
           metadata: {
             parent_id: currentEntry.id,
             title: currentEntry.metadata.title || 'Feed Comment',
             author: currentEntry.metadata.author || 'Feed',
           },
-          parentId: currentEntry.id,
-        },
-        () => {
-          // Comment successfully submitted
-          setComment('');
-          // Refresh comments to show the new one
-          if (
-            currentEntry.metadata.alias_ids &&
-            currentEntry.metadata.alias_ids.length > 0
-          ) {
-            fetchComments(currentEntry.metadata.alias_ids);
-          }
-          // Auto-advance to next entry after commenting
-          setTimeout(() => {
-            loadRandomEntry();
-          }, 1000);
-        },
-      );
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+
+        // Update parent entry's alias_ids to include new comment
+        if (currentEntry.metadata.alias_ids) {
+          currentEntry.metadata.alias_ids.push(result.id);
+        } else {
+          currentEntry.metadata.alias_ids = [result.id];
+        }
+
+        // Update the parent entry with new alias_ids
+        await fetch('/api/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: currentEntry.id,
+            data: currentEntry.data,
+            metadata: currentEntry.metadata,
+          }),
+        });
+
+        // Increment streak with animation
+        setStreakCount((prev) => prev + 1);
+        setShowStreakAnimation(true);
+        setTimeout(() => setShowStreakAnimation(false), 600);
+
+        // Clear comment
+        setComment('');
+
+        // Refresh comments to show the new one
+        if (currentEntry.metadata.alias_ids.length > 0) {
+          fetchComments(currentEntry.metadata.alias_ids);
+        }
+
+        // Auto-advance to next entry after commenting
+        setTimeout(() => {
+          loadRandomEntry();
+        }, 1500);
+      } else {
+        console.error('Failed to submit comment');
+      }
     } catch (error) {
-      // Error submitting comment
+      console.error('Error submitting comment:', error);
     } finally {
       setIsSubmittingComment(false);
     }
@@ -286,11 +317,48 @@ export default function FeedPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="border-b bg-white px-6 py-4 shadow-sm">
-        <div className="mx-auto max-w-4xl">
-          <h1 className="text-2xl font-bold text-gray-900">Feed</h1>
-          <p className="text-gray-600">
-            Discover and comment on random entries
-          </p>
+        <div className="mx-auto flex max-w-4xl items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Feed</h1>
+            <p className="text-gray-600">
+              Discover and comment on random entries
+            </p>
+          </div>
+
+          {/* Streak Counter */}
+          <div className="flex items-center">
+            <div
+              className={`relative transition-all duration-300 ${showStreakAnimation ? 'scale-110' : 'scale-100'}`}
+            >
+              <div className="flex items-center gap-3 rounded-full bg-gradient-to-r from-orange-400 to-pink-500 px-6 py-3 text-white shadow-lg">
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <span className="text-2xl">🔥</span>
+                    {showStreakAnimation && (
+                      <div className="absolute -right-1 -top-1 size-4 animate-ping rounded-full bg-yellow-300" />
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium opacity-90">Streak</div>
+                    <div className="text-2xl font-bold leading-none">
+                      {streakCount}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {streakCount > 0 && (
+              <button
+                onClick={() => setStreakCount(0)}
+                className="ml-2 text-xs text-gray-400 transition-colors hover:text-gray-600"
+                type="button"
+                title="Reset streak"
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
