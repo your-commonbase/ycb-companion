@@ -443,6 +443,7 @@ const TreeMinimap: React.FC<TreeMinimapProps> = ({ entries, onNodeClick }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+  const [isMobile, setIsMobile] = useState(false);
 
   const buildTreeData = () => {
     if (!entries.length) return null;
@@ -660,6 +661,17 @@ const TreeMinimap: React.FC<TreeMinimapProps> = ({ entries, onNodeClick }) => {
     });
   };
 
+  // Check if mobile on mount and window resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Fetch image URLs for image entries in mini tree
   useEffect(() => {
     const imageEntries = entries.filter(
@@ -692,24 +704,55 @@ const TreeMinimap: React.FC<TreeMinimapProps> = ({ entries, onNodeClick }) => {
       'Entry types:',
       entries.map((e) => ({ id: e.id.slice(0, 8), type: e.relationshipType })),
     );
-    renderMiniTree();
-  }, [entries, imageUrls]);
+    if (!isMobile) {
+      renderMiniTree();
+    }
+  }, [entries, imageUrls, isMobile]);
 
   if (!entries.length) return null;
 
   return (
     <>
-      <div
-        className="fixed bottom-6 right-6 z-40 cursor-pointer rounded-lg border border-gray-200 bg-white p-2 shadow-lg transition-shadow hover:shadow-xl"
-        onClick={() => setIsModalOpen(true)}
-        title="Thread Tree (click to expand)"
-        onKeyDown={(e) => e.key === 'blah' && setIsModalOpen(true)}
-        tabIndex={0}
-        role="button"
-      >
-        <svg ref={svgRef} className="block" />
-        <div className="mt-1 text-center text-xs text-gray-500">Tree Map</div>
-      </div>
+      {isMobile ? (
+        // Mobile: Floating button
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex size-14 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg transition-all duration-200 hover:scale-110 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          title="Open Thread Tree Map"
+          type="button"
+          aria-label="Open Thread Tree Map"
+        >
+          <svg
+            className="size-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+            <circle cx="12" cy="6" r="1" fill="currentColor" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" />
+            <circle cx="12" cy="18" r="1" fill="currentColor" />
+          </svg>
+        </button>
+      ) : (
+        // Desktop: Fixed minimap
+        <div
+          className="fixed bottom-6 right-6 z-40 cursor-pointer rounded-lg border border-gray-200 bg-white p-2 shadow-lg transition-shadow hover:shadow-xl"
+          onClick={() => setIsModalOpen(true)}
+          title="Thread Tree (click to expand)"
+          onKeyDown={(e) => e.key === 'Enter' && setIsModalOpen(true)}
+          tabIndex={0}
+          role="button"
+        >
+          <svg ref={svgRef} className="block" />
+          <div className="mt-1 text-center text-xs text-gray-500">Tree Map</div>
+        </div>
+      )}
 
       <TreeMinimapModal
         isOpen={isModalOpen}
