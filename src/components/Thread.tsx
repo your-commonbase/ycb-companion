@@ -944,76 +944,77 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
               >
                 {entry.id.slice(0, 8)}...
               </button>
-              {!isEditing && (
-                <>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    type="button"
-                    className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                  >
-                    Edit
-                  </button>
-                  <div className="relative" ref={shareDropdownRef}>
+              {!isEditing &&
+                (!entry.metadata.type || entry.metadata.type === 'text') && (
+                  <>
                     <button
-                      onClick={() =>
-                        setIsShareDropdownOpen(!isShareDropdownOpen)
-                      }
+                      onClick={() => setIsEditing(true)}
                       type="button"
-                      className="flex items-center gap-1 rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     >
-                      Share
-                      <svg
-                        className="size-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
+                      Edit
                     </button>
+                    <div className="relative" ref={shareDropdownRef}>
+                      <button
+                        onClick={() =>
+                          setIsShareDropdownOpen(!isShareDropdownOpen)
+                        }
+                        type="button"
+                        className="flex items-center gap-1 rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        Share
+                        <svg
+                          className="size-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </button>
 
-                    {isShareDropdownOpen && (
-                      <div className="absolute right-0 top-full z-10 mt-1 w-44 rounded-lg border border-gray-200 bg-white shadow-lg">
-                        <button
-                          onClick={async () => {
-                            setIsShareDropdownOpen(false);
-                            await handleNativeShare();
-                          }}
-                          type="button"
-                          className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                        >
-                          📱 Share Text
-                        </button>
-                        <button
-                          onClick={async () => {
-                            setIsShareDropdownOpen(false);
-                            await takeDirectScreenshot();
-                          }}
-                          type="button"
-                          className="flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                        >
-                          📸 Screenshot
-                        </button>
-                        <button
-                          onClick={async () => {
-                            setIsShareDropdownOpen(false);
-                            await handleShareHTML();
-                          }}
-                          type="button"
-                          className="flex w-full items-center gap-2 rounded-b-lg border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                        >
-                          📄 HTML File
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
+                      {isShareDropdownOpen && (
+                        <div className="absolute right-0 top-full z-10 mt-1 w-44 rounded-lg border border-gray-200 bg-white shadow-lg">
+                          <button
+                            onClick={async () => {
+                              setIsShareDropdownOpen(false);
+                              await handleNativeShare();
+                            }}
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                          >
+                            📱 Share Text
+                          </button>
+                          <button
+                            onClick={async () => {
+                              setIsShareDropdownOpen(false);
+                              await takeDirectScreenshot();
+                            }}
+                            type="button"
+                            className="flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                          >
+                            📸 Screenshot
+                          </button>
+                          <button
+                            onClick={async () => {
+                              setIsShareDropdownOpen(false);
+                              await handleShareHTML();
+                            }}
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-b-lg border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                          >
+                            📄 HTML File
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
             </div>
           </div>
         </div>
