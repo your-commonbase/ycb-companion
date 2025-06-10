@@ -751,6 +751,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
             <div className="space-y-4">
               <textarea
                 value={editText}
+                style={{ fontSize: '17px' }}
                 onChange={(e) => setEditText(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 rows={6}
@@ -1105,6 +1106,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
             <div className="space-y-3">
               <textarea
                 rows={3}
+                style={{ fontSize: '17px' }}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 placeholder={randomCommentPlaceholder}
                 id={`alias-input-comment-${entry.id}`}
