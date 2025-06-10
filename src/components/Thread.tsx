@@ -20,6 +20,7 @@ import {
 } from '@/hooks/useAddQueue';
 
 import LinkPreviewCard from './LinkPreview';
+import TreeMinimap from './TreeMinimap';
 
 interface Entry {
   id: string;
@@ -1399,6 +1400,22 @@ export default function Thread({ inputId }: { inputId: string }) {
     pollImageProcessing(result.id);
   };
 
+  const handleTreeNodeClick = (entryId: string) => {
+    const targetElement = document.getElementById(`entry-${entryId}`);
+    if (targetElement) {
+      targetElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+      // Add a brief highlight effect
+      targetElement.style.transition = 'background-color 0.3s ease';
+      targetElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+      setTimeout(() => {
+        targetElement.style.backgroundColor = '';
+      }, 1000);
+    }
+  };
+
   useEffect(() => {
     const fetchInitialEntry = async () => {
       try {
@@ -1459,6 +1476,13 @@ export default function Thread({ inputId }: { inputId: string }) {
           </button>
         </div>
       </div>
+
+      {/* Tree Minimap */}
+      <TreeMinimap
+        key={flattenedEntries.length}
+        entries={flattenedEntries}
+        onNodeClick={handleTreeNodeClick}
+      />
     </div>
   );
 }
