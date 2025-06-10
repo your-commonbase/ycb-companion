@@ -20,6 +20,7 @@ import {
 } from '@/hooks/useAddQueue';
 
 import LinkPreviewCard from './LinkPreview';
+import TreeMinimap from './TreeMinimap';
 
 interface Entry {
   id: string;
@@ -751,6 +752,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
             <div className="space-y-4">
               <textarea
                 value={editText}
+                style={{ fontSize: '17px' }}
                 onChange={(e) => setEditText(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 rows={6}
@@ -943,76 +945,77 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
               >
                 {entry.id.slice(0, 8)}...
               </button>
-              {!isEditing && (
-                <>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    type="button"
-                    className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                  >
-                    Edit
-                  </button>
-                  <div className="relative" ref={shareDropdownRef}>
+              {!isEditing &&
+                (!entry.metadata.type || entry.metadata.type === 'text') && (
+                  <>
                     <button
-                      onClick={() =>
-                        setIsShareDropdownOpen(!isShareDropdownOpen)
-                      }
+                      onClick={() => setIsEditing(true)}
                       type="button"
-                      className="flex items-center gap-1 rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     >
-                      Share
-                      <svg
-                        className="size-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
+                      Edit
                     </button>
+                    <div className="relative" ref={shareDropdownRef}>
+                      <button
+                        onClick={() =>
+                          setIsShareDropdownOpen(!isShareDropdownOpen)
+                        }
+                        type="button"
+                        className="flex items-center gap-1 rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        Share
+                        <svg
+                          className="size-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </button>
 
-                    {isShareDropdownOpen && (
-                      <div className="absolute right-0 top-full z-10 mt-1 w-44 rounded-lg border border-gray-200 bg-white shadow-lg">
-                        <button
-                          onClick={async () => {
-                            setIsShareDropdownOpen(false);
-                            await handleNativeShare();
-                          }}
-                          type="button"
-                          className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                        >
-                          📱 Share Text
-                        </button>
-                        <button
-                          onClick={async () => {
-                            setIsShareDropdownOpen(false);
-                            await takeDirectScreenshot();
-                          }}
-                          type="button"
-                          className="flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                        >
-                          📸 Screenshot
-                        </button>
-                        <button
-                          onClick={async () => {
-                            setIsShareDropdownOpen(false);
-                            await handleShareHTML();
-                          }}
-                          type="button"
-                          className="flex w-full items-center gap-2 rounded-b-lg border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                        >
-                          📄 HTML File
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
+                      {isShareDropdownOpen && (
+                        <div className="absolute right-0 top-full z-10 mt-1 w-44 rounded-lg border border-gray-200 bg-white shadow-lg">
+                          <button
+                            onClick={async () => {
+                              setIsShareDropdownOpen(false);
+                              await handleNativeShare();
+                            }}
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                          >
+                            📱 Share Text
+                          </button>
+                          <button
+                            onClick={async () => {
+                              setIsShareDropdownOpen(false);
+                              await takeDirectScreenshot();
+                            }}
+                            type="button"
+                            className="flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                          >
+                            📸 Screenshot
+                          </button>
+                          <button
+                            onClick={async () => {
+                              setIsShareDropdownOpen(false);
+                              await handleShareHTML();
+                            }}
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-b-lg border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                          >
+                            📄 HTML File
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
             </div>
           </div>
         </div>
@@ -1105,6 +1108,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
             <div className="space-y-3">
               <textarea
                 rows={3}
+                style={{ fontSize: '17px' }}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 placeholder={randomCommentPlaceholder}
                 id={`alias-input-comment-${entry.id}`}
@@ -1396,6 +1400,22 @@ export default function Thread({ inputId }: { inputId: string }) {
     pollImageProcessing(result.id);
   };
 
+  const handleTreeNodeClick = (entryId: string) => {
+    const targetElement = document.getElementById(`entry-${entryId}`);
+    if (targetElement) {
+      targetElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+      // Add a brief highlight effect
+      targetElement.style.transition = 'background-color 0.3s ease';
+      targetElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+      setTimeout(() => {
+        targetElement.style.backgroundColor = '';
+      }, 1000);
+    }
+  };
+
   useEffect(() => {
     const fetchInitialEntry = async () => {
       try {
@@ -1456,6 +1476,13 @@ export default function Thread({ inputId }: { inputId: string }) {
           </button>
         </div>
       </div>
+
+      {/* Tree Minimap */}
+      <TreeMinimap
+        key={flattenedEntries.length}
+        entries={flattenedEntries}
+        onNodeClick={handleTreeNodeClick}
+      />
     </div>
   );
 }

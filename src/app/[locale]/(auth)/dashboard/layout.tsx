@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Modal from 'react-modal';
 
 import SearchModalBeta from '@/components/SearchModalBeta';
-import SpeedDial from '@/components/SpeedDial';
+// import SpeedDial from '@/components/SpeedDial';
 import Uploader from '@/components/Uploader';
 import UploaderModalWrapper from '@/components/UploaderModalWrapper';
 import ShareUploader from '@/components/uploaders/share';
@@ -29,7 +29,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
   const [uploaderModalType, setUploaderModalType] = useState('');
   const [isUploaderModalOpen, setUploaderModalOpen] = useState(false);
 
-  const openFastEntryModal = () => setFastEntryModalOpen(true);
+  // const openFastEntryModal = () => setFastEntryModalOpen(true);
   const closeFastEntryModal = () => setFastEntryModalOpen(false);
 
   const openSearchModalBeta = () => setSearchModalBetaOpen(true);
@@ -45,31 +45,31 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
   const toggleSynthesize = () => setIsSynthesizeOpen((prev) => !prev);
   const toggleShare = () => setIsShareOpen((prev) => !prev);
 
-  const onOpenModal = (which: string) => {
-    if (which === 'upload') {
-      openFastEntryModal();
-      const intervalId = setInterval(() => {
-        const input = document.getElementById('modal-message');
-        if (input) {
-          setTimeout(() => {
-            input.focus();
-          }, 100);
-          clearInterval(intervalId); // Stop the interval once the input is focused
-        }
-      }, 100);
-    } else if (which === 'search') {
-      openSearchModalBeta();
-      const intervalId = setInterval(() => {
-        const input = document.getElementById('modal-beta-search');
-        if (input) {
-          setTimeout(() => {
-            input.focus();
-          }, 100);
-          clearInterval(intervalId); // Stop the interval once the input is focused
-        }
-      }, 100);
-    }
-  };
+  // const onOpenModal = (which: string) => {
+  //   if (which === 'upload') {
+  //     openFastEntryModal();
+  //     const intervalId = setInterval(() => {
+  //       const input = document.getElementById('modal-message');
+  //       if (input) {
+  //         setTimeout(() => {
+  //           input.focus();
+  //         }, 100);
+  //         clearInterval(intervalId); // Stop the interval once the input is focused
+  //       }
+  //     }, 100);
+  //   } else if (which === 'search') {
+  //     openSearchModalBeta();
+  //     const intervalId = setInterval(() => {
+  //       const input = document.getElementById('modal-beta-search');
+  //       if (input) {
+  //         setTimeout(() => {
+  //           input.focus();
+  //         }, 100);
+  //         clearInterval(intervalId); // Stop the interval once the input is focused
+  //       }
+  //     }, 100);
+  //   }
+  // };
 
   const closeModal = () => {
     setSearchModalBetaOpen(false);
@@ -653,7 +653,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
           />
         </Modal>
       )}
-      <SpeedDial onOpenModal={onOpenModal} openRandom={handleRandom} />
+      {/* <SpeedDial onOpenModal={onOpenModal} openRandom={handleRandom} /> */}
       {props.children}
     </BaseTemplate>
   );
