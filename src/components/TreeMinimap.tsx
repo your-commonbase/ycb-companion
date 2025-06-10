@@ -143,11 +143,15 @@ const TreeMinimapModal: React.FC<TreeMinimapModalProps> = ({
     const nodeRadius = 8;
     const labelBuffer = estimatedLabelWidth + 40; // Extra buffer for label spacing
     const verticalSpacing = 4.0; // Multiplier for vertical spacing between levels
+    const horizontalLevelSpacing = 350; // Fixed horizontal distance between tree levels
     const horizontalSpacing = Math.max(6.0, estimatedLabelWidth / 30); // Scale horizontal spacing based on label width
+    console.log(horizontalSpacing);
 
-    // Apply spacing multipliers to create more room between nodes
+    // Calculate tree dimensions with increased horizontal level spacing
+    const numLevels =
+      Math.max(...tempNodes.descendants().map((d) => d.depth)) + 1;
     const treeWidth = Math.max(
-      (maxY - minY) * horizontalSpacing + labelBuffer + padding * 2,
+      numLevels * horizontalLevelSpacing + labelBuffer + padding * 2,
       1400,
     );
     const treeHeight = Math.max(
@@ -162,13 +166,13 @@ const TreeMinimapModal: React.FC<TreeMinimapModalProps> = ({
     // Set SVG dimensions
     svg.attr('width', treeWidth).attr('height', treeHeight);
 
-    // Create the actual tree with proper sizing and label-aware spacing
+    // Create the actual tree with proper sizing and increased horizontal spacing
     const tree = d3
       .tree<TreeNode>()
       .size([treeHeight - padding * 2, treeWidth - labelBuffer - padding * 2])
       .separation((a, b) => {
-        // Scale separation based on label width to prevent overlaps
-        const baseSeparation = a.parent === b.parent ? 4 : 6;
+        // Only increase separation between nodes at different tree levels (horizontal spacing)
+        const baseSeparation = a.parent === b.parent ? 3.5 : 5; // Keep vertical spacing reasonable
         const labelScaling = Math.max(1, estimatedLabelWidth / 100);
         return baseSeparation * labelScaling;
       });
@@ -330,27 +334,27 @@ const TreeMinimapModal: React.FC<TreeMinimapModalProps> = ({
       }
     });
 
-    // Background rectangles for ID labels
-    nodes
-      .append('rect')
-      .attr('x', 12)
-      .attr('y', -23)
-      .attr('width', 70) // Fixed width for IDs
-      .attr('height', 14)
-      .attr('fill', 'rgba(248, 250, 252, 0.9)')
-      .attr('stroke', 'rgba(248, 250, 252, 0.9)')
-      .attr('stroke-width', 1)
-      .attr('rx', 2);
+    // // Background rectangles for ID labels
+    // nodes
+    //   .append('rect')
+    //   .attr('x', 12)
+    //   .attr('y', -23)
+    //   .attr('width', 70) // Fixed width for IDs
+    //   .attr('height', 14)
+    //   .attr('fill', 'rgba(248, 250, 252, 0.9)')
+    //   .attr('stroke', 'rgba(248, 250, 252, 0.9)')
+    //   .attr('stroke-width', 1)
+    //   .attr('rx', 2);
 
-    // Node IDs with background
-    nodes
-      .append('text')
-      .attr('dx', 15)
-      .attr('dy', -15)
-      .attr('font-size', '10px')
-      .attr('fill', '#9ca3af')
-      .attr('font-weight', '400')
-      .text((d) => d.data.id.slice(0, 8));
+    // // Node IDs with background
+    // nodes
+    //   .append('text')
+    //   .attr('dx', 15)
+    //   .attr('dy', -15)
+    //   .attr('font-size', '10px')
+    //   .attr('fill', '#9ca3af')
+    //   .attr('font-weight', '400')
+    //   .text((d) => d.data.id.slice(0, 8));
   };
 
   // Fetch image URLs for image entries

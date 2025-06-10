@@ -879,20 +879,21 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Left side - Relationship indicators */}
             <div className="flex flex-wrap gap-2">
-              {aliasIds.length > 0 && (
-                <button
-                  onClick={() => onRelationshipExpand(entry.id, 'comments')}
-                  type="button"
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    expandedRelationships.has(`${entry.id}-comments`)
-                      ? 'cursor-default bg-gray-200 text-gray-600'
-                      : 'bg-orange-100 text-orange-800 hover:bg-orange-200'
-                  }`}
-                  disabled={expandedRelationships.has(`${entry.id}-comments`)}
-                >
-                  {aliasIds.length} comment{aliasIds.length !== 1 ? 's' : ''}
-                </button>
-              )}
+              {aliasIds.length > 0 &&
+                aliasIds.some((id) => !allEntryIds.has(id)) && (
+                  <button
+                    onClick={() => onRelationshipExpand(entry.id, 'comments')}
+                    type="button"
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      expandedRelationships.has(`${entry.id}-comments`)
+                        ? 'cursor-default bg-gray-200 text-gray-600'
+                        : 'bg-orange-100 text-orange-800 hover:bg-orange-200'
+                    }`}
+                    disabled={expandedRelationships.has(`${entry.id}-comments`)}
+                  >
+                    {aliasIds.length} comment{aliasIds.length !== 1 ? 's' : ''}
+                  </button>
+                )}
               {parentId && !allEntryIds.has(parentId) && (
                 <button
                   onClick={() => onRelationshipExpand(entry.id, 'parent')}
