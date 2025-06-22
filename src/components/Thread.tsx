@@ -20,6 +20,7 @@ import {
 } from '@/hooks/useAddQueue';
 
 import LinkPreviewCard from './LinkPreview';
+import SearchModalBeta from './SearchModalBeta';
 import TreeMinimap from './TreeMinimap';
 
 interface Entry {
@@ -49,6 +50,7 @@ interface ThreadEntryCardProps {
   onNavigateToEntry: (entryId: string) => void;
   onAddNewEntry: (newEntry: FlattenedEntry, parentId: string) => void;
   onImageUpload: (result: any, parentId: string) => void;
+  onUrlUpload: (result: any, parentId: string) => void;
   expandedRelationships?: Set<string>;
   allEntryIds?: Set<string>;
 }
@@ -59,6 +61,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   onNavigateToEntry,
   onAddNewEntry,
   onImageUpload,
+  onUrlUpload,
   expandedRelationships = new Set(),
   allEntryIds = new Set(),
 }) => {
@@ -669,21 +672,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
         },
       },
       (addedCommentData) => {
-        const newEntry: FlattenedEntry = {
-          id: addedCommentData.id,
-          data: addedCommentData.data || url,
-          comments: [],
-          createdAt: addedCommentData.createdAt,
-          metadata: {
-            ...addedCommentData.metadata,
-            parent_id: parent.id,
-          },
-          relationshipType: 'comment',
-          relationshipSource: parent.id,
-          level: entry.level + 1,
-          hasMoreRelations: true,
-        };
-        onAddNewEntry(newEntry, parent.id);
+        onUrlUpload(addedCommentData, parent.id);
       },
     );
   };
@@ -776,7 +765,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
             </div>
           ) : (
             <div className="prose prose-lg max-w-none">
-              <ReactMarkdown className="text-lg leading-relaxed text-gray-900">
+              <ReactMarkdown className="markdown-domine text-lg leading-relaxed text-gray-900">
                 {entry.data}
               </ReactMarkdown>
             </div>
@@ -836,6 +825,27 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
               }
             </div>
           )}
+
+          {/* URL Processing Indicator */}
+          {entry.isProcessing &&
+            entry.data &&
+            entry.data.startsWith('URL: ') && (
+              <div className="mt-4">
+                <div className="relative rounded-lg bg-blue-50 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="size-6 animate-spin rounded-full border-b-2 border-blue-500" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">
+                        Processing URL...
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        Extracting title, description, and metadata
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
 
         {/* Social Media Embeds */}
@@ -1161,6 +1171,8 @@ export default function Thread({ inputId }: { inputId: string }) {
     Set<string>
   >(new Set());
   const [, setProcessingImages] = useState<Set<string>>(new Set());
+  const [, setProcessingUrls] = useState<Set<string>>(new Set());
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const idSet = useRef(new Set<string>());
   const router = useRouter();
   useAddQueueProcessor();
@@ -1373,6 +1385,72 @@ export default function Thread({ inputId }: { inputId: string }) {
     poll();
   };
 
+  const pollUrlProcessing = async (entryId: string) => {
+    const maxAttempts = 30; // 30 seconds max
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const response = await fetch('/api/fetch', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id: entryId }),
+        });
+        const data = await response.json();
+
+        // Check if URL processing is complete - look for validated format
+        // Unvalidated: data starts with "URL: https://..."
+        // Validated: data has title, description, and structured content
+        if (
+          data.data &&
+          data.data.data &&
+          !data.data.data.startsWith('URL: ')
+        ) {
+          // URL processing is complete, update the entry
+          setFlattenedEntries((prev) =>
+            prev.map((entry) =>
+              entry.id === entryId
+                ? {
+                    ...entry,
+                    data: data.data.data,
+                    metadata: data.data.metadata,
+                    isProcessing: false,
+                  }
+                : entry,
+            ),
+          );
+          setProcessingUrls((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(entryId);
+            return newSet;
+          });
+          return;
+        }
+
+        attempts += 1;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 1000); // Poll every second
+        } else {
+          // Stop polling after max attempts
+          setProcessingUrls((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(entryId);
+            return newSet;
+          });
+        }
+      } catch (error) {
+        console.error('Error polling URL processing:', error);
+        setProcessingUrls((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(entryId);
+          return newSet;
+        });
+      }
+    };
+
+    poll();
+  };
+
   const handleImageUpload = (result: any, parentId: string) => {
     // Find the parent entry to get its level
     const parentEntry = flattenedEntries.find((e) => e.id === parentId);
@@ -1399,6 +1477,39 @@ export default function Thread({ inputId }: { inputId: string }) {
     handleAddNewEntry(newEntry, parentId);
     setProcessingImages((prev) => new Set([...prev, result.id]));
     pollImageProcessing(result.id);
+  };
+
+  const handleUrlUpload = (result: any, parentId: string) => {
+    // Find the parent entry to get its level
+    const parentEntry = flattenedEntries.find((e) => e.id === parentId);
+    if (!parentEntry) return;
+
+    // Check if the returned data starts with "URL: " (unvalidated state)
+    const isProcessing = result.data && result.data.startsWith('URL: ');
+
+    const newEntry: FlattenedEntry = {
+      id: result.id,
+      data: result.data || '',
+      comments: [],
+      createdAt: result.createdAt || new Date().toISOString(),
+      metadata: {
+        ...result.metadata,
+        parent_id: parentId,
+      },
+      relationshipType: 'comment',
+      relationshipSource: parentId,
+      level: parentEntry.level + 1,
+      hasMoreRelations: true,
+      isProcessing,
+    };
+
+    handleAddNewEntry(newEntry, parentId);
+
+    // Start polling if the URL is still being processed
+    if (isProcessing) {
+      setProcessingUrls((prev) => new Set([...prev, result.id]));
+      pollUrlProcessing(result.id);
+    }
   };
 
   const handleTreeNodeClick = (entryId: string) => {
@@ -1453,6 +1564,7 @@ export default function Thread({ inputId }: { inputId: string }) {
               onNavigateToEntry={navigateToEntry}
               onAddNewEntry={handleAddNewEntry}
               onImageUpload={handleImageUpload}
+              onUrlUpload={handleUrlUpload}
               expandedRelationships={expandedRelationships}
               allEntryIds={new Set(flattenedEntries.map((e) => e.id))}
             />
@@ -1466,14 +1578,21 @@ export default function Thread({ inputId }: { inputId: string }) {
           </div>
         )}
 
-        {/* Roll the Dice button */}
-        <div className="flex justify-center py-8">
+        {/* Action buttons */}
+        <div className="flex justify-center gap-4 py-8">
           <button
             onClick={handleRollTheDice}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-medium text-white shadow-lg transition-all hover:scale-105 hover:from-purple-700 hover:to-pink-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
             type="button"
           >
             /random
+          </button>
+          <button
+            onClick={() => setIsSearchModalOpen(true)}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-3 font-medium text-white shadow-lg transition-all hover:scale-105 hover:from-blue-700 hover:to-cyan-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            type="button"
+          >
+            🔍 Search
           </button>
         </div>
       </div>
@@ -1483,6 +1602,13 @@ export default function Thread({ inputId }: { inputId: string }) {
         key={flattenedEntries.length}
         entries={flattenedEntries}
         onNodeClick={handleTreeNodeClick}
+      />
+
+      {/* Search Modal */}
+      <SearchModalBeta
+        isOpen={isSearchModalOpen}
+        closeModalFn={() => setIsSearchModalOpen(false)}
+        inputQuery=""
       />
     </div>
   );

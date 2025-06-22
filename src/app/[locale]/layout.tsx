@@ -51,6 +51,10 @@ export default function RootLayout(props: {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no, maximum-scale=1, viewport-fit=cover"
         />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Domine&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body>
         <NextIntlClientProvider

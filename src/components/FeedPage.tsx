@@ -372,7 +372,7 @@ export default function FeedPage() {
                 Parent Entry
               </div>
               <div className="text-gray-800">
-                <ReactMarkdown className="prose prose-sm max-w-none">
+                <ReactMarkdown className="markdown-domine prose prose-sm max-w-none">
                   {parentEntry.data}
                 </ReactMarkdown>
               </div>
@@ -394,7 +394,7 @@ export default function FeedPage() {
           <div className="mb-8">
             {/* Entry Text */}
             <div className="mb-6">
-              <ReactMarkdown className="prose prose-lg max-w-none text-gray-900">
+              <ReactMarkdown className="markdown-domine prose prose-lg max-w-none text-gray-900">
                 {currentEntry.data}
               </ReactMarkdown>
             </div>
@@ -485,7 +485,7 @@ export default function FeedPage() {
                     className="border-l-4 border-orange-300 bg-orange-50 pl-4"
                   >
                     <div className="text-gray-800">
-                      <ReactMarkdown className="prose prose-sm max-w-none">
+                      <ReactMarkdown className="markdown-domine prose prose-sm max-w-none">
                         {commentEntry.data}
                       </ReactMarkdown>
                     </div>

@@ -255,11 +255,7 @@ export default function SettingsPage() {
         <button type="submit" disabled={!file || loading}>
           {loading ? 'uploading...' : 'upload image'}
         </button>
-        {result && (
-          <pre style={{ whiteSpace: 'pre-wrap' }}>
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        )}
+        {result && <p>Refresh the page to see the uploaded image.</p>}
       </form>
       <h2 className="mb-4 text-2xl font-bold">Tiers</h2>
       <div className="mb-6 flex items-center justify-between">

@@ -83,3 +83,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Domine font for ReactMarkdown content */
+.markdown-domine {
+  font-family: 'Domine', serif;
+}

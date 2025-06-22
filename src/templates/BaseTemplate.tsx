@@ -21,7 +21,6 @@ const BaseTemplate = (props: {
         },
       });
       const data = await response.json();
-      console.log('data:', data);
       setProfilePicture(data.data.profilePicture.text);
     };
 
@@ -74,13 +73,13 @@ const BaseTemplate = (props: {
         <footer className="border-t border-gray-300 py-8 text-center text-sm">
           <a
             className="text-blue-700 hover:border-b-2 hover:border-blue-700"
-            href="https://www.icloud.com/shortcuts/e5b66464cff943f286244b06ab79625b"
+            href="https://www.icloud.com/shortcuts/69287bfd06634b65889f41127117eaaa"
           >
             Get the iOS shortcut.
           </a>
           <a
             className="text-blue-700 hover:border-b-2 hover:border-blue-700"
-            href="https://github.com/bramses/simple-chrome-ycb"
+            href="https://drive.google.com/file/d/18lSus68zLaU-zimvZQ8gKsCRVwj_hYwj/view?usp=sharing"
           >
             {' '}
             Get the Chrome Extension.
@@ -92,21 +91,7 @@ const BaseTemplate = (props: {
             {' '}
             Feedback.
           </a>
-          © Copyright {new Date().getFullYear()} {AppConfig.name}. Boilerplate
-          created by{' '}
-          <a
-            href="https://creativedesignsguru.com"
-            className="text-blue-700 hover:border-b-2 hover:border-blue-700"
-          >
-            CreativeDesignsGuru
-          </a>
-          .
-          {/*
-           * PLEASE READ THIS SECTION
-           * I'm an indie maker with limited resources and funds, I'll really appreciate if you could have a link to my website.
-           * The link doesn't need to appear on every pages, one link on one page is enough.
-           * For example, in the `About` page. Thank you for your support, it'll mean a lot to me.
-           */}
+          © Copyright {new Date().getFullYear()} {AppConfig.name}
         </footer>
       </div>
     </div>
