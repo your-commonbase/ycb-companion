@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import Modal from 'react-modal';
 
+import NavigationDropdown from '@/components/NavigationDropdown';
 import SearchModalBeta from '@/components/SearchModalBeta';
 // import SpeedDial from '@/components/SpeedDial';
 import Uploader from '@/components/Uploader';
@@ -34,16 +35,6 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
 
   const openSearchModalBeta = () => setSearchModalBetaOpen(true);
   const closeSearchModalBeta = () => setSearchModalBetaOpen(false);
-
-  const [isStoreOpen, setIsStoreOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isSynthesizeOpen, setIsSynthesizeOpen] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
-
-  const toggleStore = () => setIsStoreOpen((prev) => !prev);
-  const toggleSearch = () => setIsSearchOpen((prev) => !prev);
-  const toggleSynthesize = () => setIsSynthesizeOpen((prev) => !prev);
-  const toggleShare = () => setIsShareOpen((prev) => !prev);
 
   // const onOpenModal = (which: string) => {
   //   if (which === 'upload') {
@@ -293,11 +284,6 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
     <BaseTemplate
       leftNav={
         <>
-          <li className="border-none text-gray-700 hover:text-gray-900">
-            <Link href="/" className="border-none" prefetch={false}>
-              Landing Page
-            </Link>
-          </li>
           <li>
             <button
               // eslint-disable-next-line
@@ -308,225 +294,244 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
               {t('dashboard_link')}
             </button>
           </li>
-          <li>
-            <button onClick={toggleStore} className="border-none" type="button">
-              {isStoreOpen ? '-' : '+'}
-              Store
-            </button>
-            {isStoreOpen && (
-              <ul className="ml-4">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploaderModalType('text');
-                      setUploaderModalOpen(true);
-                      const intervalId = setInterval(() => {
-                        const input = document.getElementById('modal-message');
-                        if (input) {
-                          setTimeout(() => {
-                            input.focus();
-                          }, 100);
-                          clearInterval(intervalId); // Stop the interval once the input is focused
-                        }
+          <NavigationDropdown
+            title="Store"
+            icon={
+              <svg
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
+            }
+            items={[
+              {
+                label: 'Text',
+                shortcut: 't',
+                icon: '📝',
+                onClick: () => {
+                  setUploaderModalType('text');
+                  setUploaderModalOpen(true);
+                  const intervalId = setInterval(() => {
+                    const input = document.getElementById('modal-message');
+                    if (input) {
+                      setTimeout(() => {
+                        input.focus();
                       }, 100);
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Text [t]
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploaderModalType('url');
-                      setUploaderModalOpen(true);
-                      const intervalId = setInterval(() => {
-                        const input = document.getElementById(
-                          'modal-message-author',
-                        );
-                        if (input) {
-                          setTimeout(() => {
-                            input.focus();
-                          }, 100);
-                          clearInterval(intervalId); // Stop the interval once the input is focused
-                        }
-                      }, 100);
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    URL [u]
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploaderModalType('image');
-                      setUploaderModalOpen(true);
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Image [i]
-                  </button>
-                </li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.open(
-                      'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
-                      '_blank',
+                      clearInterval(intervalId);
+                    }
+                  }, 100);
+                },
+              },
+              {
+                label: 'URL',
+                shortcut: 'u',
+                icon: '🔗',
+                onClick: () => {
+                  setUploaderModalType('url');
+                  setUploaderModalOpen(true);
+                  const intervalId = setInterval(() => {
+                    const input = document.getElementById(
+                      'modal-message-author',
                     );
-                  }}
-                  className="border-none text-gray-700 hover:text-gray-900"
-                >
-                  Roadmap
-                </button>
-              </ul>
-            )}
-          </li>
-          <li>
-            <button
-              onClick={toggleSearch}
-              className="border-none"
-              type="button"
-            >
-              {isSearchOpen ? '-' : '+'}
-              Search
-            </button>
-            {isSearchOpen && (
-              <ul className="ml-4">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/dashboard/feed/')}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Feed
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/dashboard/garden/')}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Calendar
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleRandom();
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Random [r]
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      openSearchModalBeta();
-                      const intervalId = setInterval(() => {
-                        const input =
-                          document.getElementById('modal-beta-search');
-                        if (input) {
-                          setTimeout(() => {
-                            input.focus();
-                          }, 100);
-                          clearInterval(intervalId); // Stop the interval once the input is focused
-                        }
+                    if (input) {
+                      setTimeout(() => {
+                        input.focus();
                       }, 100);
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Search [/]
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.open(
-                        'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
-                        '_blank',
-                      );
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Roadmap
-                  </button>
-                </li>
-              </ul>
-            )}
-          </li>
-          <li>
-            <button
-              onClick={toggleSynthesize}
-              className="border-none"
-              type="button"
-            >
-              {isSynthesizeOpen ? '-' : '+'}
-              Synthesize
-            </button>
-            {isSynthesizeOpen && (
-              <ul className="ml-4">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.open(
-                        'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
-                        '_blank',
-                      );
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Roadmap
-                  </button>
-                </li>
-              </ul>
-            )}
-          </li>
-          <li>
-            <button onClick={toggleShare} className="border-none" type="button">
-              {isShareOpen ? '-' : '+'}
-              Share
-            </button>
-            {isShareOpen && (
-              <ul className="ml-4">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.open('https://www.sharecommonbase.com/', '_blank');
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Share Commonbase
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.open(
-                        'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
-                        '_blank',
-                      );
-                    }}
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    Roadmap
-                  </button>
-                </li>
-              </ul>
-            )}
-          </li>
+                      clearInterval(intervalId);
+                    }
+                  }, 100);
+                },
+              },
+              {
+                label: 'Image',
+                shortcut: 'i',
+                icon: '🖼️',
+                onClick: () => {
+                  setUploaderModalType('image');
+                  setUploaderModalOpen(true);
+                },
+              },
+              {
+                label: 'Roadmap',
+                icon: '',
+                onClick: () => {
+                  window.open(
+                    'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
+                    '_blank',
+                  );
+                },
+              },
+            ]}
+          />
+          <NavigationDropdown
+            title="Search"
+            icon={
+              <svg
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            }
+            items={[
+              {
+                label: 'Feed',
+                icon: '📰',
+                onClick: () => router.push('/dashboard/feed/'),
+              },
+              {
+                label: 'Calendar',
+                icon: '📅',
+                onClick: () => router.push('/dashboard/garden/'),
+              },
+              {
+                label: 'Random',
+                shortcut: 'r',
+                icon: '🎲',
+                onClick: () => handleRandom(),
+              },
+              {
+                label: 'Search',
+                shortcut: '/',
+                icon: '🔍',
+                onClick: () => {
+                  openSearchModalBeta();
+                  const intervalId = setInterval(() => {
+                    const input = document.getElementById('modal-beta-search');
+                    if (input) {
+                      setTimeout(() => {
+                        input.focus();
+                      }, 100);
+                      clearInterval(intervalId);
+                    }
+                  }, 100);
+                },
+              },
+              {
+                label: 'Roadmap',
+                icon: '🗺️',
+                onClick: () => {
+                  window.open(
+                    'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
+                    '_blank',
+                  );
+                },
+              },
+            ]}
+          />
+          <NavigationDropdown
+            title="Synthesize"
+            icon={
+              <svg
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                />
+              </svg>
+            }
+            items={[
+              {
+                label: 'Coming Soon',
+                icon: '🔮',
+                disabled: true,
+                onClick: () => {},
+              },
+              {
+                label: 'AI Chat',
+                icon: '💬',
+                disabled: true,
+                onClick: () => {},
+              },
+              {
+                label: 'Connections',
+                icon: '🔗',
+                disabled: true,
+                onClick: () => {},
+              },
+              {
+                label: 'Roadmap',
+                icon: '🗺️',
+                onClick: () => {
+                  window.open(
+                    'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
+                    '_blank',
+                  );
+                },
+              },
+            ]}
+          />
+          <NavigationDropdown
+            title="Share"
+            icon={
+              <svg
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+                />
+              </svg>
+            }
+            items={[
+              {
+                label: 'Share Commonbase',
+                icon: '🚀',
+                onClick: () => {
+                  window.open('https://www.sharecommonbase.com/', '_blank');
+                },
+              },
+              {
+                label: 'Copy Current URL',
+                icon: '📋',
+                onClick: () => {
+                  navigator.clipboard.writeText(window.location.href);
+                },
+              },
+              {
+                label: 'Export Data',
+                icon: '📤',
+                disabled: true,
+                onClick: () => {},
+              },
+              {
+                label: 'Roadmap',
+                icon: '🗺️',
+                onClick: () => {
+                  window.open(
+                    'https://denim-prince-fcc.notion.site/Public-Roadmap-1f334f25fe4b807689b4f0c71056527a?pvs=4',
+                    '_blank',
+                  );
+                },
+              },
+            ]}
+          />
           {/* <li className="border-none text-gray-700 hover:text-gray-900">
             <Link href="/dashboard/flow/" className="border-none">
               {t('flow_link')}
