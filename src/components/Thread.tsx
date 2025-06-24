@@ -18,6 +18,7 @@ import {
   enqueueAddURL,
   useAddQueueProcessor,
 } from '@/hooks/useAddQueue';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
 import LinkPreviewCard from './LinkPreview';
 import SearchModalBeta from './SearchModalBeta';
@@ -75,6 +76,13 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   const [randomCommentPlaceholder, setRandomCommentPlaceholder] =
     useState('Add a comment...');
   const shareDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Intersection observer for animations
+  const { targetRef, hasBeenVisible } = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: '0px',
+    freezeOnceVisible: true,
+  });
 
   const { metadata } = entry;
   const aliasIds: string[] = metadata.alias_ids || [];
@@ -693,10 +701,65 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
     }
   };
 
+  // Get animation direction based on entry type and similarity
+  const getAnimationDirection = () => {
+    if (entry.relationshipType === 'root') {
+      return 'animate-fade-in'; // No direction for root
+    }
+
+    if (entry.relationshipType === 'parent') {
+      return 'animate-fade-in-from-top';
+    }
+
+    if (entry.relationshipType === 'comment') {
+      return 'animate-fade-in-from-bottom';
+    }
+
+    if (entry.relationshipType === 'neighbor') {
+      // For related entries, use similarity to determine direction
+      const similarity = entry.similarity || 0;
+      if (similarity < 0.5) {
+        return 'animate-fade-in-from-left';
+      }
+      return 'animate-fade-in-from-right';
+    }
+
+    return 'animate-fade-in';
+  };
+
+  // Get the animation classes
+  const getAnimationClasses = () => {
+    if (entry.relationshipType === 'root') {
+      return hasBeenVisible ? 'opacity-100' : 'opacity-100'; // Root is always visible
+    }
+
+    const baseClasses = 'transition-all duration-700 ease-out';
+    const animationDirection = getAnimationDirection();
+
+    if (hasBeenVisible) {
+      return `${baseClasses} opacity-100 translate-x-0 translate-y-0`;
+    }
+    // Initial state before animation
+    let initialState = 'opacity-0';
+
+    if (animationDirection.includes('from-top')) {
+      initialState += ' -translate-y-8';
+    } else if (animationDirection.includes('from-bottom')) {
+      initialState += ' translate-y-8';
+    } else if (animationDirection.includes('from-left')) {
+      initialState += ' -translate-x-8';
+    } else if (animationDirection.includes('from-right')) {
+      initialState += ' translate-x-8';
+    }
+
+    return `${baseClasses} ${initialState}`;
+  };
+
   return (
     <div
+      ref={targetRef}
       id={`entry-${entry.id}`}
-      className={`w-full rounded-xl border-2 bg-white shadow-lg transition-all duration-200 hover:shadow-xl ${getRelationshipStyle()}`}
+      className={`w-full rounded-xl border-2 bg-white shadow-lg hover:shadow-xl ${getRelationshipStyle()} ${getAnimationClasses()}`}
     >
       {/* Header with relationship indicator */}
       {entry.relationshipType !== 'root' && (
