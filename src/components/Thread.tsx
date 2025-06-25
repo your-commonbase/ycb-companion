@@ -1514,7 +1514,7 @@ export default function Thread({ inputId }: { inputId: string }) {
             const parentEntry = flattenEntry(
               data.data,
               'parent',
-              Math.max(1, currentEntryTry.level - 1),
+              currentEntryTry.level + 1,
               entryId,
             );
             console.log(
