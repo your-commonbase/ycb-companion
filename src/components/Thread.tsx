@@ -1573,6 +1573,21 @@ export default function Thread({ inputId }: { inputId: string }) {
       }
     }
   };
+
+  const handleNextEntry = () => {
+    const nextIndex = Math.min(
+      currentEntryIndex + 1,
+      flattenedEntries.length - 1,
+    );
+    if (nextIndex !== currentEntryIndex && flattenedEntries.length > 1) {
+      setCurrentEntryIndex(nextIndex);
+      scrollToEntry(nextIndex);
+    } else if (flattenedEntries.length === 1 && currentEntryIndex === 0) {
+      // For the root entry, trigger expansion to load more entries
+      scrollToEntry(0);
+    }
+  };
+
   // Desktop keyboard navigation
   useEffect(() => {
     if (isMobile || isExpansionBlocking) return;
@@ -2060,6 +2075,30 @@ export default function Thread({ inputId }: { inputId: string }) {
           </button>
         </div>
       </div>
+
+      {/* Mobile navigation button */}
+      {isMobile && (
+        <button
+          onClick={handleNextEntry}
+          className="fixed bottom-20 right-4 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          type="button"
+          aria-label="Next entry"
+        >
+          <svg
+            className="size-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 14l-7 7m0 0l-7-7m7 7V3"
+            />
+          </svg>
+        </button>
+      )}
 
       {/* Tree Minimap */}
       <TreeMinimap
