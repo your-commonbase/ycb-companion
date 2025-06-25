@@ -3,6 +3,8 @@
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 
+import { useAutoScrollMode } from '@/hooks/useAutoScrollMode';
+
 function DownloadCSVButton() {
   const handleDownload = async () => {
     try {
@@ -53,6 +55,7 @@ export default function SettingsPage() {
   const [planChangeStatus, setPlanChangeStatus] = useState<string>('');
   const [planStatus, setPlanStatus] = useState<any>(null);
   const [loadingPlanStatus, setLoadingPlanStatus] = useState(false);
+  const { autoScrollMode, toggleAutoScrollMode } = useAutoScrollMode();
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0] || null;
@@ -257,6 +260,67 @@ export default function SettingsPage() {
         </button>
         {result && <p>Refresh the page to see the uploaded image.</p>}
       </form>
+
+      {/* Auto-Scroll Mode Setting */}
+      <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-xl font-semibold">Thread Settings</h2>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-lg font-medium text-gray-900">
+              Auto-Scroll Mode
+            </h3>
+            <p className="text-sm text-gray-600">
+              Automatically expand all relationships (comments, parents,
+              neighbors) for thread entries as you scroll past them.
+            </p>
+          </div>
+          <div className="ml-4">
+            <label
+              htmlFor="autoScrollMode"
+              className="relative inline-flex cursor-pointer items-center"
+            >
+              <input
+                id="autoScrollMode"
+                type="checkbox"
+                checked={autoScrollMode}
+                onChange={(e) => toggleAutoScrollMode(e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:size-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300" />
+              <span className="ml-3 text-sm font-medium text-gray-900">
+                {autoScrollMode ? 'Enabled' : 'Disabled'}
+              </span>
+            </label>
+          </div>
+        </div>
+        {autoScrollMode && (
+          <div className="mt-3 rounded-md bg-blue-50 p-3">
+            <div className="flex">
+              <div className="shrink-0">
+                <svg
+                  className="size-5 text-blue-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3 flex-1 md:flex md:justify-between">
+                <p className="text-sm text-blue-700">
+                  Auto-scroll mode will automatically expand related content as
+                  you scroll through threads, creating an infinite browsing
+                  experience.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       <h2 className="mb-4 text-2xl font-bold">Tiers</h2>
       <div className="mb-6 flex items-center justify-between">
         <div>

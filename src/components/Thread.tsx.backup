@@ -78,8 +78,6 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   const [isShareDropdownOpen, setIsShareDropdownOpen] = useState(false);
   const [randomCommentPlaceholder, setRandomCommentPlaceholder] =
     useState('Add a comment...');
-  const [isContentExpanded, setIsContentExpanded] = useState(false);
-  const [isEmbedsExpanded, setIsEmbedsExpanded] = useState(false);
   const shareDropdownRef = useRef<HTMLDivElement>(null);
 
   // Intersection observer for animations
@@ -834,19 +832,8 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
           ) : (
             <div className="prose prose-lg max-w-none">
               <ReactMarkdown className="markdown-domine text-lg leading-relaxed text-gray-900">
-                {isContentExpanded || entry.data.length <= 200
-                  ? entry.data
-                  : `${entry.data.substring(0, 200)}...`}
+                {entry.data}
               </ReactMarkdown>
-              {entry.data.length > 200 && (
-                <button
-                  onClick={() => setIsContentExpanded(!isContentExpanded)}
-                  className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-800 focus:outline-none"
-                  type="button"
-                >
-                  {isContentExpanded ? 'Show less' : 'Show more'}
-                </button>
-              )}
             </div>
           )}
 
@@ -928,82 +915,40 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
         </div>
 
         {/* Social Media Embeds */}
-        {((entry.metadata.author &&
-          !entry.metadata.author.includes('yourcommonbase.com') &&
-          !entry.metadata.author.includes('instagram.com') &&
-          !entry.metadata.author.includes('x.com') &&
-          !entry.metadata.author.includes('youtube.com') &&
-          (entry.metadata.ogTitle || entry.metadata.ogDescription) &&
-          entry.metadata.ogImages &&
-          entry.metadata.ogImages.length > 0) ||
-          (entry.metadata.author &&
-            entry.metadata.author.includes('instagram.com')) ||
-          (entry.metadata.author &&
-            entry.metadata.author.includes('youtube.com')) ||
-          (entry.metadata.author &&
+        <div className="space-y-4">
+          {entry.metadata.author &&
+            !entry.metadata.author.includes('yourcommonbase.com') &&
+            !entry.metadata.author.includes('instagram.com') &&
+            !entry.metadata.author.includes('x.com') &&
+            !entry.metadata.author.includes('youtube.com') &&
+            (entry.metadata.ogTitle || entry.metadata.ogDescription) &&
+            entry.metadata.ogImages &&
+            entry.metadata.ogImages.length > 0 && (
+              <LinkPreviewCard
+                url={entry.metadata.author}
+                title={entry.metadata.ogTitle}
+                description={entry.metadata.ogDescription}
+                image={entry.metadata.ogImages[0]}
+              />
+            )}
+          {entry.metadata.author &&
+            entry.metadata.author.includes('instagram.com') && (
+              <InstagramEmbed url={entry.metadata.author} />
+            )}
+          {entry.metadata.author &&
+            entry.metadata.author.includes('youtube.com') && (
+              <LiteYouTubeEmbed
+                id={entry.metadata.author.split('v=')[1]?.split('&')[0]}
+                title="YouTube video"
+              />
+            )}
+          {entry.metadata.author &&
             (entry.metadata.author.includes('twitter.com') ||
               (entry.metadata.author.includes('x.com') &&
-                entry.metadata.author.includes('status'))))) && (
-          <div className="space-y-4">
-            {!isEmbedsExpanded && (
-              <button
-                onClick={() => setIsEmbedsExpanded(true)}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none"
-                type="button"
-              >
-                📎 Show embeds
-              </button>
+                entry.metadata.author.includes('status'))) && (
+              <Tweet id={entry.metadata.author.split('status/')[1]} />
             )}
-            {isEmbedsExpanded && (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">
-                    Embeds
-                  </span>
-                  <button
-                    onClick={() => setIsEmbedsExpanded(false)}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-800 focus:outline-none"
-                    type="button"
-                  >
-                    Hide
-                  </button>
-                </div>
-                {entry.metadata.author &&
-                  !entry.metadata.author.includes('yourcommonbase.com') &&
-                  !entry.metadata.author.includes('instagram.com') &&
-                  !entry.metadata.author.includes('x.com') &&
-                  !entry.metadata.author.includes('youtube.com') &&
-                  (entry.metadata.ogTitle || entry.metadata.ogDescription) &&
-                  entry.metadata.ogImages &&
-                  entry.metadata.ogImages.length > 0 && (
-                    <LinkPreviewCard
-                      url={entry.metadata.author}
-                      title={entry.metadata.ogTitle}
-                      description={entry.metadata.ogDescription}
-                      image={entry.metadata.ogImages[0]}
-                    />
-                  )}
-                {entry.metadata.author &&
-                  entry.metadata.author.includes('instagram.com') && (
-                    <InstagramEmbed url={entry.metadata.author} />
-                  )}
-                {entry.metadata.author &&
-                  entry.metadata.author.includes('youtube.com') && (
-                    <LiteYouTubeEmbed
-                      id={entry.metadata.author.split('v=')[1]?.split('&')[0]}
-                      title="YouTube video"
-                    />
-                  )}
-                {entry.metadata.author &&
-                  (entry.metadata.author.includes('twitter.com') ||
-                    (entry.metadata.author.includes('x.com') &&
-                      entry.metadata.author.includes('status'))) && (
-                    <Tweet id={entry.metadata.author.split('status/')[1]} />
-                  )}
-              </>
-            )}
-          </div>
-        )}
+        </div>
 
         {/* Metadata and Actions Footer */}
         <div className="border-t border-gray-100 pt-4">
@@ -1319,12 +1264,10 @@ export default function Thread({ inputId }: { inputId: string }) {
   const [loadingRelationships, setLoadingRelationships] = useState<Set<string>>(
     new Set(),
   );
+  const [scrollBlocked, setScrollBlocked] = useState(false);
   const [, setProcessingImages] = useState<Set<string>>(new Set());
   const [, setProcessingUrls] = useState<Set<string>>(new Set());
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [isExpansionBlocking, setIsExpansionBlocking] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [currentEntryIndex, setCurrentEntryIndex] = useState(0);
   const idSet = useRef(new Set<string>());
   const router = useRouter();
   const { autoScrollMode, isLoaded } = useAutoScrollMode();
@@ -1344,39 +1287,35 @@ export default function Thread({ inputId }: { inputId: string }) {
     hasMoreRelations: true, // All entries can have related/neighbor entries
   });
 
-  const expandAllRelationships = async (
-    entryId: string,
-    relationshipTypes: string[],
-  ) => {
-    // Prevent expansion if any relationships are already loading or expanded
-    const alreadyProcessed = relationshipTypes.some((type) => {
+  const expandAllRelationships = async (entryId: string, relationshipTypes: string[]) => {
+    // Prevent expansion if any relationships are already loading
+    const alreadyLoading = relationshipTypes.some(type => {
       const relationshipKey = `${entryId}-${type}`;
-      return (
-        expandedRelationships.has(relationshipKey) ||
-        loadingRelationships.has(relationshipKey)
-      );
+      return expandedRelationships.has(relationshipKey) || loadingRelationships.has(relationshipKey);
     });
-
-    if (alreadyProcessed) {
+    
+    if (alreadyLoading) {
       return;
     }
 
-    // Mark all relationships as loading and expanded
-    const relationshipKeys = relationshipTypes.map(
-      (type) => `${entryId}-${type}`,
-    );
+    // Mark all relationships as loading
+    const relationshipKeys = relationshipTypes.map(type => `${entryId}-${type}`);
     setLoadingRelationships((prev) => {
       const newSet = new Set(prev);
-      relationshipKeys.forEach((key) => newSet.add(key));
+      relationshipKeys.forEach(key => newSet.add(key));
       return newSet;
     });
+
+    // Mark all relationships as expanded
     setExpandedRelationships((prev) => {
       const newSet = new Set(prev);
-      relationshipKeys.forEach((key) => newSet.add(key));
+      relationshipKeys.forEach(key => newSet.add(key));
       return newSet;
     });
+
+    // Block scrolling during loading
+    setScrollBlocked(true);
     setLoadingMore(true);
-    setIsExpansionBlocking(true);
 
     try {
       const currentEntry = flattenedEntries.find((e) => e.id === entryId);
@@ -1388,7 +1327,7 @@ export default function Thread({ inputId }: { inputId: string }) {
       // Start all fetches simultaneously
       const fetchPromises = relationshipTypes.map(async (type) => {
         const newEntries: FlattenedEntry[] = [];
-
+        
         if (type === 'parent' && currentEntry.metadata.parent_id) {
           const parentId = currentEntry.metadata.parent_id;
           if (!idSet.current.has(parentId)) {
@@ -1398,6 +1337,7 @@ export default function Thread({ inputId }: { inputId: string }) {
               body: JSON.stringify({ id: parentId }),
             });
             const data = await res.json();
+
             const parentEntry = flattenEntry(
               data.data,
               'parent',
@@ -1411,7 +1351,7 @@ export default function Thread({ inputId }: { inputId: string }) {
 
         if (type === 'comments' && currentEntry.metadata.alias_ids) {
           const aliasIds = currentEntry.metadata.alias_ids;
-          const commentPromises = aliasIds.map(async (aliasId: any) => {
+          for (const aliasId of aliasIds) {
             if (!idSet.current.has(aliasId)) {
               try {
                 const res = await fetch('/api/fetch', {
@@ -1420,23 +1360,20 @@ export default function Thread({ inputId }: { inputId: string }) {
                   body: JSON.stringify({ id: aliasId }),
                 });
                 const data = await res.json();
+
                 const commentEntry = flattenEntry(
                   data.data,
                   'comment',
                   currentEntry.level + 1,
                   entryId,
                 );
+                newEntries.push(commentEntry);
                 idSet.current.add(aliasId);
-                return commentEntry;
               } catch (error) {
                 console.error('Error fetching comment:', error);
-                return null;
               }
             }
-            return null;
-          });
-          const comments = await Promise.all(commentPromises);
-          newEntries.push(...(comments.filter(Boolean) as FlattenedEntry[]));
+          }
         }
 
         if (type === 'neighbors') {
@@ -1447,6 +1384,7 @@ export default function Thread({ inputId }: { inputId: string }) {
               body: JSON.stringify({ platformId: entryId }),
             });
             const data = await res.json();
+
             data.data.forEach((neighborEntry: Entry) => {
               if (!idSet.current.has(neighborEntry.id)) {
                 const neighbor = flattenEntry(
@@ -1469,9 +1407,9 @@ export default function Thread({ inputId }: { inputId: string }) {
 
       // Wait for all fetches to complete
       const results = await Promise.all(fetchPromises);
-      results.forEach((entries) => allNewEntries.push(...entries));
+      results.forEach(entries => allNewEntries.push(...entries));
 
-      // Insert all new entries after the current entry (downward scrolling)
+      // Insert all new entries after the current entry
       setFlattenedEntries((prev) => [
         ...prev.slice(0, currentIndex + 1),
         ...allNewEntries,
@@ -1483,25 +1421,18 @@ export default function Thread({ inputId }: { inputId: string }) {
       // Remove loading state for all relationships
       setLoadingRelationships((prev) => {
         const newSet = new Set(prev);
-        relationshipKeys.forEach((key) => newSet.delete(key));
+        relationshipKeys.forEach(key => newSet.delete(key));
         return newSet;
       });
       setLoadingMore(false);
-      setIsExpansionBlocking(false);
+      
+      // Unblock scrolling after all loading completes
+      setScrollBlocked(false);
+
+      // Clear processed entries cache when new entries are added
       processedEntries.current.clear();
     }
   };
-
-  // Mobile detection
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768 || 'ontouchstart' in window);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   const expandRelationships = async (
     entryId: string,
@@ -1511,117 +1442,115 @@ export default function Thread({ inputId }: { inputId: string }) {
     await expandAllRelationships(entryId, [type]);
   };
 
-  const scrollToEntry = (index: number) => {
-    const entry = flattenedEntries[index];
-    if (!entry) return;
+    try {
+      const currentEntry = flattenedEntries.find((e) => e.id === entryId);
+      if (!currentEntry) return;
 
-    const element = document.getElementById(`entry-${entry.id}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const currentIndex = flattenedEntries.findIndex((e) => e.id === entryId);
+      const newEntries: FlattenedEntry[] = [];
 
-      // Trigger relationship expansion for this entry
-      if (autoScrollMode && !processedEntries.current.has(entry.id)) {
-        processedEntries.current.add(entry.id);
+      if (type === 'parent' && currentEntry.metadata.parent_id) {
+        const parentId = currentEntry.metadata.parent_id;
+        if (!idSet.current.has(parentId)) {
+          const res = await fetch('/api/fetch', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ id: parentId }),
+          });
+          const data = await res.json();
 
-        const relationshipsToExpand = [];
-
-        // Check for comments
-        const aliasIds = entry.metadata.alias_ids || [];
-        if (
-          aliasIds.length > 0 &&
-          aliasIds.some((id: string) => !idSet.current.has(id))
-        ) {
-          const commentsKey = `${entry.id}-comments`;
-          if (
-            !expandedRelationships.has(commentsKey) &&
-            !loadingRelationships.has(commentsKey)
-          ) {
-            relationshipsToExpand.push('comments');
-          }
-        }
-
-        // Check for parent
-        const parentId = entry.metadata.parent_id;
-        if (
-          parentId &&
-          parentId.trim() !== '' &&
-          !idSet.current.has(parentId)
-        ) {
-          const parentKey = `${entry.id}-parent`;
-          if (
-            !expandedRelationships.has(parentKey) &&
-            !loadingRelationships.has(parentKey)
-          ) {
-            relationshipsToExpand.push('parent');
-          }
-        }
-
-        // Check for neighbors
-        if (entry.hasMoreRelations) {
-          const neighborsKey = `${entry.id}-neighbors`;
-          if (
-            !expandedRelationships.has(neighborsKey) &&
-            !loadingRelationships.has(neighborsKey)
-          ) {
-            relationshipsToExpand.push('neighbors');
-          }
-        }
-
-        if (relationshipsToExpand.length > 0) {
-          expandAllRelationships(entry.id, relationshipsToExpand);
+          const parentEntry = flattenEntry(
+            data.data,
+            'parent',
+            currentEntry.level,
+            entryId,
+          );
+          newEntries.push(parentEntry);
+          idSet.current.add(parentId);
         }
       }
+
+      if (type === 'comments' && currentEntry.metadata.alias_ids) {
+        const aliasIds = currentEntry.metadata.alias_ids;
+        for (const aliasId of aliasIds) {
+          if (!idSet.current.has(aliasId)) {
+            try {
+              // eslint-disable-next-line no-await-in-loop
+              const res = await fetch('/api/fetch', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ id: aliasId }),
+              });
+              // eslint-disable-next-line no-await-in-loop
+              const data = await res.json();
+
+              const commentEntry = flattenEntry(
+                data.data,
+                'comment',
+                currentEntry.level + 1,
+                entryId,
+              );
+              newEntries.push(commentEntry);
+              idSet.current.add(aliasId);
+            } catch (error) {
+              console.error('Error fetching comment:', error);
+            }
+          }
+        }
+      }
+
+      if (type === 'neighbors') {
+        try {
+          const res = await fetch('/api/search', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ platformId: entryId }),
+          });
+          const data = await res.json();
+
+          data.data.forEach((neighborEntry: Entry) => {
+            if (!idSet.current.has(neighborEntry.id)) {
+              const neighbor = flattenEntry(
+                neighborEntry,
+                'neighbor',
+                currentEntry.level + 1,
+                entryId,
+              );
+              newEntries.push(neighbor);
+              idSet.current.add(neighborEntry.id);
+            }
+          });
+        } catch (error) {
+          console.error('Error fetching neighbors:', error);
+        }
+      }
+
+      // Insert new entries after the current entry
+      // All entries (parent, comments, neighbors) go below for downward scrolling experience
+      setFlattenedEntries((prev) => [
+        ...prev.slice(0, currentIndex + 1),
+        ...newEntries,
+        ...prev.slice(currentIndex + 1),
+      ]);
+    } catch (error) {
+      console.error('Error expanding relationships:', error);
+    } finally {
+      // Remove loading state for this specific relationship
+      setLoadingRelationships((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(relationshipKey);
+        return newSet;
+      });
+      setLoadingMore(false);
+
+      // Unblock scrolling after loading completes
+      setScrollBlocked(false);
+
+      // Clear processed entries cache when new entries are added
+      // This ensures auto-scroll can process newly added entries
+      processedEntries.current.clear();
     }
   };
-  // Desktop keyboard navigation
-  useEffect(() => {
-    if (isMobile || isExpansionBlocking) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if user is typing in input/textarea
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName.toLowerCase() === 'input' ||
-        target.tagName.toLowerCase() === 'textarea'
-      ) {
-        return;
-      }
-
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        const nextIndex = Math.min(
-          currentEntryIndex + 1,
-          flattenedEntries.length - 1,
-        );
-        if (nextIndex !== currentEntryIndex && flattenedEntries.length > 1) {
-          setCurrentEntryIndex(nextIndex);
-          scrollToEntry(nextIndex);
-        } else if (flattenedEntries.length === 1 && currentEntryIndex === 0) {
-          // For the root entry, trigger expansion to load more entries
-          scrollToEntry(0);
-        }
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        const prevIndex = Math.max(currentEntryIndex - 1, 0);
-        if (prevIndex !== currentEntryIndex) {
-          setCurrentEntryIndex(prevIndex);
-          scrollToEntry(prevIndex);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    // eslint-disable-next-line consistent-return
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    isMobile,
-    isExpansionBlocking,
-    currentEntryIndex,
-    flattenedEntries.length,
-    autoScrollMode,
-    expandedRelationships,
-    loadingRelationships,
-  ]);
 
   const navigateToEntry = (entryId: string) => {
     router.push(`/dashboard/entry/${entryId}`);
@@ -1875,9 +1804,9 @@ export default function Thread({ inputId }: { inputId: string }) {
     fetchInitialEntry();
   }, [inputId]);
 
-  // Mobile scroll functionality (TikTok-style)
+  // Enhanced auto-scroll functionality
   useEffect(() => {
-    if (!isLoaded || !autoScrollMode || !isMobile) return;
+    if (!isLoaded) return;
 
     let timeoutId: NodeJS.Timeout;
 
@@ -1887,23 +1816,27 @@ export default function Thread({ inputId }: { inputId: string }) {
       }
 
       timeoutId = setTimeout(() => {
-        if (!loadingMore && !isExpansionBlocking) {
+        if (autoScrollMode && !loadingMore && !scrollBlocked) {
+          // Get all entries that have been scrolled past (their bottom is above viewport)
           flattenedEntries.forEach((entry) => {
             const entryElement = document.getElementById(`entry-${entry.id}`);
             if (!entryElement) return;
 
             const rect = entryElement.getBoundingClientRect();
-            const viewportCenter = window.innerHeight / 2;
-            const hasPassedLine =
-              rect.top < viewportCenter && rect.bottom > viewportCenter;
+            // Trigger when the bottom of the entry has been scrolled past
+            const hasScrolledPastBottom =
+              rect.bottom < window.innerHeight * 0.8; // Trigger when 80% scrolled past
 
-            if (hasPassedLine && !processedEntries.current.has(entry.id)) {
+            if (
+              hasScrolledPastBottom &&
+              !processedEntries.current.has(entry.id)
+            ) {
               processedEntries.current.add(entry.id);
 
-              // Collect all available relationships for this entry
+              // Expand ALL relationship types for this entry
               const relationshipsToExpand = [];
 
-              // Check for comments
+              // Check for comments (alias_ids)
               const aliasIds = entry.metadata.alias_ids || [];
               if (
                 aliasIds.length > 0 &&
@@ -1934,7 +1867,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                 }
               }
 
-              // Check for neighbors
+              // Check for neighbors (related entries)
               if (entry.hasMoreRelations) {
                 const neighborsKey = `${entry.id}-neighbors`;
                 if (
@@ -1945,23 +1878,45 @@ export default function Thread({ inputId }: { inputId: string }) {
                 }
               }
 
-              // Expand ALL available relationships simultaneously
+              // Only proceed if there are relationships to expand
               if (relationshipsToExpand.length > 0) {
-                console.log(
-                  `Auto-expanding all relationships for:`,
-                  entry.id,
-                  relationshipsToExpand,
-                );
+                console.log(`Auto-expanding all relationships for:`, entry.id, relationshipsToExpand);
+                // Expand all relationships simultaneously
                 expandAllRelationships(entry.id, relationshipsToExpand);
               }
             }
           });
+        } else if (!autoScrollMode) {
+          // Fallback to original behavior when auto-scroll is disabled
+          const scrollPosition = window.scrollY + window.innerHeight;
+          const documentHeight = document.documentElement.scrollHeight;
+          const threshold = 100;
+
+          if (
+            scrollPosition >= documentHeight - threshold &&
+            flattenedEntries.length > 0
+          ) {
+            const lastEntry = flattenedEntries[flattenedEntries.length - 1];
+
+            if (lastEntry && lastEntry.hasMoreRelations) {
+              const relationshipKey = `${lastEntry.id}-neighbors`;
+
+              if (!expandedRelationships.has(relationshipKey) && !loadingMore) {
+                console.log(
+                  'Auto-expanding related entries for last entry:',
+                  lastEntry.id,
+                );
+                expandRelationships(lastEntry.id, 'neighbors');
+              }
+            }
+          }
         }
-      }, 300);
+      }, 300); // Increased debounce to reduce conflicts with manual actions
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    // eslint-disable-next-line consistent-return
+
+    // eslint-disable-next-line
     return () => {
       window.removeEventListener('scroll', handleScroll);
       if (timeoutId) {
@@ -1971,74 +1926,54 @@ export default function Thread({ inputId }: { inputId: string }) {
   }, [
     flattenedEntries,
     expandedRelationships,
-    loadingRelationships,
     loadingMore,
+    expandRelationships,
     autoScrollMode,
     isLoaded,
-    isMobile,
+    scrollBlocked,
   ]);
 
-  return (
-    <div
-      className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100"
-      style={{
-        scrollSnapType: isMobile ? 'y mandatory' : 'none',
-        overflow: isExpansionBlocking ? 'hidden' : 'auto',
-      }}
-    >
-      {/* Scroll blocking indicator */}
-      {isExpansionBlocking && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-20 backdrop-blur-sm">
-          <div className="flex items-center gap-3 rounded-lg bg-white px-6 py-4 shadow-xl">
-            <div className="size-6 animate-spin rounded-full border-b-2 border-blue-500" />
-            <span className="text-sm font-medium text-gray-700">
-              Loading relationships...
-            </span>
-          </div>
-        </div>
-      )}
+  // Block scrolling during loading
+  useEffect(() => {
+    if (scrollBlocked) {
+      // Prevent scrolling by setting overflow hidden on body
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
 
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+    return () => {};
+  }, [scrollBlocked]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       {/* Small loading indicator in bottom left corner */}
-      {loadingMore && !isExpansionBlocking && (
+      {scrollBlocked && (
         <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-lg">
           <div className="size-4 animate-spin rounded-full border-b-2 border-blue-500" />
           <span className="text-xs text-gray-600">Loading...</span>
         </div>
       )}
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-2xl py-4">
         <PendingQueue idSet={idSet} />
 
-        {/* Thread entries - snap scroll full page chunks */}
-        <div>
+        {/* Thread entries - vertical scroll like social media */}
+        <div className="space-y-4">
           {flattenedEntries.map((entry) => (
-            <div
-              key={`snap-${entry.id}`}
-              id={`entry-${entry.id}`}
-              className={`flex items-start justify-center px-4 ${
-                isMobile ? 'h-screen py-4' : 'min-h-screen py-8'
-              }`}
-              style={{
-                scrollSnapAlign: isMobile ? 'start' : 'none',
-                maxHeight: '100vh',
-                overflowY: 'auto',
-                overflowX: 'hidden',
-              }}
-            >
-              <div className="w-full max-w-3xl">
-                <ThreadEntryCard
-                  key={`${entry.id}`}
-                  entry={entry}
-                  onRelationshipExpand={expandRelationships}
-                  onNavigateToEntry={navigateToEntry}
-                  onAddNewEntry={handleAddNewEntry}
-                  onImageUpload={handleImageUpload}
-                  onUrlUpload={handleUrlUpload}
-                  expandedRelationships={expandedRelationships}
-                  allEntryIds={new Set(flattenedEntries.map((e) => e.id))}
-                  loadingRelationships={loadingRelationships}
-                />
-              </div>
-            </div>
+            <ThreadEntryCard
+              key={`${entry.id}`}
+              entry={entry}
+              onRelationshipExpand={expandRelationships}
+              onNavigateToEntry={navigateToEntry}
+              onAddNewEntry={handleAddNewEntry}
+              onImageUpload={handleImageUpload}
+              onUrlUpload={handleUrlUpload}
+              expandedRelationships={expandedRelationships}
+              allEntryIds={new Set(flattenedEntries.map((e) => e.id))}
+              loadingRelationships={loadingRelationships}
+            />
           ))}
         </div>
 
