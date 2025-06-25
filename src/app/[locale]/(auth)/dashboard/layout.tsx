@@ -390,14 +390,14 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
             }
             items={[
               {
-                label: 'Feed',
-                icon: '📰',
-                onClick: () => router.push('/dashboard/feed/'),
-              },
-              {
                 label: 'Calendar',
                 icon: '📅',
                 onClick: () => router.push('/dashboard/garden/'),
+              },
+              {
+                label: 'Gallery',
+                icon: '🖼️',
+                onClick: () => router.push('/dashboard/gallery/'),
               },
               {
                 label: 'Random',
@@ -453,14 +453,13 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
             }
             items={[
               {
-                label: 'Coming Soon',
-                icon: '🔮',
-                disabled: true,
-                onClick: () => {},
+                label: 'Feed',
+                icon: '📰',
+                onClick: () => router.push('/dashboard/feed/'),
               },
               {
-                label: 'AI Chat',
-                icon: '💬',
+                label: 'Games',
+                icon: '🔮',
                 disabled: true,
                 onClick: () => {},
               },
