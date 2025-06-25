@@ -270,11 +270,11 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [isAddingURL, setIsAddingURL] = useState(false);
   const [isAddingImage, setIsAddingImage] = useState(false);
-  const [isShareDropdownOpen, setIsShareDropdownOpen] = useState(false);
+  const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   const [randomCommentPlaceholder, setRandomCommentPlaceholder] =
     useState('Add a comment...');
   const [isEmbedsExpanded, setIsEmbedsExpanded] = useState(false);
-  const shareDropdownRef = useRef<HTMLDivElement>(null);
+  const actionsDropdownRef = useRef<HTMLDivElement>(null);
   console.log('entry id:', entry.id);
   console.log('entry level:', entry.level);
 
@@ -328,21 +328,21 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        shareDropdownRef.current &&
-        !shareDropdownRef.current.contains(event.target as Node)
+        actionsDropdownRef.current &&
+        !actionsDropdownRef.current.contains(event.target as Node)
       ) {
-        setIsShareDropdownOpen(false);
+        setIsActionsDropdownOpen(false);
       }
     };
 
-    if (isShareDropdownOpen) {
+    if (isActionsDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isShareDropdownOpen]);
+  }, [isActionsDropdownOpen]);
 
   useEffect(() => {
     if (metadata.type === 'image') {
@@ -1359,104 +1359,166 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
               >
                 {entry.id.slice(0, 8)}...
               </button>
-              {!isEditing &&
-                (!entry.metadata.type || entry.metadata.type === 'text') && (
-                  <>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      type="button"
-                      className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                    >
-                      Edit
-                    </button>
-                    <div className="relative" ref={shareDropdownRef}>
-                      <button
-                        onClick={() =>
-                          setIsShareDropdownOpen(!isShareDropdownOpen)
-                        }
-                        type="button"
-                        className="flex items-center gap-1 rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        Share
-                        <svg
-                          className="size-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </button>
+              <div className="relative" ref={actionsDropdownRef}>
+                <button
+                  onClick={() =>
+                    setIsActionsDropdownOpen(!isActionsDropdownOpen)
+                  }
+                  type="button"
+                  className="flex items-center gap-1 rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Actions
+                  <svg
+                    className="size-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
+                </button>
 
-                      {isShareDropdownOpen && (
-                        <div className="absolute right-0 top-full z-10 mt-1 w-44 rounded-lg border border-gray-200 bg-white shadow-lg">
-                          <button
-                            onClick={async () => {
-                              setIsShareDropdownOpen(false);
-                              await handleNativeShare();
-                            }}
-                            type="button"
-                            className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                          >
-                            📱 Share Text
-                          </button>
-                          <button
-                            onClick={async () => {
-                              setIsShareDropdownOpen(false);
-                              await takeDirectScreenshot();
-                            }}
-                            type="button"
-                            className="flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                          >
-                            📸 Screenshot
-                          </button>
-                          <button
-                            onClick={async () => {
-                              setIsShareDropdownOpen(false);
-                              await handleShareHTML();
-                            }}
-                            type="button"
-                            className="flex w-full items-center gap-2 rounded-b-lg border-t border-gray-100 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                          >
-                            📄 HTML File
-                          </button>
-                        </div>
-                      )}
+                {isActionsDropdownOpen && (
+                  <div className="absolute bottom-full right-0 z-10 mb-1 w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
+                    {/* Synthesize Section */}
+                    <div className="rounded-t-lg border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
+                      Synthesize
                     </div>
-                  </>
+                    <button
+                      onClick={() => {
+                        setIsActionsDropdownOpen(false);
+                        setIsAddingComment(true);
+                      }}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      💬 Add Comment
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsActionsDropdownOpen(false);
+                        setIsAddingURL(true);
+                      }}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      🔗 Add URL
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsActionsDropdownOpen(false);
+                        setIsAddingImage(true);
+                      }}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      🖼️ Add Image
+                    </button>
+                    {!isEditing &&
+                      (!entry.metadata.type ||
+                        entry.metadata.type === 'text') && (
+                        <button
+                          onClick={() => {
+                            setIsActionsDropdownOpen(false);
+                            setIsEditing(true);
+                          }}
+                          type="button"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                        >
+                          ✏️ Edit
+                        </button>
+                      )}
+
+                    {/* Navigate Section */}
+                    <div className="border-y border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
+                      Navigate
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsActionsDropdownOpen(false);
+                        onNavigateToEntry(entry.id);
+                      }}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      🎯 Go to {entry.id.slice(0, 8)}...
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsActionsDropdownOpen(false);
+                        onOpenTreeModal(entry);
+                      }}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      🌳 View Tree
+                    </button>
+                    {parentId && (
+                      <button
+                        onClick={() => {
+                          setIsActionsDropdownOpen(false);
+                          onNavigateToEntry(parentId);
+                        }}
+                        type="button"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                      >
+                        👆 From parent {parentId.slice(0, 8)}...
+                      </button>
+                    )}
+                    <a
+                      href={`/dashboard/garden?date=${convertDate(entry.createdAt)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setIsActionsDropdownOpen(false)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      📅 Go to Calendar
+                    </a>
+
+                    {/* Share Section */}
+                    <div className="border-y border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
+                      Share
+                    </div>
+                    <button
+                      onClick={async () => {
+                        setIsActionsDropdownOpen(false);
+                        await handleNativeShare();
+                      }}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      📱 Share Text
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setIsActionsDropdownOpen(false);
+                        await takeDirectScreenshot();
+                      }}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      📸 Screenshot
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setIsActionsDropdownOpen(false);
+                        await handleShareHTML();
+                      }}
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-b-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      📄 HTML File
+                    </button>
+                  </div>
                 )}
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="mt-4 flex flex-wrap gap-3 border-t border-gray-100 pt-4">
-          <button
-            onClick={() => setIsAddingComment(true)}
-            type="button"
-            className="rounded-lg bg-blue-400 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            Add Comment
-          </button>
-          <button
-            onClick={() => setIsAddingImage(true)}
-            type="button"
-            className="rounded-lg bg-green-400 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-300"
-          >
-            Add Image
-          </button>
-          <button
-            onClick={() => setIsAddingURL(true)}
-            type="button"
-            className="rounded-lg bg-purple-400 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-300"
-          >
-            Add URL
-          </button>
         </div>
 
         {/* Add Forms */}
