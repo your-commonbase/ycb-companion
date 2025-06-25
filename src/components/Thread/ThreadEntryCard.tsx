@@ -30,6 +30,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   loadingRelationships = new Set(),
   maxDepth,
   onOpenTreeModal,
+  isCurrentEntry = false,
 }) => {
   const [cdnImageUrl, setCdnImageUrl] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
@@ -699,7 +700,9 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
     <div
       ref={targetRef}
       id={`entry-${entry.id}`}
-      className={`flex h-[600px] w-full flex-col rounded-xl border-2 bg-white shadow-lg hover:shadow-xl ${getRelationshipStyle()} ${getAnimationClasses()}`}
+      className={`flex h-[600px] w-full flex-col rounded-xl border-2 bg-white shadow-lg hover:shadow-xl ${getRelationshipStyle()} ${getAnimationClasses()} ${
+        isCurrentEntry ? 'border-l-4 border-l-gray-800' : ''
+      }`}
     >
       {/* Header with relationship indicator */}
       {entry.relationshipType !== 'root' && (
@@ -779,6 +782,48 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
 
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden p-6">
+        {/* Image Display */}
+        {metadata.type === 'image' && (
+          <div className="mt-4">
+            {
+              // eslint-disable-next-line no-nested-ternary
+              entry.isProcessing ? (
+                <div className="relative h-64 w-full overflow-hidden rounded-lg bg-gray-100">
+                  {entry.tempImageUrl ? (
+                    <img
+                      src={entry.tempImageUrl}
+                      alt="Processing..."
+                      className="size-full object-cover opacity-75"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <div className="text-center">
+                        <div className="mx-auto mb-2 size-8 animate-spin rounded-full border-b-2 border-blue-500" />
+                        <p className="text-sm text-gray-500">
+                          Processing image...
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                    <div className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="size-4 animate-spin rounded-full border-b-2 border-blue-500" />
+                        Processing...
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : cdnImageUrl ? (
+                <img
+                  src={cdnImageUrl}
+                  alt="Entry content"
+                  className="h-auto max-w-full rounded-lg shadow-md"
+                />
+              ) : null
+            }
+          </div>
+        )}
         {/* Entry Content */}
         <div className="mb-6 flex-1 overflow-y-auto">
           {isEditing ? (
@@ -828,49 +873,6 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
             >
               {entry.metadata.title}
             </a>
-          )}
-
-          {/* Image Display */}
-          {metadata.type === 'image' && (
-            <div className="mt-4">
-              {
-                // eslint-disable-next-line no-nested-ternary
-                entry.isProcessing ? (
-                  <div className="relative h-64 w-full overflow-hidden rounded-lg bg-gray-100">
-                    {entry.tempImageUrl ? (
-                      <img
-                        src={entry.tempImageUrl}
-                        alt="Processing..."
-                        className="size-full object-cover opacity-75"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <div className="text-center">
-                          <div className="mx-auto mb-2 size-8 animate-spin rounded-full border-b-2 border-blue-500" />
-                          <p className="text-sm text-gray-500">
-                            Processing image...
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                      <div className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-lg">
-                        <div className="flex items-center gap-2">
-                          <div className="size-4 animate-spin rounded-full border-b-2 border-blue-500" />
-                          Processing...
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : cdnImageUrl ? (
-                  <img
-                    src={cdnImageUrl}
-                    alt="Entry content"
-                    className="h-auto max-w-full rounded-lg shadow-md"
-                  />
-                ) : null
-              }
-            </div>
           )}
 
           {/* URL Processing Indicator */}

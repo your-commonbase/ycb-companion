@@ -408,6 +408,14 @@ export default function Thread({ inputId }: { inputId: string }) {
     }
   };
 
+  const handlePrevEntry = () => {
+    const prevIndex = Math.max(currentEntryIndex - 1, 0);
+    if (prevIndex !== currentEntryIndex) {
+      setCurrentEntryIndex(prevIndex);
+      scrollToEntry(prevIndex);
+    }
+  };
+
   // Desktop keyboard navigation
   useEffect(() => {
     if (isMobile || isExpansionBlocking) return;
@@ -728,7 +736,7 @@ export default function Thread({ inputId }: { inputId: string }) {
 
       timeoutId = setTimeout(() => {
         if (!loadingMore && !isExpansionBlocking) {
-          flattenedEntries.forEach((entry) => {
+          flattenedEntries.forEach((entry, index) => {
             const entryElement = document.getElementById(`entry-${entry.id}`);
             if (!entryElement) return;
 
@@ -736,6 +744,11 @@ export default function Thread({ inputId }: { inputId: string }) {
             const viewportCenter = window.innerHeight / 2;
             const hasPassedLine =
               rect.top < viewportCenter && rect.bottom > viewportCenter;
+
+            // Update current entry index when this entry is in the center
+            if (hasPassedLine && index !== currentEntryIndex) {
+              setCurrentEntryIndex(index);
+            }
 
             if (hasPassedLine && !processedEntries.current.has(entry.id)) {
               processedEntries.current.add(entry.id);
@@ -818,6 +831,7 @@ export default function Thread({ inputId }: { inputId: string }) {
     maxDepth,
     isLoaded,
     isMobile,
+    currentEntryIndex,
   ]);
 
   return (
@@ -854,11 +868,11 @@ export default function Thread({ inputId }: { inputId: string }) {
 
         {/* Thread entries - snap scroll full page chunks */}
         <div>
-          {flattenedEntries.map((entry) => (
+          {flattenedEntries.map((entry, index) => (
             <div
               key={`snap-${entry.id}`}
               id={`entry-${entry.id}`}
-              className={`flex items-start justify-center px-6 ${
+              className={`relative flex items-start justify-center px-6 ${
                 isMobile ? 'h-screen py-4' : 'min-h-screen py-8'
               }`}
               style={{
@@ -868,6 +882,40 @@ export default function Thread({ inputId }: { inputId: string }) {
                 overflowX: 'hidden',
               }}
             >
+              {/* Mobile tap zones */}
+              {isMobile && (
+                <>
+                  {/* Left tap zone for previous */}
+                  <button
+                    type="button"
+                    className="absolute left-0 top-0 z-10 h-full w-16 bg-transparent"
+                    onClick={handlePrevEntry}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handlePrevEntry();
+                      }
+                    }}
+                    aria-label="Go to previous entry"
+                    style={{ touchAction: 'manipulation' }}
+                  />
+                  {/* Right tap zone for next */}
+                  <button
+                    type="button"
+                    className="absolute right-0 top-0 z-10 h-full w-16 bg-transparent"
+                    onClick={handleNextEntry}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleNextEntry();
+                      }
+                    }}
+                    aria-label="Go to next entry"
+                    style={{ touchAction: 'manipulation' }}
+                  />
+                </>
+              )}
+
               <div className="w-full">
                 <ThreadEntryCard
                   key={`${entry.id}`}
@@ -882,6 +930,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                   loadingRelationships={loadingRelationships}
                   maxDepth={maxDepth}
                   onOpenTreeModal={handleOpenTreeModal}
+                  isCurrentEntry={index === currentEntryIndex}
                 />
               </div>
             </div>
@@ -906,30 +955,6 @@ export default function Thread({ inputId }: { inputId: string }) {
           </button>
         </div>
       </div>
-
-      {/* Mobile navigation button */}
-      {isMobile && (
-        <button
-          onClick={handleNextEntry}
-          className="fixed bottom-24 right-6 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          type="button"
-          aria-label="Next entry"
-        >
-          <svg
-            className="size-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 14l-7 7m0 0l-7-7m7 7V3"
-            />
-          </svg>
-        </button>
-      )}
 
       {/* Tree Minimap */}
       <TreeMinimap
