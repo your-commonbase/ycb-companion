@@ -80,11 +80,35 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   const [isShareDropdownOpen, setIsShareDropdownOpen] = useState(false);
   const [randomCommentPlaceholder, setRandomCommentPlaceholder] =
     useState('Add a comment...');
-  const [isContentExpanded, setIsContentExpanded] = useState(false);
   const [isEmbedsExpanded, setIsEmbedsExpanded] = useState(false);
   const shareDropdownRef = useRef<HTMLDivElement>(null);
   console.log('entry id:', entry.id);
   console.log('entry level:', entry.level);
+
+  // Calculate dynamic font size based on content length
+  const calculateFontSize = (contentLength: number): string => {
+    // Base font size for short content
+    const baseFontSize = 18; // text-lg equivalent (18px)
+    const minFontSize = 12; // text-xs equivalent (12px)
+
+    // More aggressive scaling for better space utilization
+    // Short content (< 150 chars): full size
+    // Medium content (150-800 chars): scale down gradually
+    // Long content (> 800 chars): minimum size
+
+    if (contentLength <= 150) {
+      return `${baseFontSize}px`;
+    }
+    if (contentLength <= 800) {
+      // Linear interpolation between base and min
+      const ratio = (contentLength - 150) / 650; // 650 = 800 - 150
+      const fontSize = baseFontSize - (baseFontSize - minFontSize) * ratio;
+      return `${Math.max(fontSize, minFontSize)}px`;
+    }
+    return `${minFontSize}px`;
+  };
+
+  const dynamicFontSize = calculateFontSize(entry.data.length);
 
   // Intersection observer for animations
   const { targetRef, hasBeenVisible } = useIntersectionObserver({
@@ -768,7 +792,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
     <div
       ref={targetRef}
       id={`entry-${entry.id}`}
-      className={`w-full rounded-xl border-2 bg-white shadow-lg hover:shadow-xl ${getRelationshipStyle()} ${getAnimationClasses()}`}
+      className={`flex h-[600px] w-full flex-col rounded-xl border-2 bg-white shadow-lg hover:shadow-xl ${getRelationshipStyle()} ${getAnimationClasses()}`}
     >
       {/* Header with relationship indicator */}
       {entry.relationshipType !== 'root' && (
@@ -806,9 +830,9 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
       )}
 
       {/* Main Content */}
-      <div className="p-6">
+      <div className="flex flex-1 flex-col overflow-hidden p-6">
         {/* Entry Content */}
-        <div className="mb-6">
+        <div className="mb-6 flex-1 overflow-y-auto">
           {isEditing ? (
             <div className="space-y-4">
               <textarea
@@ -836,21 +860,13 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
               </div>
             </div>
           ) : (
-            <div className="prose prose-lg max-w-none">
-              <ReactMarkdown className="markdown-domine text-lg leading-relaxed text-gray-900">
-                {isContentExpanded || entry.data.length <= 200
-                  ? entry.data
-                  : `${entry.data.substring(0, 200)}...`}
+            <div
+              className="prose max-w-none"
+              style={{ fontSize: dynamicFontSize, lineHeight: '1.6' }}
+            >
+              <ReactMarkdown className="markdown-domine leading-relaxed text-gray-900">
+                {entry.data}
               </ReactMarkdown>
-              {entry.data.length > 200 && (
-                <button
-                  onClick={() => setIsContentExpanded(!isContentExpanded)}
-                  className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-800 focus:outline-none"
-                  type="button"
-                >
-                  {isContentExpanded ? 'Show less' : 'Show more'}
-                </button>
-              )}
             </div>
           )}
 
