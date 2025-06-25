@@ -55,7 +55,8 @@ export default function SettingsPage() {
   const [planChangeStatus, setPlanChangeStatus] = useState<string>('');
   const [planStatus, setPlanStatus] = useState<any>(null);
   const [loadingPlanStatus, setLoadingPlanStatus] = useState(false);
-  const { autoScrollMode, toggleAutoScrollMode } = useAutoScrollMode();
+  const { autoScrollMode, maxDepth, toggleAutoScrollMode, updateMaxDepth } =
+    useAutoScrollMode();
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0] || null;
@@ -294,27 +295,56 @@ export default function SettingsPage() {
           </div>
         </div>
         {autoScrollMode && (
-          <div className="mt-3 rounded-md bg-blue-50 p-3">
-            <div className="flex">
-              <div className="shrink-0">
-                <svg
-                  className="size-5 text-blue-400"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+          <div className="mt-3 space-y-4">
+            <div className="rounded-md bg-blue-50 p-3">
+              <div className="flex">
+                <div className="shrink-0">
+                  <svg
+                    className="size-5 text-blue-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1 md:flex md:justify-between">
+                  <p className="text-sm text-blue-700">
+                    Auto-scroll mode will automatically expand related content
+                    as you scroll through threads, creating an infinite browsing
+                    experience.
+                  </p>
+                </div>
               </div>
-              <div className="ml-3 flex-1 md:flex md:justify-between">
-                <p className="text-sm text-blue-700">
-                  Auto-scroll mode will automatically expand related content as
-                  you scroll through threads, creating an infinite browsing
-                  experience.
-                </p>
+            </div>
+
+            {/* Max Depth Setting */}
+            <div className="rounded-md border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h4 className="text-base font-medium text-gray-900">
+                    Maximum Depth
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    Maximum depth to explore before moving to other branches
+                    (1-20)
+                  </p>
+                </div>
+                <div className="ml-4">
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={maxDepth}
+                    onChange={(e) =>
+                      updateMaxDepth(parseInt(e.target.value, 10))
+                    }
+                    className="w-16 rounded-md border border-gray-300 px-3 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
               </div>
             </div>
           </div>

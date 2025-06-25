@@ -56,6 +56,7 @@ interface ThreadEntryCardProps {
   expandedRelationships?: Set<string>;
   allEntryIds?: Set<string>;
   loadingRelationships?: Set<string>;
+  maxDepth: number;
 }
 
 const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
@@ -68,6 +69,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   expandedRelationships = new Set(),
   allEntryIds = new Set(),
   loadingRelationships = new Set(),
+  maxDepth,
 }) => {
   const [cdnImageUrl, setCdnImageUrl] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
@@ -81,6 +83,8 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   const [isContentExpanded, setIsContentExpanded] = useState(false);
   const [isEmbedsExpanded, setIsEmbedsExpanded] = useState(false);
   const shareDropdownRef = useRef<HTMLDivElement>(null);
+  console.log('entry id:', entry.id);
+  console.log('entry level:', entry.level);
 
   // Intersection observer for animations
   const { targetRef, hasBeenVisible } = useIntersectionObserver({
@@ -1011,7 +1015,8 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
             {/* Left side - Relationship indicators */}
             <div className="flex flex-wrap gap-2">
               {aliasIds.length > 0 &&
-                aliasIds.some((id) => !allEntryIds.has(id)) && (
+                aliasIds.some((id) => !allEntryIds.has(id)) &&
+                entry.level < maxDepth && (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onRelationshipExpand(entry.id, 'comments')}
@@ -1034,29 +1039,31 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                     )}
                   </div>
                 )}
-              {parentId && !allEntryIds.has(parentId) && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onRelationshipExpand(entry.id, 'parent')}
-                    type="button"
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                      expandedRelationships.has(`${entry.id}-parent`)
-                        ? 'cursor-default bg-gray-200 text-gray-600'
-                        : 'bg-purple-100 text-purple-800 hover:bg-purple-200'
-                    }`}
-                    disabled={
-                      expandedRelationships.has(`${entry.id}-parent`) ||
-                      loadingRelationships.has(`${entry.id}-parent`)
-                    }
-                  >
-                    has parent
-                  </button>
-                  {loadingRelationships.has(`${entry.id}-parent`) && (
-                    <div className="size-4 animate-spin rounded-full border-b-2 border-purple-500" />
-                  )}
-                </div>
-              )}
-              {entry.hasMoreRelations && (
+              {parentId &&
+                !allEntryIds.has(parentId) &&
+                entry.level < maxDepth && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onRelationshipExpand(entry.id, 'parent')}
+                      type="button"
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        expandedRelationships.has(`${entry.id}-parent`)
+                          ? 'cursor-default bg-gray-200 text-gray-600'
+                          : 'bg-purple-100 text-purple-800 hover:bg-purple-200'
+                      }`}
+                      disabled={
+                        expandedRelationships.has(`${entry.id}-parent`) ||
+                        loadingRelationships.has(`${entry.id}-parent`)
+                      }
+                    >
+                      has parent
+                    </button>
+                    {loadingRelationships.has(`${entry.id}-parent`) && (
+                      <div className="size-4 animate-spin rounded-full border-b-2 border-purple-500" />
+                    )}
+                  </div>
+                )}
+              {entry.hasMoreRelations && entry.level < maxDepth && (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onRelationshipExpand(entry.id, 'neighbors')}
@@ -1327,7 +1334,7 @@ export default function Thread({ inputId }: { inputId: string }) {
   const [currentEntryIndex, setCurrentEntryIndex] = useState(0);
   const idSet = useRef(new Set<string>());
   const router = useRouter();
-  const { autoScrollMode, isLoaded } = useAutoScrollMode();
+  const { autoScrollMode, maxDepth, isLoaded } = useAutoScrollMode();
   const processedEntries = useRef(new Set<string>());
   useAddQueueProcessor();
 
@@ -1336,28 +1343,134 @@ export default function Thread({ inputId }: { inputId: string }) {
     relationshipType: 'root' | 'parent' | 'comment' | 'neighbor',
     level: number = 0,
     relationshipSource?: string,
-  ): FlattenedEntry => ({
-    ...entry,
-    relationshipType,
-    relationshipSource,
-    level,
-    hasMoreRelations: true, // All entries can have related/neighbor entries
-  });
+  ): FlattenedEntry => {
+    console.log(
+      `Creating ${relationshipType} entry: ${entry.id} at level ${level} (maxDepth: ${maxDepth})`,
+    );
+    return {
+      ...entry,
+      relationshipType,
+      relationshipSource,
+      level,
+      hasMoreRelations: true, // All entries can have related/neighbor entries
+    };
+  };
+
+  const findNextUnexploredEntry = (
+    currentEntry: FlattenedEntry,
+  ): FlattenedEntry | null => {
+    // Find the next entry that hasn't been processed and has potential relationships
+    // First, look for entries at lower levels (going back up the tree)
+    for (
+      let targetLevel = currentEntry.level - 1;
+      targetLevel >= 0;
+      targetLevel -= 1
+    ) {
+      const candidateEntries = flattenedEntries.filter(
+        (entry) =>
+          entry.level === targetLevel &&
+          !processedEntries.current.has(entry.id) &&
+          (entry.hasMoreRelations ||
+            (entry.metadata.alias_ids && entry.metadata.alias_ids.length > 0) ||
+            (entry.metadata.parent_id &&
+              !idSet.current.has(entry.metadata.parent_id))),
+      );
+
+      if (candidateEntries.length > 0) {
+        // Return the first unexplored entry at this level
+        return candidateEntries[0] || null;
+      }
+    }
+
+    // If no entries found at lower levels, look for any unexplored entries
+    const unexploredEntries = flattenedEntries.filter(
+      (entry) =>
+        !processedEntries.current.has(entry.id) &&
+        (entry.hasMoreRelations ||
+          (entry.metadata.alias_ids && entry.metadata.alias_ids.length > 0) ||
+          (entry.metadata.parent_id &&
+            !idSet.current.has(entry.metadata.parent_id))),
+    );
+
+    return unexploredEntries.length > 0 ? unexploredEntries[0] || null : null;
+  };
 
   const expandAllRelationships = async (
     entryId: string,
     relationshipTypes: string[],
   ) => {
+    // Find the current entry to check its level
+    const currentEntry = flattenedEntries.find((e) => e.id === entryId);
+    if (!currentEntry) {
+      console.log(`Entry not found for expansion: ${entryId}`);
+      return;
+    }
+
+    console.log(
+      `Attempting to expand relationships for ${entryId} at level ${currentEntry.level}:`,
+      relationshipTypes,
+    );
+
+    // Check if current entry level equals or exceeds maxDepth
+    if (currentEntry.level >= maxDepth) {
+      console.log(
+        `Entry level ${currentEntry.level} equals/exceeds maxDepth ${maxDepth}, finding next unexplored entry`,
+      );
+
+      // Find next unexplored entry using DFS-like navigation
+      const nextEntry = findNextUnexploredEntry(currentEntry);
+      if (nextEntry) {
+        console.log(
+          `Found unexplored ancestor: ${nextEntry.id} at level ${nextEntry.level}`,
+        );
+
+        // Don't scroll to the ancestor - it's jarring since it's an old node
+        // Instead, expand its relationships silently and let normal auto-scroll handle new nodes
+
+        // Process the ancestor's relationships to create new children
+        const relationshipsToExpand = [
+          'comments',
+          'parent',
+          'neighbors',
+        ].filter((type) => {
+          if (type === 'comments' && nextEntry.metadata.alias_ids?.length > 0)
+            return true;
+          if (type === 'parent' && nextEntry.metadata.parent_id) return true;
+          if (type === 'neighbors' && nextEntry.hasMoreRelations) return true;
+          return false;
+        });
+
+        if (relationshipsToExpand.length > 0) {
+          console.log(
+            `Expanding ancestor relationships for: ${nextEntry.id}`,
+            relationshipsToExpand,
+          );
+          // Expand relationships which will create new entries
+          // The normal auto-scroll mechanism will handle scrolling to new entries
+          expandAllRelationships(nextEntry.id, relationshipsToExpand);
+        }
+      }
+      return; // Exit early when depth exceeded
+    }
+
     // Prevent expansion if any relationships are already loading or expanded
     const alreadyProcessed = relationshipTypes.some((type) => {
       const relationshipKey = `${entryId}-${type}`;
-      return (
-        expandedRelationships.has(relationshipKey) ||
-        loadingRelationships.has(relationshipKey)
-      );
+      const isExpanded = expandedRelationships.has(relationshipKey);
+      const isLoading = loadingRelationships.has(relationshipKey);
+      if (isExpanded || isLoading) {
+        console.log(
+          `Skipping ${type} for ${entryId}: expanded=${isExpanded}, loading=${isLoading}`,
+        );
+      }
+      return isExpanded || isLoading;
     });
 
     if (alreadyProcessed) {
+      console.log(
+        `All relationships already processed for ${entryId}:`,
+        relationshipTypes,
+      );
       return;
     }
 
@@ -1379,8 +1492,8 @@ export default function Thread({ inputId }: { inputId: string }) {
     setIsExpansionBlocking(true);
 
     try {
-      const currentEntry = flattenedEntries.find((e) => e.id === entryId);
-      if (!currentEntry) return;
+      const currentEntryTry = flattenedEntries.find((e) => e.id === entryId);
+      if (!currentEntryTry) return;
 
       const currentIndex = flattenedEntries.findIndex((e) => e.id === entryId);
       const allNewEntries: FlattenedEntry[] = [];
@@ -1389,8 +1502,8 @@ export default function Thread({ inputId }: { inputId: string }) {
       const fetchPromises = relationshipTypes.map(async (type) => {
         const newEntries: FlattenedEntry[] = [];
 
-        if (type === 'parent' && currentEntry.metadata.parent_id) {
-          const parentId = currentEntry.metadata.parent_id;
+        if (type === 'parent' && currentEntryTry.metadata.parent_id) {
+          const parentId = currentEntryTry.metadata.parent_id;
           if (!idSet.current.has(parentId)) {
             const res = await fetch('/api/fetch', {
               method: 'POST',
@@ -1401,16 +1514,19 @@ export default function Thread({ inputId }: { inputId: string }) {
             const parentEntry = flattenEntry(
               data.data,
               'parent',
-              currentEntry.level,
+              Math.max(1, currentEntryTry.level - 1),
               entryId,
+            );
+            console.log(
+              `Adding parent ${parentEntry.id} at level ${parentEntry.level} for child ${entryId} at level ${currentEntryTry.level}`,
             );
             newEntries.push(parentEntry);
             idSet.current.add(parentId);
           }
         }
 
-        if (type === 'comments' && currentEntry.metadata.alias_ids) {
-          const aliasIds = currentEntry.metadata.alias_ids;
+        if (type === 'comments' && currentEntryTry.metadata.alias_ids) {
+          const aliasIds = currentEntryTry.metadata.alias_ids;
           const commentPromises = aliasIds.map(async (aliasId: any) => {
             if (!idSet.current.has(aliasId)) {
               try {
@@ -1423,7 +1539,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                 const commentEntry = flattenEntry(
                   data.data,
                   'comment',
-                  currentEntry.level + 1,
+                  currentEntryTry.level + 1,
                   entryId,
                 );
                 idSet.current.add(aliasId);
@@ -1452,7 +1568,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                 const neighbor = flattenEntry(
                   neighborEntry,
                   'neighbor',
-                  currentEntry.level + 1,
+                  currentEntryTry.level + 1,
                   entryId,
                 );
                 newEntries.push(neighbor);
@@ -1568,6 +1684,7 @@ export default function Thread({ inputId }: { inputId: string }) {
         }
 
         if (relationshipsToExpand.length > 0) {
+          // maxDepth check is handled inside expandAllRelationships
           expandAllRelationships(entry.id, relationshipsToExpand);
         }
       }
@@ -1879,7 +1996,7 @@ export default function Thread({ inputId }: { inputId: string }) {
         });
         const data = await res.json();
 
-        const rootEntry = flattenEntry(data.data, 'root', 0);
+        const rootEntry = flattenEntry(data.data, 'root', 1);
         setFlattenedEntries([rootEntry]);
         idSet.current.add(data.data.id);
       } catch (error) {
@@ -1961,6 +2078,7 @@ export default function Thread({ inputId }: { inputId: string }) {
               }
 
               // Expand ALL available relationships simultaneously
+              // maxDepth check is now handled inside expandAllRelationships
               if (relationshipsToExpand.length > 0) {
                 console.log(
                   `Auto-expanding all relationships for:`,
@@ -1989,6 +2107,7 @@ export default function Thread({ inputId }: { inputId: string }) {
     loadingRelationships,
     loadingMore,
     autoScrollMode,
+    maxDepth,
     isLoaded,
     isMobile,
   ]);
@@ -2051,6 +2170,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                   expandedRelationships={expandedRelationships}
                   allEntryIds={new Set(flattenedEntries.map((e) => e.id))}
                   loadingRelationships={loadingRelationships}
+                  maxDepth={maxDepth}
                 />
               </div>
             </div>
