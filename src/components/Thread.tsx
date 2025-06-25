@@ -57,7 +57,199 @@ interface ThreadEntryCardProps {
   allEntryIds?: Set<string>;
   loadingRelationships?: Set<string>;
   maxDepth: number;
+  onOpenTreeModal: (entry: FlattenedEntry) => void;
 }
+
+interface TreePathDisplayProps {
+  currentEntry: FlattenedEntry;
+  allEntries: FlattenedEntry[];
+}
+
+const TreePathDisplay: React.FC<TreePathDisplayProps> = ({
+  currentEntry,
+  allEntries,
+}) => {
+  const [pathEntries, setPathEntries] = useState<FlattenedEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const buildPath = () => {
+      setLoading(true);
+      const path: FlattenedEntry[] = [];
+
+      // Build the complete path from current entry back to root
+      // using the existing flattenedEntries which already contain all relationships
+      const buildPathRecursive = (
+        entry: FlattenedEntry,
+        visited = new Set<string>(),
+      ): void => {
+        // Prevent infinite loops
+        if (visited.has(entry.id)) {
+          return;
+        }
+        visited.add(entry.id);
+
+        // Add current entry to the front of the path
+        path.unshift(entry);
+
+        // If this is the root, we're done
+        if (entry.relationshipType === 'root') {
+          return;
+        }
+
+        // Find the parent entry in allEntries
+        if (entry.relationshipSource) {
+          const parentEntry = allEntries.find(
+            (e) => e.id === entry.relationshipSource,
+          );
+          if (parentEntry) {
+            buildPathRecursive(parentEntry, visited);
+          } else {
+            // If parent not found in current entries, it might be the original root
+            // Try to find any root entry
+            const rootEntry = allEntries.find(
+              (e) => e.relationshipType === 'root',
+            );
+            if (rootEntry && !visited.has(rootEntry.id)) {
+              path.unshift(rootEntry);
+            }
+          }
+        }
+      };
+
+      buildPathRecursive(currentEntry);
+      setPathEntries(path);
+      setLoading(false);
+    };
+
+    buildPath();
+  }, [currentEntry, allEntries]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="size-6 animate-spin rounded-full border-b-2 border-blue-500" />
+      </div>
+    );
+  }
+
+  const getRelationshipInfo = (entry: FlattenedEntry, index: number) => {
+    if (index === 0)
+      return {
+        label: 'Root',
+        color: 'bg-green-500',
+        description: 'Original thread entry',
+      };
+    if (index === pathEntries.length - 1)
+      return {
+        label: 'Current',
+        color: 'bg-blue-500',
+        description: 'Selected entry',
+      };
+
+    switch (entry.relationshipType) {
+      case 'parent':
+        return {
+          label: 'Parent',
+          color: 'bg-purple-500',
+          description: 'Parent entry',
+        };
+      case 'comment':
+        // eslint-disable-next-line
+        const hasScore = entry.similarity !== undefined;
+        return {
+          label: hasScore ? 'Similar' : 'Comment',
+          color: hasScore ? 'bg-orange-500' : 'bg-orange-400',
+          description: hasScore
+            ? `Similarity: ${(entry.similarity! * 100).toFixed(1)}%`
+            : 'Comment entry',
+        };
+      case 'neighbor':
+        // eslint-disable-next-line
+        const neighborScore = entry.similarity !== undefined;
+        return {
+          label: neighborScore ? 'Related' : 'Neighbor',
+          color: neighborScore ? 'bg-green-600' : 'bg-green-400',
+          description: neighborScore
+            ? `Similarity: ${(entry.similarity! * 100).toFixed(1)}%`
+            : 'Neighbor entry',
+        };
+      default:
+        return {
+          label: 'Entry',
+          color: 'bg-gray-400',
+          description: 'Thread entry',
+        };
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {pathEntries.map((entry, index) => {
+        const relationshipInfo = getRelationshipInfo(entry, index);
+        return (
+          <div
+            key={entry.id}
+            className={`border-l-4 pl-4 ${relationshipInfo.color.replace(
+              'bg-',
+              'border-',
+            )}`}
+          >
+            <div className="mb-2 flex items-center gap-3">
+              <div
+                className={`size-3 rounded-full ${relationshipInfo.color}`}
+              />
+              <span className="text-sm font-medium text-gray-600">
+                Level {entry.level}
+              </span>
+              <span
+                className={`rounded-full px-2 py-1 text-xs text-white ${relationshipInfo.color}`}
+              >
+                {relationshipInfo.label}
+              </span>
+              <div className="text-xs text-gray-500">
+                ID: {entry.id.slice(0, 8)}...
+              </div>
+            </div>
+
+            {relationshipInfo.description !== `Level ${entry.level}` && (
+              <div className="mb-2 text-xs text-gray-600">
+                {relationshipInfo.description}
+              </div>
+            )}
+
+            <div className="mb-3">
+              <div className="whitespace-pre-wrap text-sm leading-relaxed text-gray-900">
+                {entry.data}
+              </div>
+            </div>
+
+            {index < pathEntries.length - 1 && (
+              <div className="flex justify-center py-2">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <svg
+                    className="size-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                    />
+                  </svg>
+                  <span>leads to</span>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   entry,
@@ -70,6 +262,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   allEntryIds = new Set(),
   loadingRelationships = new Set(),
   maxDepth,
+  onOpenTreeModal,
 }) => {
   const [cdnImageUrl, setCdnImageUrl] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
@@ -826,6 +1019,47 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
               </button>
             )}
           </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onOpenTreeModal(entry)}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              type="button"
+              title="Show path to root"
+            >
+              <svg
+                className="size-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 5v4"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 5v4"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 5v4"
+                />
+              </svg>
+              Tree
+            </button>
+          </div>
         </div>
       )}
 
@@ -1348,6 +1582,10 @@ export default function Thread({ inputId }: { inputId: string }) {
   const [isExpansionBlocking, setIsExpansionBlocking] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [currentEntryIndex, setCurrentEntryIndex] = useState(0);
+  const [isTreeModalOpen, setIsTreeModalOpen] = useState(false);
+  const [treeModalEntry, setTreeModalEntry] = useState<FlattenedEntry | null>(
+    null,
+  );
   const idSet = useRef(new Set<string>());
   const router = useRouter();
   const { autoScrollMode, maxDepth, isLoaded } = useAutoScrollMode();
@@ -2002,6 +2240,11 @@ export default function Thread({ inputId }: { inputId: string }) {
     }
   };
 
+  const handleOpenTreeModal = (entry: FlattenedEntry) => {
+    setTreeModalEntry(entry);
+    setIsTreeModalOpen(true);
+  };
+
   useEffect(() => {
     const fetchInitialEntry = async () => {
       try {
@@ -2155,8 +2398,10 @@ export default function Thread({ inputId }: { inputId: string }) {
           <span className="text-xs text-gray-600">Loading...</span>
         </div>
       )}
-      <div className="mx-auto max-w-2xl">
-        <PendingQueue idSet={idSet} />
+      <div className="w-full">
+        <div className="mx-auto max-w-2xl">
+          <PendingQueue idSet={idSet} />
+        </div>
 
         {/* Thread entries - snap scroll full page chunks */}
         <div>
@@ -2164,7 +2409,7 @@ export default function Thread({ inputId }: { inputId: string }) {
             <div
               key={`snap-${entry.id}`}
               id={`entry-${entry.id}`}
-              className={`flex items-start justify-center px-4 ${
+              className={`flex items-start justify-center px-6 ${
                 isMobile ? 'h-screen py-4' : 'min-h-screen py-8'
               }`}
               style={{
@@ -2174,7 +2419,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                 overflowX: 'hidden',
               }}
             >
-              <div className="w-full max-w-3xl">
+              <div className="w-full">
                 <ThreadEntryCard
                   key={`${entry.id}`}
                   entry={entry}
@@ -2187,6 +2432,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                   allEntryIds={new Set(flattenedEntries.map((e) => e.id))}
                   loadingRelationships={loadingRelationships}
                   maxDepth={maxDepth}
+                  onOpenTreeModal={handleOpenTreeModal}
                 />
               </div>
             </div>
@@ -2216,7 +2462,7 @@ export default function Thread({ inputId }: { inputId: string }) {
       {isMobile && (
         <button
           onClick={handleNextEntry}
-          className="fixed bottom-20 right-4 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="fixed bottom-24 right-6 z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           type="button"
           aria-label="Next entry"
         >
@@ -2249,6 +2495,46 @@ export default function Thread({ inputId }: { inputId: string }) {
         closeModalFn={() => setIsSearchModalOpen(false)}
         inputQuery=""
       />
+
+      {/* Tree Path Modal */}
+      {isTreeModalOpen && treeModalEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="flex max-h-[95vh] w-full max-w-[95vw] flex-col rounded-lg bg-white shadow-xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
+              <h2 className="text-xl font-bold text-gray-900">Path to Root</h2>
+              <button
+                onClick={() => setIsTreeModalOpen(false)}
+                className="text-gray-400 transition-colors hover:text-gray-600"
+                type="button"
+                aria-label="Close"
+              >
+                <svg
+                  className="size-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div
+              className="flex-1 overflow-y-auto p-6"
+              style={{ minHeight: 0 }}
+            >
+              <TreePathDisplay
+                currentEntry={treeModalEntry}
+                allEntries={flattenedEntries}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
