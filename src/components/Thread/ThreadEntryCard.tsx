@@ -700,9 +700,9 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
     <div
       ref={targetRef}
       id={`entry-${entry.id}`}
-      className={`flex h-[600px] w-full flex-col rounded-xl border-2 bg-white shadow-lg hover:shadow-xl ${getRelationshipStyle()} ${getAnimationClasses()} ${
+      className={`flex w-full flex-col rounded-xl border-2 bg-white shadow-lg hover:shadow-xl ${getRelationshipStyle()} ${getAnimationClasses()} ${
         isCurrentEntry ? 'border-l-4 border-l-gray-800' : ''
-      }`}
+      } ${isAddingImage || isAddingURL || isAddingComment ? 'h-auto min-h-[600px]' : 'h-[600px]'}`}
     >
       {/* Header with relationship indicator */}
       {entry.relationshipType !== 'root' && (
@@ -818,14 +818,15 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                 <img
                   src={cdnImageUrl}
                   alt="Entry content"
-                  className="h-auto max-w-full rounded-lg shadow-md"
+                  className="h-auto max-w-full rounded-lg object-contain shadow-md"
+                  style={{ maxHeight: '400px' }}
                 />
               ) : null
             }
           </div>
         )}
         {/* Entry Content */}
-        <div className="mb-6 flex-1 overflow-y-auto">
+        <div className="mb-6 flex-1 overflow-y-auto overflow-x-hidden">
           {isEditing ? (
             <div className="space-y-4">
               <textarea
@@ -914,7 +915,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
             (entry.metadata.author.includes('twitter.com') ||
               (entry.metadata.author.includes('x.com') &&
                 entry.metadata.author.includes('status'))))) && (
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-hidden">
             {!isEmbedsExpanded && (
               <button
                 onClick={() => setIsEmbedsExpanded(true)}
@@ -946,29 +947,37 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                   (entry.metadata.ogTitle || entry.metadata.ogDescription) &&
                   entry.metadata.ogImages &&
                   entry.metadata.ogImages.length > 0 && (
-                    <LinkPreviewCard
-                      url={entry.metadata.author}
-                      title={entry.metadata.ogTitle}
-                      description={entry.metadata.ogDescription}
-                      image={entry.metadata.ogImages[0]}
-                    />
+                    <div className="max-w-full overflow-hidden">
+                      <LinkPreviewCard
+                        url={entry.metadata.author}
+                        title={entry.metadata.ogTitle}
+                        description={entry.metadata.ogDescription}
+                        image={entry.metadata.ogImages[0]}
+                      />
+                    </div>
                   )}
                 {entry.metadata.author &&
                   entry.metadata.author.includes('instagram.com') && (
-                    <InstagramEmbed url={entry.metadata.author} />
+                    <div className="max-w-full overflow-hidden">
+                      <InstagramEmbed url={entry.metadata.author} />
+                    </div>
                   )}
                 {entry.metadata.author &&
                   entry.metadata.author.includes('youtube.com') && (
-                    <LiteYouTubeEmbed
-                      id={entry.metadata.author.split('v=')[1]?.split('&')[0]}
-                      title="YouTube video"
-                    />
+                    <div className="max-w-full overflow-hidden">
+                      <LiteYouTubeEmbed
+                        id={entry.metadata.author.split('v=')[1]?.split('&')[0]}
+                        title="YouTube video"
+                      />
+                    </div>
                   )}
                 {entry.metadata.author &&
                   (entry.metadata.author.includes('twitter.com') ||
                     (entry.metadata.author.includes('x.com') &&
                       entry.metadata.author.includes('status'))) && (
-                    <Tweet id={entry.metadata.author.split('status/')[1]} />
+                    <div className="max-w-full overflow-hidden">
+                      <Tweet id={entry.metadata.author.split('status/')[1]} />
+                    </div>
                   )}
               </>
             )}

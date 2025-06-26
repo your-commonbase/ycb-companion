@@ -77,6 +77,35 @@ const Canvas = () => {
     }
   }, [isSearchModalOpen]);
 
+  // Remove item
+  const handleRemoveItem = (itemId: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== itemId));
+    setSelectedItem(null);
+    setContextMenu(null);
+  };
+
+  // Handle keyboard events for delete
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent delete if user is typing in an input or textarea
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName.toLowerCase() === 'input' ||
+        target.tagName.toLowerCase() === 'textarea'
+      ) {
+        return;
+      }
+
+      if (e.key === 'Delete' && selectedItem) {
+        e.preventDefault();
+        handleRemoveItem(selectedItem);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedItem, handleRemoveItem]);
+
   // Handle canvas right-click
   const handleCanvasContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -95,10 +124,20 @@ const Canvas = () => {
     e.preventDefault();
     e.stopPropagation(); // Prevent canvas context menu
 
+    const item = items.find((i) => i.id === itemId);
+    if (!item) return;
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    // Position context menu at top-right of the item
+    const itemScreenX = rect.left + item.x + canvasPan.x + item.width;
+    const itemScreenY = rect.top + item.y + canvasPan.y;
+
     setSelectedItem(itemId);
     setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
+      x: itemScreenX,
+      y: itemScreenY,
       type: 'item',
       itemId,
     });
@@ -139,26 +178,139 @@ const Canvas = () => {
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect) return;
 
-        const startX = (contextMenu?.x || 100) - rect.left - canvasPan.x;
-        const startY = (contextMenu?.y || 100) - rect.top - canvasPan.y;
+        // Center in viewport if no context menu position
+        const centerX = rect.width / 2 - canvasPan.x;
+        const centerY = rect.height / 2 - canvasPan.y;
+        const startX = contextMenu
+          ? contextMenu.x - rect.left - canvasPan.x
+          : centerX;
+        const startY = contextMenu
+          ? contextMenu.y - rect.top - canvasPan.y
+          : centerY;
 
-        const newItems: CanvasItem[] = data.data
-          .slice(0, 5)
-          .map((entry: any, index: number) => ({
+        const allNewItems: CanvasItem[] = [];
+        const currentX = startX;
+        let currentY = startY;
+
+        // Process each search result and its related entries
+        for (const [index, entry] of data.data.slice(0, 5).entries()) {
+          const entryItems: CanvasItem[] = [];
+
+          // Add the main entry
+          const mainItem: CanvasItem = {
             id: `search-${Date.now()}-${index}`,
             type: entry.metadata?.type === 'image' ? 'image' : 'entry',
-            x: startX + index * 20,
-            y: startY + index * 20,
+            x: currentX,
+            y: currentY,
             width: 300,
             height: entry.metadata?.type === 'image' ? 200 : 150,
             content: entry.data,
-            imageUrl: entry.metadata?.type === 'image' ? undefined : undefined, // Will be fetched if needed
+            imageUrl: entry.metadata?.type === 'image' ? undefined : undefined,
             entryId: entry.id,
             metadata: entry.metadata,
-          }));
+          };
+          entryItems.push(mainItem);
 
-        // Fetch images for image entries
-        for (const item of newItems) {
+          // Fetch and add parent if exists
+          if (entry.metadata?.parent_id) {
+            try {
+              // eslint-disable-next-line no-await-in-loop
+              const parentResponse = await fetch('/api/fetch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: entry.metadata.parent_id }),
+              });
+              // eslint-disable-next-line no-await-in-loop
+              const parentData = await parentResponse.json();
+
+              if (parentData.data) {
+                const parentItem: CanvasItem = {
+                  id: `search-parent-${Date.now()}-${index}`,
+                  type:
+                    parentData.data.metadata?.type === 'image'
+                      ? 'image'
+                      : 'entry',
+                  x: currentX - 320, // Position to the left
+                  y: currentY,
+                  width: 300,
+                  height:
+                    parentData.data.metadata?.type === 'image' ? 200 : 150,
+                  content: parentData.data.data,
+                  imageUrl:
+                    parentData.data.metadata?.type === 'image'
+                      ? undefined
+                      : undefined,
+                  entryId: parentData.data.id,
+                  metadata: parentData.data.metadata,
+                };
+                entryItems.push(parentItem);
+              }
+            } catch (error) {
+              console.error(
+                'Failed to fetch parent for entry:',
+                entry.id,
+                error,
+              );
+            }
+          }
+
+          // Fetch and add comments if they exist
+          if (
+            entry.metadata?.alias_ids &&
+            entry.metadata.alias_ids.length > 0
+          ) {
+            const commentIds = entry.metadata.alias_ids.slice(0, 3); // Limit to 3 comments
+            for (const [commentIndex, commentId] of commentIds.entries()) {
+              try {
+                // eslint-disable-next-line no-await-in-loop
+                const commentResponse = await fetch('/api/fetch', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: commentId }),
+                });
+                // eslint-disable-next-line no-await-in-loop
+                const commentData = await commentResponse.json();
+
+                if (commentData.data) {
+                  const commentItem: CanvasItem = {
+                    id: `search-comment-${Date.now()}-${index}-${commentIndex}`,
+                    type:
+                      commentData.data.metadata?.type === 'image'
+                        ? 'image'
+                        : 'entry',
+                    x: currentX + 320, // Position to the right
+                    y: currentY + commentIndex * 160, // Stack comments vertically
+                    width: 280,
+                    height:
+                      commentData.data.metadata?.type === 'image' ? 180 : 120,
+                    content: commentData.data.data,
+                    imageUrl:
+                      commentData.data.metadata?.type === 'image'
+                        ? undefined
+                        : undefined,
+                    entryId: commentData.data.id,
+                    metadata: commentData.data.metadata,
+                  };
+                  entryItems.push(commentItem);
+                }
+              } catch (error) {
+                console.error(
+                  'Failed to fetch comment for entry:',
+                  entry.id,
+                  error,
+                );
+              }
+            }
+          }
+
+          allNewItems.push(...entryItems);
+
+          // Move to next row for the next search result
+          currentY += 250;
+        }
+
+        // Fetch images for all image entries
+        for (const item of allNewItems) {
           if (item.type === 'image' && item.entryId) {
             try {
               // eslint-disable-next-line no-await-in-loop
@@ -183,7 +335,7 @@ const Canvas = () => {
           }
         }
 
-        setItems((prev) => [...prev, ...newItems]);
+        setItems((prev) => [...prev, ...allNewItems]);
       }
     } catch (error) {
       console.error('Search failed:', error);
@@ -200,8 +352,11 @@ const Canvas = () => {
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
 
-      const x = (contextMenu?.x || 100) - rect.left - canvasPan.x;
-      const y = (contextMenu?.y || 100) - rect.top - canvasPan.y;
+      // Center in viewport if no context menu position
+      const centerX = rect.width / 2 - canvasPan.x;
+      const centerY = rect.height / 2 - canvasPan.y;
+      const x = contextMenu ? contextMenu.x - rect.left - canvasPan.x : centerX;
+      const y = contextMenu ? contextMenu.y - rect.top - canvasPan.y : centerY;
 
       const newItem: CanvasItem = {
         id: `random-${Date.now()}`,
@@ -248,8 +403,11 @@ const Canvas = () => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    const x = (contextMenu?.x || 100) - rect.left - canvasPan.x;
-    const y = (contextMenu?.y || 100) - rect.top - canvasPan.y;
+    // Center in viewport if no context menu position
+    const centerX = rect.width / 2 - canvasPan.x;
+    const centerY = rect.height / 2 - canvasPan.y;
+    const x = contextMenu ? contextMenu.x - rect.left - canvasPan.x : centerX;
+    const y = contextMenu ? contextMenu.y - rect.top - canvasPan.y : centerY;
 
     const newItem: CanvasItem = {
       id: `text-${Date.now()}`,
@@ -264,13 +422,6 @@ const Canvas = () => {
 
     setItems((prev) => [...prev, newItem]);
     setSelectedItem(newItem.id);
-    setContextMenu(null);
-  };
-
-  // Remove item
-  const handleRemoveItem = (itemId: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== itemId));
-    setSelectedItem(null);
     setContextMenu(null);
   };
 
@@ -324,6 +475,11 @@ const Canvas = () => {
       offset: { x: offsetX, y: offsetY },
     });
     setSelectedItem(itemId);
+
+    // Focus canvas to enable keyboard events
+    if (canvasRef.current) {
+      canvasRef.current.focus();
+    }
   };
 
   // Handle resize mouse down
@@ -535,6 +691,12 @@ const Canvas = () => {
         onMouseLeave={handleMouseUp}
         role="application"
         aria-label="Interactive canvas for organizing content"
+        onKeyDown={(e) => {
+          if (e.key === 'Delete' && selectedItem) {
+            e.preventDefault();
+            handleRemoveItem(selectedItem);
+          }
+        }}
       >
         {/* Canvas Items Container with Pan Transform */}
         <div
@@ -564,6 +726,10 @@ const Canvas = () => {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   setSelectedItem(item.id);
+                  // Focus canvas to enable keyboard events
+                  if (canvasRef.current) {
+                    canvasRef.current.focus();
+                  }
                 }
               }}
             >
