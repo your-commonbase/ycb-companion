@@ -659,7 +659,7 @@ const Canvas = () => {
   };
 
   return (
-    <div className="relative h-full w-full bg-gray-100 min-h-[600px]">
+    <div className="relative size-full min-h-[600px] bg-gray-100">
       {/* Toolbar */}
       <div className="absolute left-4 top-4 z-20 flex gap-2">
         <button
