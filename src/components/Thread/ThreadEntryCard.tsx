@@ -45,6 +45,9 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   const [isAddingURL, setIsAddingURL] = useState(false);
   const [isAddingImage, setIsAddingImage] = useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<'top' | 'bottom'>(
+    'top',
+  );
   const [randomCommentPlaceholder, setRandomCommentPlaceholder] =
     useState('Add a comment...');
   const [isEmbedsExpanded, setIsEmbedsExpanded] = useState(false);
@@ -87,12 +90,31 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
       }
     };
 
+    const updateDropdownPosition = () => {
+      if (actionsDropdownRef.current && isActionsDropdownOpen) {
+        const rect = actionsDropdownRef.current.getBoundingClientRect();
+        const dropdownHeight = 400; // Approximate max height
+
+        // If there's not enough space above, position below
+        if (rect.top < dropdownHeight) {
+          setDropdownPosition('bottom');
+        } else {
+          setDropdownPosition('top');
+        }
+      }
+    };
+
     if (isActionsDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      updateDropdownPosition();
+      window.addEventListener('scroll', updateDropdownPosition);
+      window.addEventListener('resize', updateDropdownPosition);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', updateDropdownPosition);
+      window.removeEventListener('resize', updateDropdownPosition);
     };
   }, [isActionsDropdownOpen]);
 
@@ -1092,7 +1114,16 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
             </button>
 
             {isActionsDropdownOpen && (
-              <div className="absolute bottom-full right-0 z-10 mb-1 w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
+              <div
+                className={`absolute right-0 z-50 max-h-96 w-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg ${
+                  dropdownPosition === 'top'
+                    ? 'bottom-full mb-1'
+                    : 'top-full mt-1'
+                }`}
+                style={{
+                  maxHeight: 'min(24rem, calc(100vh - 100px))',
+                }}
+              >
                 {/* Synthesize Section */}
                 <div className="rounded-t-lg border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
                   Synthesize
