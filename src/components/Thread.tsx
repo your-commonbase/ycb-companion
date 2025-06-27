@@ -37,7 +37,7 @@ export default function Thread({ inputId }: { inputId: string }) {
   );
   const idSet = useRef(new Set<string>());
   const router = useRouter();
-  const { autoScrollMode, maxDepth, isLoaded } = useAutoScrollMode();
+  const { autoScrollMode, maxDepth } = useAutoScrollMode();
   const processedEntries = useRef(new Set<string>());
   useAddQueueProcessor();
 
@@ -330,7 +330,7 @@ export default function Thread({ inputId }: { inputId: string }) {
     await expandAllRelationships(entryId, [type]);
   };
 
-  const scrollToEntry = (index: number) => {
+  const scrollToEntry = (index: number, shouldExpand: boolean = true) => {
     const entry = flattenedEntries[index];
     if (!entry) return;
 
@@ -338,8 +338,12 @@ export default function Thread({ inputId }: { inputId: string }) {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-      // Trigger relationship expansion for this entry
-      if (autoScrollMode && !processedEntries.current.has(entry.id)) {
+      // Trigger relationship expansion for this entry only when explicitly requested
+      if (
+        shouldExpand &&
+        autoScrollMode &&
+        !processedEntries.current.has(entry.id)
+      ) {
         processedEntries.current.add(entry.id);
 
         const relationshipsToExpand = [];
@@ -694,12 +698,25 @@ export default function Thread({ inputId }: { inputId: string }) {
       setTimeout(() => {
         targetElement.style.backgroundColor = '';
       }, 1000);
+
+      // Update current entry index
+      const entryIndex = flattenedEntries.findIndex((e) => e.id === entryId);
+      if (entryIndex !== -1) {
+        setCurrentEntryIndex(entryIndex);
+      }
     }
   };
 
   const handleOpenTreeModal = (entry: FlattenedEntry) => {
     setTreeModalEntry(entry);
     setIsTreeModalOpen(true);
+  };
+
+  const handleCardClick = (entryId: string) => {
+    const entryIndex = flattenedEntries.findIndex((e) => e.id === entryId);
+    if (entryIndex !== -1) {
+      setCurrentEntryIndex(entryIndex);
+    }
   };
 
   useEffect(() => {
@@ -723,9 +740,9 @@ export default function Thread({ inputId }: { inputId: string }) {
     fetchInitialEntry();
   }, [inputId]);
 
-  // Mobile scroll functionality (TikTok-style)
+  // Track current entry index based on scroll position (without triggering expansions)
   useEffect(() => {
-    if (!isLoaded || !autoScrollMode || !isMobile) return;
+    if (!isMobile) return;
 
     let timeoutId: NodeJS.Timeout;
 
@@ -735,104 +752,32 @@ export default function Thread({ inputId }: { inputId: string }) {
       }
 
       timeoutId = setTimeout(() => {
-        if (!loadingMore && !isExpansionBlocking) {
-          flattenedEntries.forEach((entry, index) => {
-            const entryElement = document.getElementById(`entry-${entry.id}`);
-            if (!entryElement) return;
+        flattenedEntries.forEach((entry, index) => {
+          const entryElement = document.getElementById(`entry-${entry.id}`);
+          if (!entryElement) return;
 
-            const rect = entryElement.getBoundingClientRect();
-            const viewportCenter = window.innerHeight / 2;
-            const hasPassedLine =
-              rect.top < viewportCenter && rect.bottom > viewportCenter;
+          const rect = entryElement.getBoundingClientRect();
+          const viewportCenter = window.innerHeight / 2;
+          const hasPassedLine =
+            rect.top < viewportCenter && rect.bottom > viewportCenter;
 
-            // Update current entry index when this entry is in the center
-            if (hasPassedLine && index !== currentEntryIndex) {
-              setCurrentEntryIndex(index);
-            }
-
-            if (hasPassedLine && !processedEntries.current.has(entry.id)) {
-              processedEntries.current.add(entry.id);
-
-              // Collect all available relationships for this entry
-              const relationshipsToExpand = [];
-
-              // Check for comments
-              const aliasIds = entry.metadata.alias_ids || [];
-              if (
-                aliasIds.length > 0 &&
-                aliasIds.some((id: string) => !idSet.current.has(id))
-              ) {
-                const commentsKey = `${entry.id}-comments`;
-                if (
-                  !expandedRelationships.has(commentsKey) &&
-                  !loadingRelationships.has(commentsKey)
-                ) {
-                  relationshipsToExpand.push('comments');
-                }
-              }
-
-              // Check for parent
-              const parentId = entry.metadata.parent_id;
-              if (
-                parentId &&
-                parentId.trim() !== '' &&
-                !idSet.current.has(parentId)
-              ) {
-                const parentKey = `${entry.id}-parent`;
-                if (
-                  !expandedRelationships.has(parentKey) &&
-                  !loadingRelationships.has(parentKey)
-                ) {
-                  relationshipsToExpand.push('parent');
-                }
-              }
-
-              // Check for neighbors
-              if (entry.hasMoreRelations) {
-                const neighborsKey = `${entry.id}-neighbors`;
-                if (
-                  !expandedRelationships.has(neighborsKey) &&
-                  !loadingRelationships.has(neighborsKey)
-                ) {
-                  relationshipsToExpand.push('neighbors');
-                }
-              }
-
-              // Expand ALL available relationships simultaneously
-              // maxDepth check is now handled inside expandAllRelationships
-              if (relationshipsToExpand.length > 0) {
-                console.log(
-                  `Auto-expanding all relationships for:`,
-                  entry.id,
-                  relationshipsToExpand,
-                );
-                expandAllRelationships(entry.id, relationshipsToExpand);
-              }
-            }
-          });
-        }
-      }, 300);
+          // Update current entry index when this entry is in the center
+          if (hasPassedLine && index !== currentEntryIndex) {
+            setCurrentEntryIndex(index);
+          }
+        });
+      }, 100);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    // eslint-disable-next-line consistent-return
+    // eslint-disable-next-line
     return () => {
       window.removeEventListener('scroll', handleScroll);
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
     };
-  }, [
-    flattenedEntries,
-    expandedRelationships,
-    loadingRelationships,
-    loadingMore,
-    autoScrollMode,
-    maxDepth,
-    isLoaded,
-    isMobile,
-    currentEntryIndex,
-  ]);
+  }, [flattenedEntries, isMobile, currentEntryIndex]);
 
   return (
     <div
@@ -882,39 +827,35 @@ export default function Thread({ inputId }: { inputId: string }) {
                 overflowX: 'hidden',
               }}
             >
-              {/* Mobile tap zones */}
-              {isMobile && (
-                <>
-                  {/* Left tap zone for previous */}
-                  <button
-                    type="button"
-                    className="absolute left-0 top-0 z-10 h-full w-16 bg-transparent"
-                    onClick={handlePrevEntry}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handlePrevEntry();
-                      }
-                    }}
-                    aria-label="Go to previous entry"
-                    style={{ touchAction: 'manipulation' }}
-                  />
-                  {/* Right tap zone for next */}
-                  <button
-                    type="button"
-                    className="absolute right-0 top-0 z-10 h-full w-16 bg-transparent"
-                    onClick={handleNextEntry}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleNextEntry();
-                      }
-                    }}
-                    aria-label="Go to next entry"
-                    style={{ touchAction: 'manipulation' }}
-                  />
-                </>
-              )}
+              {/* Tap zones for navigation - now works on both mobile and desktop */}
+              {/* Left tap zone for previous */}
+              <button
+                type="button"
+                className="absolute left-0 top-0 z-10 h-full w-16 cursor-pointer bg-transparent"
+                onClick={handlePrevEntry}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handlePrevEntry();
+                  }
+                }}
+                aria-label="Go to previous entry"
+                style={{ touchAction: 'manipulation' }}
+              />
+              {/* Right tap zone for next */}
+              <button
+                type="button"
+                className="absolute right-0 top-0 z-10 h-full w-16 cursor-pointer bg-transparent"
+                onClick={handleNextEntry}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleNextEntry();
+                  }
+                }}
+                aria-label="Go to next entry"
+                style={{ touchAction: 'manipulation' }}
+              />
 
               <div className="w-full">
                 <ThreadEntryCard
@@ -930,6 +871,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                   loadingRelationships={loadingRelationships}
                   maxDepth={maxDepth}
                   onOpenTreeModal={handleOpenTreeModal}
+                  onCardClick={handleCardClick}
                   isCurrentEntry={index === currentEntryIndex}
                 />
               </div>

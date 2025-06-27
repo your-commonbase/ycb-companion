@@ -36,6 +36,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   loadingRelationships = new Set(),
   maxDepth,
   onOpenTreeModal,
+  onCardClick,
   isCurrentEntry = false,
 }) => {
   const [cdnImageUrl, setCdnImageUrl] = useState<string>('');
@@ -724,13 +725,28 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
     return `${baseClasses} ${initialState}`;
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger card click if clicking on interactive elements
+    const target = e.target as HTMLElement;
+    const isInteractiveElement = target.closest(
+      'button, a, input, textarea, select, [role="button"]',
+    );
+
+    if (!isInteractiveElement && onCardClick) {
+      onCardClick(entry.id);
+    }
+  };
+
   return (
     <Card
       ref={targetRef}
       id={`entry-${entry.id}`}
       className={`w-full ${getRelationshipStyle()} ${getAnimationClasses()} ${
         isCurrentEntry ? 'ring-2 ring-gray-900' : ''
-      } flex h-auto min-h-[400px] flex-col border-gray-200 transition-colors hover:border-gray-300`}
+      } flex h-auto min-h-[400px] flex-col border-gray-200 transition-colors hover:border-gray-300 ${
+        onCardClick ? 'cursor-pointer' : ''
+      }`}
+      onClick={handleCardClick}
     >
       {/* Header with relationship indicator */}
       {entry.relationshipType !== 'root' && (

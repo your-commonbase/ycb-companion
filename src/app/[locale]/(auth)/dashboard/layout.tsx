@@ -463,6 +463,11 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
                 onClick: () => router.push('/dashboard/canvas/'),
               },
               {
+                label: 'Kanban',
+                icon: '📋',
+                onClick: () => router.push('/dashboard/kanban/'),
+              },
+              {
                 label: 'Games',
                 icon: '🔮',
                 disabled: true,
