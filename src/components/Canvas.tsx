@@ -659,7 +659,7 @@ const Canvas = () => {
   };
 
   return (
-    <div className="relative h-full w-full bg-gray-100 min-h-[600px]">
+    <div className="relative size-full min-h-[600px] bg-gray-100">
       {/* Toolbar */}
       <div className="absolute left-4 top-4 z-20 flex gap-2">
         <button
@@ -813,21 +813,21 @@ const Canvas = () => {
                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                 type="button"
               >
-                🔍 Search & Add
+                Search & Add
               </button>
               <button
                 onClick={handleAddRandom}
                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                 type="button"
               >
-                🎲 Add Random Entry
+                Add Random Entry
               </button>
               <button
                 onClick={handleAddText}
                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                 type="button"
               >
-                📝 Add Text Box
+                Add Text Box
               </button>
             </>
           ) : (
@@ -850,7 +850,7 @@ const Canvas = () => {
                     className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                     type="button"
                   >
-                    🔗 Go to Entry
+                    Go to Entry
                   </button>
                 )}
               <button
@@ -860,7 +860,7 @@ const Canvas = () => {
                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                 type="button"
               >
-                ➕ Add to YCB
+                Add to YCB
               </button>
               <button
                 onClick={() =>
@@ -869,7 +869,7 @@ const Canvas = () => {
                 className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100"
                 type="button"
               >
-                🗑️ Remove
+                Remove
               </button>
             </>
           )}

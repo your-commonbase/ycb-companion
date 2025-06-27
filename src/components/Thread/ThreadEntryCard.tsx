@@ -10,6 +10,12 @@ import { InstagramEmbed } from 'react-social-media-embed';
 import { Tweet } from 'react-tweet';
 
 import ImageUpload from '@/components/ImageUpload';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from '@/components/ui/card';
 import { fetchRandomEntry } from '@/helpers/functions';
 import { enqueueAddText, enqueueAddURL } from '@/hooks/useAddQueue';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
@@ -630,15 +636,15 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
   const getRelationshipStyle = () => {
     switch (entry.relationshipType) {
       case 'root':
-        return 'border-l-4 bg-blue-50';
+        return 'border-l-4 border-l-black';
       case 'parent':
-        return 'border-l-4 bg-purple-50';
+        return 'border-l-4 border-l-gray-600';
       case 'comment':
-        return 'border-l-4  bg-orange-50';
+        return 'border-l-4 border-l-gray-400';
       case 'neighbor':
-        return 'border-l-4  bg-green-50';
+        return 'border-l-4 border-l-gray-300';
       default:
-        return 'border-l-4 -300 bg-white';
+        return 'border-l-4 border-l-gray-200';
     }
   };
 
@@ -697,16 +703,16 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
   };
 
   return (
-    <div
+    <Card
       ref={targetRef}
       id={`entry-${entry.id}`}
-      className={`flex w-full flex-col rounded-xl border-2 bg-white shadow-lg hover:shadow-xl ${getRelationshipStyle()} ${getAnimationClasses()} ${
-        isCurrentEntry ? 'border-l-4 border-l-gray-800' : ''
-      } ${isAddingImage || isAddingURL || isAddingComment ? 'h-auto min-h-[600px]' : 'h-[600px]'}`}
+      className={`w-full ${getRelationshipStyle()} ${getAnimationClasses()} ${
+        isCurrentEntry ? 'ring-2 ring-gray-900' : ''
+      } flex h-auto min-h-[400px] flex-col border-gray-200 transition-colors hover:border-gray-300`}
     >
       {/* Header with relationship indicator */}
       {entry.relationshipType !== 'root' && (
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-3">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <div className="flex items-center gap-3">
             {entry.relationshipSource && (
               <button
@@ -722,66 +728,47 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                     // Add a brief highlight effect
                     targetElement.style.transition =
                       'background-color 0.3s ease';
-                    targetElement.style.backgroundColor =
-                      'rgba(59, 130, 246, 0.1)';
+                    targetElement.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
                     setTimeout(() => {
                       targetElement.style.backgroundColor = '';
                     }, 1000);
                   }
                 }}
-                className="text-xs text-gray-500 hover:text-blue-600 hover:underline"
+                className="text-xs text-gray-500 transition-colors hover:text-gray-900 hover:underline"
                 type="button"
               >
                 ← from {entry.relationshipSource.slice(0, 8)}...
               </button>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onOpenTreeModal(entry)}
-              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-              type="button"
-              title="Show path to root"
+          <button
+            onClick={() => onOpenTreeModal(entry)}
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+            type="button"
+            title="Show path to root"
+          >
+            <svg
+              className="size-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg
-                className="size-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 5v4"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 5v4"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 5v4"
-                />
-              </svg>
-              Tree
-            </button>
-          </div>
-        </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
+              />
+            </svg>
+            Tree
+          </button>
+        </CardHeader>
       )}
 
       {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden p-6">
+      <CardContent
+        className={`flex flex-1 flex-col${entry.relationshipType === 'root' ? ' pt-6' : ''}`}
+      >
         {/* Image Display */}
         {metadata.type === 'image' && (
           <div className="mt-4">
@@ -826,7 +813,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
           </div>
         )}
         {/* Entry Content */}
-        <div className="mb-6 flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="mb-6 flex-1">
           {isEditing ? (
             <div className="space-y-4">
               <textarea
@@ -840,14 +827,14 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                 <button
                   onClick={handleSave}
                   type="button"
-                  className="rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="rounded-lg bg-gray-900 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
                 >
                   Save
                 </button>
                 <button
                   onClick={handleCancel}
                   type="button"
-                  className="rounded-lg bg-gray-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  className="rounded-lg bg-gray-500 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
                 >
                   Cancel
                 </button>
@@ -983,372 +970,363 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
             )}
           </div>
         )}
+      </CardContent>
 
-        {/* Metadata and Actions Footer */}
-        <div className="border-t border-gray-100 pt-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            {/* Left side - Relationship indicators */}
-            <div className="flex flex-wrap gap-2">
-              {aliasIds.length > 0 &&
-                aliasIds.some((id) => !allEntryIds.has(id)) &&
-                entry.level < maxDepth && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => onRelationshipExpand(entry.id, 'comments')}
-                      type="button"
-                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                        expandedRelationships.has(`${entry.id}-comments`)
-                          ? 'cursor-default bg-gray-200 text-gray-600'
-                          : 'bg-orange-100 text-orange-800 hover:bg-orange-200'
-                      }`}
-                      disabled={
-                        expandedRelationships.has(`${entry.id}-comments`) ||
-                        loadingRelationships.has(`${entry.id}-comments`)
-                      }
-                    >
-                      {aliasIds.length} comment
-                      {aliasIds.length !== 1 ? 's' : ''}
-                    </button>
-                    {loadingRelationships.has(`${entry.id}-comments`) && (
-                      <div className="size-4 animate-spin rounded-full border-b-2 border-orange-500" />
-                    )}
-                  </div>
-                )}
-              {parentId &&
-                !allEntryIds.has(parentId) &&
-                entry.level < maxDepth && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => onRelationshipExpand(entry.id, 'parent')}
-                      type="button"
-                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                        expandedRelationships.has(`${entry.id}-parent`)
-                          ? 'cursor-default bg-gray-200 text-gray-600'
-                          : 'bg-purple-100 text-purple-800 hover:bg-purple-200'
-                      }`}
-                      disabled={
-                        expandedRelationships.has(`${entry.id}-parent`) ||
-                        loadingRelationships.has(`${entry.id}-parent`)
-                      }
-                    >
-                      has parent
-                    </button>
-                    {loadingRelationships.has(`${entry.id}-parent`) && (
-                      <div className="size-4 animate-spin rounded-full border-b-2 border-purple-500" />
-                    )}
-                  </div>
-                )}
-              {entry.hasMoreRelations && entry.level < maxDepth && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onRelationshipExpand(entry.id, 'neighbors')}
-                    type="button"
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                      expandedRelationships.has(`${entry.id}-neighbors`)
-                        ? 'cursor-default bg-gray-200 text-gray-600'
-                        : 'bg-green-100 text-green-800 hover:bg-green-200'
-                    }`}
-                    disabled={
-                      expandedRelationships.has(`${entry.id}-neighbors`) ||
-                      loadingRelationships.has(`${entry.id}-neighbors`)
-                    }
-                  >
-                    see related
-                  </button>
-                  {loadingRelationships.has(`${entry.id}-neighbors`) && (
-                    <div className="size-4 animate-spin rounded-full border-b-2 border-green-500" />
-                  )}
-                </div>
-              )}
-              {entry.similarity !== undefined && (
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                  {Math.round(entry.similarity * 100)}% similar
-                </span>
-              )}
-            </div>
-
-            {/* Right side - Actions */}
-            <div className="flex items-center gap-4">
-              <a
-                href={`/dashboard/garden?date=${convertDate(entry.createdAt)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-gray-500 hover:text-blue-600 hover:underline"
-              >
-                {timeAgo(entry.createdAt)}
-              </a>
-              <button
-                onClick={() => onNavigateToEntry(entry.id)}
-                type="button"
-                className="text-sm text-gray-500 hover:text-blue-600 hover:underline"
-              >
-                {entry.id.slice(0, 8)}...
-              </button>
-              <div className="relative" ref={actionsDropdownRef}>
+      {/* Metadata and Actions Footer */}
+      <CardFooter className="mt-auto flex-wrap justify-between gap-4">
+        {/* Left side - Relationship indicators */}
+        <div className="flex flex-wrap gap-2">
+          {aliasIds.length > 0 &&
+            aliasIds.some((id) => !allEntryIds.has(id)) &&
+            entry.level < maxDepth && (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() =>
-                    setIsActionsDropdownOpen(!isActionsDropdownOpen)
-                  }
+                  onClick={() => onRelationshipExpand(entry.id, 'comments')}
                   type="button"
-                  className="flex items-center gap-1 rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    expandedRelationships.has(`${entry.id}-comments`)
+                      ? 'cursor-default bg-gray-200 text-gray-600'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  disabled={
+                    expandedRelationships.has(`${entry.id}-comments`) ||
+                    loadingRelationships.has(`${entry.id}-comments`)
+                  }
                 >
-                  Actions
-                  <svg
-                    className="size-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 15l7-7 7 7"
-                    />
-                  </svg>
+                  {aliasIds.length} comment
+                  {aliasIds.length !== 1 ? 's' : ''}
                 </button>
-
-                {isActionsDropdownOpen && (
-                  <div className="absolute bottom-full right-0 z-10 mb-1 w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
-                    {/* Synthesize Section */}
-                    <div className="rounded-t-lg border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
-                      Synthesize
-                    </div>
-                    <button
-                      onClick={() => {
-                        setIsActionsDropdownOpen(false);
-                        setIsAddingComment(true);
-                      }}
-                      type="button"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                    >
-                      💬 Add Comment
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsActionsDropdownOpen(false);
-                        setIsAddingURL(true);
-                      }}
-                      type="button"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                    >
-                      🔗 Add URL
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsActionsDropdownOpen(false);
-                        setIsAddingImage(true);
-                      }}
-                      type="button"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                    >
-                      🖼️ Add Image
-                    </button>
-                    {!isEditing &&
-                      (!entry.metadata.type ||
-                        entry.metadata.type === 'text') && (
-                        <button
-                          onClick={() => {
-                            setIsActionsDropdownOpen(false);
-                            setIsEditing(true);
-                          }}
-                          type="button"
-                          className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                        >
-                          ✏️ Edit
-                        </button>
-                      )}
-
-                    {/* Navigate Section */}
-                    <div className="border-y border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
-                      Navigate
-                    </div>
-                    <button
-                      onClick={() => {
-                        setIsActionsDropdownOpen(false);
-                        onNavigateToEntry(entry.id);
-                      }}
-                      type="button"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                    >
-                      🎯 Go to {entry.id.slice(0, 8)}...
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsActionsDropdownOpen(false);
-                        onOpenTreeModal(entry);
-                      }}
-                      type="button"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                    >
-                      🌳 View Tree
-                    </button>
-                    {parentId && (
-                      <button
-                        onClick={() => {
-                          setIsActionsDropdownOpen(false);
-                          onNavigateToEntry(parentId);
-                        }}
-                        type="button"
-                        className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                      >
-                        👆 From parent {parentId.slice(0, 8)}...
-                      </button>
-                    )}
-                    <a
-                      href={`/dashboard/garden?date=${convertDate(entry.createdAt)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setIsActionsDropdownOpen(false)}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                    >
-                      📅 Go to Calendar
-                    </a>
-
-                    {/* Share Section */}
-                    <div className="border-y border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
-                      Share
-                    </div>
-                    <button
-                      onClick={async () => {
-                        setIsActionsDropdownOpen(false);
-                        await handleNativeShare();
-                      }}
-                      type="button"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                    >
-                      📱 Share Text
-                    </button>
-                    <button
-                      onClick={async () => {
-                        setIsActionsDropdownOpen(false);
-                        await takeDirectScreenshot();
-                      }}
-                      type="button"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                    >
-                      📸 Screenshot
-                    </button>
-                    <button
-                      onClick={async () => {
-                        setIsActionsDropdownOpen(false);
-                        await handleShareHTML();
-                      }}
-                      type="button"
-                      className="flex w-full items-center gap-2 rounded-b-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                    >
-                      📄 HTML File
-                    </button>
-                  </div>
+                {loadingRelationships.has(`${entry.id}-comments`) && (
+                  <div className="size-4 animate-spin rounded-full border-b-2 border-gray-500" />
                 )}
               </div>
+            )}
+          {parentId && !allEntryIds.has(parentId) && entry.level < maxDepth && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onRelationshipExpand(entry.id, 'parent')}
+                type="button"
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  expandedRelationships.has(`${entry.id}-parent`)
+                    ? 'cursor-default bg-gray-200 text-gray-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                disabled={
+                  expandedRelationships.has(`${entry.id}-parent`) ||
+                  loadingRelationships.has(`${entry.id}-parent`)
+                }
+              >
+                has parent
+              </button>
+              {loadingRelationships.has(`${entry.id}-parent`) && (
+                <div className="size-4 animate-spin rounded-full border-b-2 border-gray-500" />
+              )}
             </div>
-          </div>
+          )}
+          {entry.hasMoreRelations && entry.level < maxDepth && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onRelationshipExpand(entry.id, 'neighbors')}
+                type="button"
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  expandedRelationships.has(`${entry.id}-neighbors`)
+                    ? 'cursor-default bg-gray-200 text-gray-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                disabled={
+                  expandedRelationships.has(`${entry.id}-neighbors`) ||
+                  loadingRelationships.has(`${entry.id}-neighbors`)
+                }
+              >
+                see related
+              </button>
+              {loadingRelationships.has(`${entry.id}-neighbors`) && (
+                <div className="size-4 animate-spin rounded-full border-b-2 border-gray-500" />
+              )}
+            </div>
+          )}
+          {entry.similarity !== undefined && (
+            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+              {Math.round(entry.similarity * 100)}% similar
+            </span>
+          )}
         </div>
 
-        {/* Add Forms */}
-        {isAddingImage && (
-          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <h4 className="mb-3 text-lg font-medium text-gray-900">
-              Add Image
-            </h4>
-            <ImageUpload
-              metadata={{ parent_id: entry.id }}
-              onUploadComplete={(result) => {
-                onImageUpload(result, entry.id);
-                setIsAddingImage(false);
-              }}
-            />
-          </div>
-        )}
+        {/* Right side - Actions */}
+        <div className="flex items-center gap-4">
+          <a
+            href={`/dashboard/garden?date=${convertDate(entry.createdAt)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-gray-500 transition-colors hover:text-gray-900 hover:underline"
+          >
+            {timeAgo(entry.createdAt)}
+          </a>
+          <button
+            onClick={() => onNavigateToEntry(entry.id)}
+            type="button"
+            className="text-sm text-gray-500 transition-colors hover:text-gray-900 hover:underline"
+          >
+            {entry.id.slice(0, 8)}...
+          </button>
+          <div className="relative" ref={actionsDropdownRef}>
+            <button
+              onClick={() => setIsActionsDropdownOpen(!isActionsDropdownOpen)}
+              type="button"
+              className="flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            >
+              Actions
+              <svg
+                className="size-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            </button>
 
-        {isAddingURL && (
-          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <h4 className="mb-3 text-lg font-medium text-gray-900">Add URL</h4>
-            <div className="space-y-3">
-              <input
-                type="text"
-                placeholder="https://yourcommonbase.com/dashboard"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-                id={`link-input-comment-${entry.id}`}
-              />
-              <div className="flex gap-2">
+            {isActionsDropdownOpen && (
+              <div className="absolute bottom-full right-0 z-10 mb-1 w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
+                {/* Synthesize Section */}
+                <div className="rounded-t-lg border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
+                  Synthesize
+                </div>
                 <button
                   onClick={() => {
-                    const url = document.getElementById(
-                      `link-input-comment-${entry.id}`,
-                    );
-                    if (!url) return;
-                    const urlValue = (url as HTMLInputElement).value.trim();
-                    if (!urlValue) return;
-                    addURL(urlValue, entry);
-                    setIsAddingURL(false);
+                    setIsActionsDropdownOpen(false);
+                    setIsAddingComment(true);
                   }}
                   type="button"
-                  className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  Add URL
-                </button>
-                <button
-                  onClick={() => setIsAddingURL(false)}
-                  type="button"
-                  className="rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isAddingComment && (
-          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <h4 className="mb-3 text-lg font-medium text-gray-900">
-              Add Comment
-            </h4>
-            <div className="space-y-3">
-              <textarea
-                rows={3}
-                style={{ fontSize: '17px' }}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                placeholder={randomCommentPlaceholder}
-                id={`alias-input-comment-${entry.id}`}
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const aliasInput = document.getElementById(
-                      `alias-input-comment-${entry.id}`,
-                    );
-                    if (!aliasInput) return;
-                    const alias = (aliasInput as HTMLInputElement).value.trim();
-                    if (!alias) return;
-                    addComment(alias, {
-                      id: entry.id,
-                      data: entry.data,
-                      metadata: entry.metadata,
-                    });
-                    (aliasInput as HTMLInputElement).value = '';
-                    setIsAddingComment(false);
-                  }}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
                 >
                   Add Comment
                 </button>
                 <button
-                  onClick={() => setIsAddingComment(false)}
+                  onClick={() => {
+                    setIsActionsDropdownOpen(false);
+                    setIsAddingURL(true);
+                  }}
                   type="button"
-                  className="rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
                 >
-                  Cancel
+                  Add URL
+                </button>
+                <button
+                  onClick={() => {
+                    setIsActionsDropdownOpen(false);
+                    setIsAddingImage(true);
+                  }}
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  Add Image
+                </button>
+                {!isEditing &&
+                  (!entry.metadata.type || entry.metadata.type === 'text') && (
+                    <button
+                      onClick={() => {
+                        setIsActionsDropdownOpen(false);
+                        setIsEditing(true);
+                      }}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      Edit
+                    </button>
+                  )}
+
+                {/* Navigate Section */}
+                <div className="border-y border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
+                  Navigate
+                </div>
+                <button
+                  onClick={() => {
+                    setIsActionsDropdownOpen(false);
+                    onNavigateToEntry(entry.id);
+                  }}
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  Go to {entry.id.slice(0, 8)}...
+                </button>
+                <button
+                  onClick={() => {
+                    setIsActionsDropdownOpen(false);
+                    onOpenTreeModal(entry);
+                  }}
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  View Tree
+                </button>
+                {parentId && (
+                  <button
+                    onClick={() => {
+                      setIsActionsDropdownOpen(false);
+                      onNavigateToEntry(parentId);
+                    }}
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                  >
+                    From parent {parentId.slice(0, 8)}...
+                  </button>
+                )}
+                <a
+                  href={`/dashboard/garden?date=${convertDate(entry.createdAt)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsActionsDropdownOpen(false)}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  Go to Calendar
+                </a>
+
+                {/* Share Section */}
+                <div className="border-y border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
+                  Share
+                </div>
+                <button
+                  onClick={async () => {
+                    setIsActionsDropdownOpen(false);
+                    await handleNativeShare();
+                  }}
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  Share Text
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsActionsDropdownOpen(false);
+                    await takeDirectScreenshot();
+                  }}
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  Screenshot
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsActionsDropdownOpen(false);
+                    await handleShareHTML();
+                  }}
+                  type="button"
+                  className="flex w-full items-center gap-2 rounded-b-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  HTML File
                 </button>
               </div>
+            )}
+          </div>
+        </div>
+      </CardFooter>
+
+      {/* Add Forms */}
+      {isAddingImage && (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <h4 className="mb-3 text-lg font-medium text-gray-900">Add Image</h4>
+          <ImageUpload
+            metadata={{ parent_id: entry.id }}
+            onUploadComplete={(result) => {
+              onImageUpload(result, entry.id);
+              setIsAddingImage(false);
+            }}
+          />
+        </div>
+      )}
+
+      {isAddingURL && (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <h4 className="mb-3 text-lg font-medium text-gray-900">Add URL</h4>
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="https://yourcommonbase.com/dashboard"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-200"
+              id={`link-input-comment-${entry.id}`}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const url = document.getElementById(
+                    `link-input-comment-${entry.id}`,
+                  );
+                  if (!url) return;
+                  const urlValue = (url as HTMLInputElement).value.trim();
+                  if (!urlValue) return;
+                  addURL(urlValue, entry);
+                  setIsAddingURL(false);
+                }}
+                type="button"
+                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Add URL
+              </button>
+              <button
+                onClick={() => setIsAddingURL(false)}
+                type="button"
+                className="rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                Cancel
+              </button>
             </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+
+      {isAddingComment && (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <h4 className="mb-3 text-lg font-medium text-gray-900">
+            Add Comment
+          </h4>
+          <div className="space-y-3">
+            <textarea
+              rows={3}
+              style={{ fontSize: '17px' }}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              placeholder={randomCommentPlaceholder}
+              id={`alias-input-comment-${entry.id}`}
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const aliasInput = document.getElementById(
+                    `alias-input-comment-${entry.id}`,
+                  );
+                  if (!aliasInput) return;
+                  const alias = (aliasInput as HTMLInputElement).value.trim();
+                  if (!alias) return;
+                  addComment(alias, {
+                    id: entry.id,
+                    data: entry.data,
+                    metadata: entry.metadata,
+                  });
+                  (aliasInput as HTMLInputElement).value = '';
+                  setIsAddingComment(false);
+                }}
+                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Add Comment
+              </button>
+              <button
+                onClick={() => setIsAddingComment(false)}
+                type="button"
+                className="rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 };
 
