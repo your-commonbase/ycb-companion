@@ -31,6 +31,7 @@ export interface ThreadEntryCardProps {
   loadingRelationships?: Set<string>;
   maxDepth: number;
   onOpenTreeModal: (entry: FlattenedEntry) => void;
+  onCardClick?: (entryId: string) => void;
   isCurrentEntry?: boolean;
 }
 
