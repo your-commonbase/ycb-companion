@@ -57,114 +57,200 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
     return path;
   }, [currentEntry, allEntries]);
 
-  // Load Thread tab data (all ancestors and descendants)
+  // Load Thread tab data (complete thread tree) - Build ID tree first, then fetch data
   const loadThreadTabData = useCallback(async (): Promise<FlattenedEntry[]> => {
-    const threadEntries = new Map<string, FlattenedEntry>();
-    const processed = new Set<string>();
+    // Step 1: Build complete ID tree structure using DFS
+    const allThreadIds = new Set<string>();
+    const parentChildMap = new Map<string, Set<string>>(); // parent -> children
+    const childParentMap = new Map<string, string>(); // child -> parent
+    const processedIds = new Set<string>();
 
-    // Helper function to fetch an entry by ID
-    const fetchEntry = async (id: string): Promise<FlattenedEntry | null> => {
+    // Helper to fetch entry metadata only (minimal fetch)
+    const fetchEntryMetadata = async (
+      id: string,
+    ): Promise<{ parent_id?: string; alias_ids?: any[] } | null> => {
       try {
         const response = await fetch('/api/fetch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id }),
         });
+
+        if (!response.ok) return null;
         const responseData = await response.json();
+        if (!responseData.data?.metadata) return null;
+
         return {
-          ...responseData.data,
-          relationshipType: 'comment' as const,
-          relationshipSource: currentEntry.id,
-          level: 0,
-          hasMoreRelations: true,
+          parent_id: responseData.data.metadata.parent_id,
+          alias_ids: responseData.data.metadata.alias_ids || [],
         };
-      } catch (fetchError) {
-        console.error('Error fetching entry:', fetchError);
+      } catch (error) {
+        console.error('Error fetching metadata:', error);
         return null;
       }
     };
 
-    // Recursively fetch all ancestors (parents)
-    const fetchAncestors = async (entry: FlattenedEntry): Promise<void> => {
-      if (processed.has(entry.id)) return;
-      processed.add(entry.id);
-      threadEntries.set(entry.id, entry);
+    // DFS to build complete ID tree
+    const buildIdTree = async (entryId: string): Promise<void> => {
+      if (processedIds.has(entryId)) return;
+      processedIds.add(entryId);
+      allThreadIds.add(entryId);
 
-      const parentId = entry.metadata?.parent_id;
-      if (parentId && parentId.trim() !== '') {
-        const parentEntry = await fetchEntry(parentId);
-        if (parentEntry) {
-          await fetchAncestors(parentEntry);
+      // Use current entry data if it's the starting entry
+      let metadata;
+      if (entryId === currentEntry.id) {
+        metadata = {
+          parent_id: currentEntry.metadata?.parent_id,
+          alias_ids: currentEntry.metadata?.alias_ids || [],
+        };
+      } else {
+        metadata = await fetchEntryMetadata(entryId);
+        if (!metadata) return;
+      }
+
+      // Process parent relationship
+      if (metadata.parent_id && metadata.parent_id.trim()) {
+        const parentId = metadata.parent_id.trim();
+        childParentMap.set(entryId, parentId);
+
+        if (!parentChildMap.has(parentId)) {
+          parentChildMap.set(parentId, new Set());
+        }
+        parentChildMap.get(parentId)!.add(entryId);
+
+        // Recurse to parent
+        await buildIdTree(parentId);
+      }
+
+      // Process children relationships
+      if (metadata.alias_ids && Array.isArray(metadata.alias_ids)) {
+        const childIds = metadata.alias_ids
+          .filter((id: any) => typeof id === 'string' && id.trim() !== '')
+          .map((id: string) => id.trim());
+
+        if (!parentChildMap.has(entryId)) {
+          parentChildMap.set(entryId, new Set());
+        }
+
+        for (const childId of childIds) {
+          parentChildMap.get(entryId)!.add(childId);
+          childParentMap.set(childId, entryId);
+
+          // Recurse to child
+          // eslint-disable-next-line no-await-in-loop
+          await buildIdTree(childId);
         }
       }
     };
 
-    // Recursively fetch all descendants (comments)
-    const fetchDescendants = async (entry: FlattenedEntry): Promise<void> => {
-      if (processed.has(entry.id)) return;
-      processed.add(entry.id);
-      threadEntries.set(entry.id, entry);
+    // Start building tree from current entry
+    await buildIdTree(currentEntry.id);
 
-      const aliasIds = entry.metadata?.alias_ids || [];
-      // Use Promise.all to fetch children in parallel instead of await in loop
-      const childPromises = aliasIds
-        .filter(
-          (aliasId: any): aliasId is string => typeof aliasId === 'string',
-        )
-        .map(async (aliasId: string) => {
-          const childEntry = await fetchEntry(aliasId);
-          if (childEntry) {
-            await fetchDescendants(childEntry);
-          }
-        });
+    // Step 2: Find root of the tree
+    let rootId = currentEntry.id;
+    while (childParentMap.has(rootId)) {
+      const parentId = childParentMap.get(rootId);
+      if (!parentId || rootId === parentId) break; // Prevent cycles
+      rootId = parentId;
+    }
 
-      await Promise.all(childPromises);
-    };
+    // Step 3: Calculate levels using BFS from root
+    const idLevels = new Map<string, number>();
+    const queue: Array<{ id: string; level: number }> = [
+      { id: rootId, level: 0 },
+    ];
 
-    // Start with current entry and fetch both directions
-    await fetchAncestors(currentEntry);
-    await fetchDescendants(currentEntry);
+    while (queue.length > 0) {
+      const { id, level } = queue.shift()!;
 
-    // Build hierarchy and assign levels
-    const entriesArray = Array.from(threadEntries.values());
-    const sortedEntries = entriesArray
-      .map((entry) => {
-        // Calculate depth level based on parent relationships
-        let level = 0;
-        let currentEntryId = entry.id;
-        const visited = new Set<string>();
+      // eslint-disable-next-line no-continue
+      if (idLevels.has(id)) continue; // Already processed
+      idLevels.set(id, level);
 
-        while (currentEntryId && !visited.has(currentEntryId)) {
-          visited.add(currentEntryId);
-          // Store currentEntryId in a const to avoid closure issues
-          const searchId = currentEntryId;
-          const parentEntry = entriesArray.find((e) =>
-            e.metadata?.alias_ids?.includes(searchId),
-          );
-          if (parentEntry) {
-            level += 1;
-            currentEntryId = parentEntry.id;
-          } else {
-            break;
-          }
+      // Add children to queue
+      const children = parentChildMap.get(id) || new Set();
+      for (const childId of children) {
+        if (!idLevels.has(childId)) {
+          queue.push({ id: childId, level: level + 1 });
         }
+      }
+    }
 
-        return { ...entry, level };
-      })
-      .sort((a, b) => {
-        // First sort by level (depth), then by creation date
-        if (a.level !== b.level) {
-          return a.level - b.level;
+    // Step 4: Fetch all entry data in parallel
+    const threadEntries = new Map<string, FlattenedEntry>();
+    threadEntries.set(currentEntry.id, currentEntry); // Use existing current entry
+
+    const fetchPromises = Array.from(allThreadIds)
+      .filter((id) => id !== currentEntry.id) // Don't refetch current entry
+      .map(async (id) => {
+        try {
+          const response = await fetch('/api/fetch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id }),
+          });
+
+          if (!response.ok) return null;
+          const responseData = await response.json();
+          if (!responseData.data) return null;
+
+          const entry: FlattenedEntry = {
+            ...responseData.data,
+            relationshipType: 'comment' as const,
+            relationshipSource: '',
+            level: idLevels.get(id) || 0,
+            hasMoreRelations: true,
+          };
+
+          threadEntries.set(id, entry);
+          return entry;
+        } catch (error) {
+          console.error(`Error fetching entry ${id}:`, error);
+          return null;
         }
-        if (a.createdAt && b.createdAt) {
-          return (
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-        }
-        return a.id.localeCompare(b.id);
       });
 
-    return sortedEntries;
+    await Promise.all(fetchPromises);
+
+    // Step 5: Create hierarchical order using DFS traversal
+    const orderedEntries: FlattenedEntry[] = [];
+    const visitedForOrder = new Set<string>();
+
+    // DFS function to traverse tree in hierarchical order
+    const traverseInOrder = (nodeId: string) => {
+      if (visitedForOrder.has(nodeId)) return;
+      visitedForOrder.add(nodeId);
+
+      const entry = threadEntries.get(nodeId);
+      if (entry) {
+        orderedEntries.push({
+          ...entry,
+          level: idLevels.get(nodeId) || 0,
+        });
+      }
+
+      // Get children and sort them by creation date
+      const children = Array.from(parentChildMap.get(nodeId) || []);
+      children.sort((a, b) => {
+        const entryA = threadEntries.get(a);
+        const entryB = threadEntries.get(b);
+        if (entryA?.createdAt && entryB?.createdAt) {
+          return (
+            new Date(entryA.createdAt).getTime() -
+            new Date(entryB.createdAt).getTime()
+          );
+        }
+        return a.localeCompare(b);
+      });
+
+      // Recursively traverse children
+      children.forEach(traverseInOrder);
+    };
+
+    // Start traversal from root
+    traverseInOrder(rootId);
+
+    return orderedEntries;
   }, [currentEntry]);
 
   // Load Neighbors tab data (semantic search)
@@ -179,15 +265,24 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
       });
       const responseData = await response.json();
 
-      return responseData.data
-        .filter((entry: any) => entry.id !== currentEntry.id) // Exclude current entry
-        .map((entry: any) => ({
-          ...entry,
-          relationshipType: 'neighbor' as const,
-          relationshipSource: currentEntry.id,
-          level: 0,
-          hasMoreRelations: true,
-        }));
+      // Filter out current entry
+      const filteredResults = responseData.data.filter(
+        (entry: any) => entry.id !== currentEntry.id,
+      );
+
+      // If no results after filtering, return empty array
+      // This prevents infinite loops when search only returns current entry
+      if (filteredResults.length === 0) {
+        return [];
+      }
+
+      return filteredResults.map((entry: any) => ({
+        ...entry,
+        relationshipType: 'neighbor' as const,
+        relationshipSource: currentEntry.id,
+        level: 0,
+        hasMoreRelations: true,
+      }));
     } catch (neighborsError) {
       console.error('Error fetching neighbors:', neighborsError);
       return [];
@@ -197,8 +292,18 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
   // Lazy load data for each tab
   const loadTabData = useCallback(
     async (tab: TabType) => {
-      if (tabData[tab].length > 0) return; // Already loaded
+      // Prevent multiple calls by checking if already loading or has data
+      if (loading[tab]) {
+        console.log(`Already loading ${tab}, skipping`);
+        return;
+      }
 
+      if (tabData[tab].length > 0) {
+        console.log(`${tab} already has data, skipping`);
+        return;
+      }
+
+      console.log(`Loading ${tab} data`);
       setLoading((prev) => ({ ...prev, [tab]: true }));
 
       try {
@@ -222,6 +327,7 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
           }
         }
 
+        console.log(`${tab} loaded ${newTabData.length} entries`);
         setTabData((prev) => ({ ...prev, [tab]: newTabData }));
       } catch (loadError) {
         console.error(`Error loading ${tab} data:`, loadError);
@@ -229,18 +335,18 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
         setLoading((prev) => ({ ...prev, [tab]: false }));
       }
     },
-    [tabData, loadCurrentTabData, loadThreadTabData, loadNeighborsTabData],
+    [], // Remove all dependencies to prevent re-creation
   );
 
   // Load neighbors tab data immediately when component mounts
   useEffect(() => {
     loadTabData('neighbors');
-  }, [currentEntry.id, loadTabData]);
+  }, [currentEntry.id]); // Remove loadTabData dependency to prevent loops
 
   // Load data when tab changes
   useEffect(() => {
     loadTabData(activeTab);
-  }, [activeTab, loadTabData]);
+  }, [activeTab]); // Remove loadTabData dependency to prevent loops
 
   const getRelationshipInfo = (
     entry: FlattenedEntry,
