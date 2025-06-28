@@ -9,8 +9,8 @@ import { useAddQueueProcessor } from '@/hooks/useAddQueue';
 import { useAutoScrollMode } from '@/hooks/useAutoScrollMode';
 
 import SearchModalBeta from './SearchModalBeta';
+import QuickLook from './Thread/QuickLook';
 import ThreadEntryCard from './Thread/ThreadEntryCard';
-import TreePathDisplay from './Thread/TreePathDisplay';
 import type { Entry, FlattenedEntry } from './Thread/types';
 import TreeMinimap from './TreeMinimap';
 
@@ -912,12 +912,12 @@ export default function Thread({ inputId }: { inputId: string }) {
         inputQuery=""
       />
 
-      {/* Tree Path Modal */}
+      {/* QuickLook Modal */}
       {isTreeModalOpen && treeModalEntry && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="flex max-h-[95vh] w-full max-w-[95vw] flex-col rounded-lg bg-white shadow-xl">
             <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900">Path to Root</h2>
+              <h2 className="text-xl font-bold text-gray-900">QuickLook</h2>
               <button
                 onClick={() => setIsTreeModalOpen(false)}
                 className="text-gray-400 transition-colors hover:text-gray-600"
@@ -943,7 +943,7 @@ export default function Thread({ inputId }: { inputId: string }) {
               className="flex-1 overflow-y-auto p-6"
               style={{ minHeight: 0 }}
             >
-              <TreePathDisplay
+              <QuickLook
                 currentEntry={treeModalEntry}
                 allEntries={flattenedEntries}
               />

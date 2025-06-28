@@ -39,3 +39,8 @@ export interface TreePathDisplayProps {
   currentEntry: FlattenedEntry;
   allEntries: FlattenedEntry[];
 }
+
+export interface QuickLookProps {
+  currentEntry: FlattenedEntry;
+  allEntries: FlattenedEntry[];
+}

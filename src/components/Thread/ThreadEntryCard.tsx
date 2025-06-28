@@ -798,7 +798,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                 d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
               />
             </svg>
-            Tree
+            Quick Look
           </button>
         </CardHeader>
       )}
@@ -1210,7 +1210,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                   type="button"
                   className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
                 >
-                  View Tree
+                  View Quick Look
                 </button>
                 {parentId && (
                   <button
