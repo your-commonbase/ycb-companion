@@ -35,6 +35,7 @@ export default function Thread({ inputId }: { inputId: string }) {
   const [treeModalEntry, setTreeModalEntry] = useState<FlattenedEntry | null>(
     null,
   );
+  const [triggerAddComment, setTriggerAddComment] = useState(false);
   const idSet = useRef(new Set<string>());
   const router = useRouter();
   const { autoScrollMode, maxDepth } = useAutoScrollMode();
@@ -454,6 +455,12 @@ export default function Thread({ inputId }: { inputId: string }) {
           setCurrentEntryIndex(prevIndex);
           scrollToEntry(prevIndex);
         }
+      } else if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        // Trigger comment mode for current entry
+        setTriggerAddComment(true);
+        // Reset trigger after a brief moment
+        setTimeout(() => setTriggerAddComment(false), 100);
       }
     };
 
@@ -873,6 +880,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                   onOpenTreeModal={handleOpenTreeModal}
                   onCardClick={handleCardClick}
                   isCurrentEntry={index === currentEntryIndex}
+                  triggerAddComment={triggerAddComment}
                 />
               </div>
             </div>

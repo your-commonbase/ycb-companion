@@ -38,6 +38,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   onOpenTreeModal,
   onCardClick,
   isCurrentEntry = false,
+  triggerAddComment = false,
 }) => {
   const [cdnImageUrl, setCdnImageUrl] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
@@ -53,6 +54,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
     useState('Add a comment...');
   const [isEmbedsExpanded, setIsEmbedsExpanded] = useState(false);
   const actionsDropdownRef = useRef<HTMLDivElement>(null);
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
   console.log('entry id:', entry.id);
   console.log('entry level:', entry.level);
 
@@ -80,6 +82,22 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
     };
     asyncFn();
   }, []);
+
+  // Handle triggerAddComment prop
+  useEffect(() => {
+    if (triggerAddComment && isCurrentEntry) {
+      setIsAddingComment(true);
+    }
+  }, [triggerAddComment, isCurrentEntry]);
+
+  // Focus textarea when comment box opens
+  useEffect(() => {
+    if (isAddingComment && commentTextareaRef.current) {
+      setTimeout(() => {
+        commentTextareaRef.current?.focus();
+      }, 100); // Small delay to ensure DOM is ready
+    }
+  }, [isAddingComment]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1334,6 +1352,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
           </h4>
           <div className="space-y-3">
             <textarea
+              ref={commentTextareaRef}
               rows={3}
               style={{ fontSize: '17px' }}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"

@@ -33,6 +33,7 @@ export interface ThreadEntryCardProps {
   onOpenTreeModal: (entry: FlattenedEntry) => void;
   onCardClick?: (entryId: string) => void;
   isCurrentEntry?: boolean;
+  triggerAddComment?: boolean;
 }
 
 export interface TreePathDisplayProps {
