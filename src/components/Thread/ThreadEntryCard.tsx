@@ -1166,6 +1166,10 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                   onClick={() => {
                     setIsActionsDropdownOpen(false);
                     setIsAddingComment(true);
+                    // Focus textarea after state update
+                    setTimeout(() => {
+                      commentTextareaRef.current?.focus();
+                    }, 100);
                   }}
                   type="button"
                   className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"

@@ -461,6 +461,21 @@ export default function Thread({ inputId }: { inputId: string }) {
         setTriggerAddComment(true);
         // Reset trigger after a brief moment
         setTimeout(() => setTriggerAddComment(false), 100);
+      } else if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        // Navigate to current entry
+        const currentEntry = flattenedEntries[currentEntryIndex];
+        if (currentEntry) {
+          router.push(`/dashboard/entry/${currentEntry.id}`);
+        }
+      } else if (e.key === 'q' || e.key === 'Q') {
+        e.preventDefault();
+        // Open QuickLook for current entry
+        const currentEntry = flattenedEntries[currentEntryIndex];
+        if (currentEntry) {
+          setTreeModalEntry(currentEntry);
+          setIsTreeModalOpen(true);
+        }
       }
     };
 
