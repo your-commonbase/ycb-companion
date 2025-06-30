@@ -34,6 +34,9 @@ export interface ThreadEntryCardProps {
   onCardClick?: (entryId: string) => void;
   isCurrentEntry?: boolean;
   triggerAddComment?: boolean;
+  onOpenAddCommentModal: (entry: FlattenedEntry) => void;
+  onOpenAddURLModal: (entry: FlattenedEntry) => void;
+  onOpenAddImageModal: (entry: FlattenedEntry) => void;
 }
 
 export interface TreePathDisplayProps {

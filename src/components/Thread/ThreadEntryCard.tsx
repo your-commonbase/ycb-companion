@@ -9,28 +9,25 @@ import ReactMarkdown from 'react-markdown';
 import { InstagramEmbed } from 'react-social-media-embed';
 import { Tweet } from 'react-tweet';
 
-import ImageUpload from '@/components/ImageUpload';
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
 } from '@/components/ui/card';
-import { fetchRandomEntry } from '@/helpers/functions';
-import { enqueueAddText, enqueueAddURL } from '@/hooks/useAddQueue';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
 import LinkPreviewCard from '../LinkPreview';
-import type { FlattenedEntry, ThreadEntryCardProps } from './types';
+import type { ThreadEntryCardProps } from './types';
 import { calculateFontSize, convertDate, timeAgo } from './utils';
 
 const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   entry,
   onRelationshipExpand,
   onNavigateToEntry,
-  onAddNewEntry,
-  onImageUpload,
-  onUrlUpload,
+  onAddNewEntry: _onAddNewEntry,
+  onImageUpload: _onImageUpload,
+  onUrlUpload: _onUrlUpload,
   expandedRelationships = new Set(),
   allEntryIds = new Set(),
   loadingRelationships = new Set(),
@@ -39,26 +36,19 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   onCardClick,
   isCurrentEntry = false,
   triggerAddComment = false,
+  onOpenAddCommentModal,
+  onOpenAddURLModal,
+  onOpenAddImageModal,
 }) => {
   const [cdnImageUrl, setCdnImageUrl] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(entry.data);
-  const [isAddingComment, setIsAddingComment] = useState(false);
-  const [isAddingURL, setIsAddingURL] = useState(false);
-  const [isAddingImage, setIsAddingImage] = useState(false);
-  const [commentText, setCommentText] = useState('');
-  const [urlText, setUrlText] = useState('');
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState<'top' | 'bottom'>(
     'top',
   );
-  const [randomCommentPlaceholder, setRandomCommentPlaceholder] =
-    useState('Add a comment...');
   const [isEmbedsExpanded, setIsEmbedsExpanded] = useState(false);
   const actionsDropdownRef = useRef<HTMLDivElement>(null);
-  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const urlInputRef = useRef<HTMLInputElement>(null);
   console.log('entry id:', entry.id);
   console.log('entry level:', entry.level);
 
@@ -79,57 +69,12 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
       ? metadata.parent_id
       : null;
 
-  useEffect(() => {
-    const asyncFn = async () => {
-      const rentry = await fetchRandomEntry();
-      setRandomCommentPlaceholder(rentry.data);
-    };
-    asyncFn();
-  }, []);
-
   // Handle triggerAddComment prop
   useEffect(() => {
     if (triggerAddComment && isCurrentEntry) {
-      setIsAddingComment(true);
+      onOpenAddCommentModal(entry);
     }
-  }, [triggerAddComment, isCurrentEntry]);
-
-  // Focus management for modals
-  useEffect(() => {
-    if (isAddingComment && commentTextareaRef.current) {
-      setTimeout(() => {
-        commentTextareaRef.current?.focus();
-      }, 100);
-    }
-  }, [isAddingComment]);
-
-  useEffect(() => {
-    if (isAddingURL && urlInputRef.current) {
-      setTimeout(() => {
-        urlInputRef.current?.focus();
-      }, 100);
-    }
-  }, [isAddingURL]);
-
-  // Helper function to close modals with confirmation if there are unsaved changes
-  const closeModalWithConfirmation = (
-    closeAction: () => void,
-    resetAction?: () => void,
-  ) => {
-    if (hasUnsavedChanges) {
-      const shouldClose = window.confirm(
-        'You have unsaved changes. Are you sure you want to close? Your changes will be lost.',
-      );
-      if (shouldClose) {
-        closeAction();
-        resetAction?.();
-        setHasUnsavedChanges(false);
-      }
-    } else {
-      closeAction();
-      resetAction?.();
-    }
-  };
+  }, [triggerAddComment, isCurrentEntry, onOpenAddCommentModal, entry]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -654,57 +599,6 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
     }
   };
 
-  const addComment = (
-    aliasInput: string,
-    parent: { id: string; data: string; metadata: any },
-  ) => {
-    enqueueAddText(
-      {
-        data: aliasInput,
-        metadata: {
-          parent_id: parent.id,
-          title: parent.metadata.title,
-          author: parent.metadata.author,
-        },
-        parentId: parent.id,
-      },
-      (addedCommentData) => {
-        const newEntry: FlattenedEntry = {
-          id: addedCommentData.id,
-          data: aliasInput,
-          comments: [],
-          createdAt: addedCommentData.createdAt,
-          metadata: {
-            ...addedCommentData.metadata,
-            parent_id: parent.id,
-          },
-          relationshipType: 'comment',
-          relationshipSource: parent.id,
-          level: entry.level + 1,
-          hasMoreRelations: true,
-        };
-        onAddNewEntry(newEntry, parent.id);
-      },
-    );
-  };
-
-  const addURL = async (
-    url: string,
-    parent: { id: string; data: string; metadata: any },
-  ) => {
-    enqueueAddURL(
-      {
-        url,
-        metadata: {
-          parent_id: parent.id,
-        },
-      },
-      (addedCommentData) => {
-        onUrlUpload(addedCommentData, parent.id);
-      },
-    );
-  };
-
   // Get relationship indicator styling
   const getRelationshipStyle = () => {
     switch (entry.relationshipType) {
@@ -1197,7 +1091,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                 <button
                   onClick={() => {
                     setIsActionsDropdownOpen(false);
-                    setIsAddingComment(true);
+                    onOpenAddCommentModal(entry);
                   }}
                   type="button"
                   className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
@@ -1207,7 +1101,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                 <button
                   onClick={() => {
                     setIsActionsDropdownOpen(false);
-                    setIsAddingURL(true);
+                    onOpenAddURLModal(entry);
                   }}
                   type="button"
                   className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
@@ -1217,7 +1111,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                 <button
                   onClick={() => {
                     setIsActionsDropdownOpen(false);
-                    setIsAddingImage(true);
+                    onOpenAddImageModal(entry);
                   }}
                   type="button"
                   className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
@@ -1323,218 +1217,6 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
           </div>
         </div>
       </CardFooter>
-
-      {/* Add Image Full-Screen Modal */}
-      {isAddingImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="flex h-[90vh] w-[90vw] max-w-4xl flex-col rounded-lg bg-white shadow-xl">
-            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900">Add Image</h2>
-              <button
-                onClick={() => setIsAddingImage(false)}
-                className="text-gray-400 transition-colors hover:text-gray-600"
-                type="button"
-                aria-label="Close"
-              >
-                <svg
-                  className="size-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <ImageUpload
-                metadata={{ parent_id: entry.id }}
-                onUploadComplete={(result) => {
-                  onImageUpload(result, entry.id);
-                  setIsAddingImage(false);
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Add URL Full-Screen Modal */}
-      {isAddingURL && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="flex h-[90vh] w-[90vw] max-w-4xl flex-col rounded-lg bg-white shadow-xl">
-            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900">Add URL</h2>
-              <button
-                onClick={() =>
-                  closeModalWithConfirmation(
-                    () => setIsAddingURL(false),
-                    () => setUrlText(''),
-                  )
-                }
-                className="text-gray-400 transition-colors hover:text-gray-600"
-                type="button"
-                aria-label="Close"
-              >
-                <svg
-                  className="size-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-4">
-                <div>
-                  {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                  <label
-                    htmlFor="url-input"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
-                    URL
-                  </label>
-                  <input
-                    ref={urlInputRef}
-                    id="url-input"
-                    type="text"
-                    value={urlText}
-                    onChange={(e) => {
-                      setUrlText(e.target.value);
-                      setHasUnsavedChanges(e.target.value.trim() !== '');
-                    }}
-                    placeholder="https://example.com"
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-lg text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  />
-                </div>
-                <div className="text-sm text-gray-500">
-                  Enter a URL to be processed and added as a comment to this
-                  entry.
-                </div>
-              </div>
-            </div>
-            <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 p-6">
-              <button
-                onClick={() =>
-                  closeModalWithConfirmation(
-                    () => setIsAddingURL(false),
-                    () => setUrlText(''),
-                  )
-                }
-                type="button"
-                className="rounded-lg bg-gray-500 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!urlText.trim()) return;
-                  addURL(urlText.trim(), entry);
-                  setUrlText('');
-                  setIsAddingURL(false);
-                  setHasUnsavedChanges(false);
-                }}
-                className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                Add URL
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Comment Full-Screen Modal */}
-      {isAddingComment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="flex h-[90vh] w-[90vw] max-w-4xl flex-col rounded-lg bg-white shadow-xl">
-            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900">Add Comment</h2>
-              <button
-                onClick={() =>
-                  closeModalWithConfirmation(
-                    () => setIsAddingComment(false),
-                    () => setCommentText(''),
-                  )
-                }
-                className="text-gray-400 transition-colors hover:text-gray-600"
-                type="button"
-                aria-label="Close"
-              >
-                <svg
-                  className="size-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <textarea
-                ref={commentTextareaRef}
-                value={commentText}
-                onChange={(e) => {
-                  setCommentText(e.target.value);
-                  setHasUnsavedChanges(e.target.value.trim() !== '');
-                }}
-                rows={10}
-                style={{ fontSize: '17px' }}
-                className="size-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                placeholder={randomCommentPlaceholder}
-              />
-            </div>
-            <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 p-6">
-              <button
-                onClick={() =>
-                  closeModalWithConfirmation(
-                    () => setIsAddingComment(false),
-                    () => setCommentText(''),
-                  )
-                }
-                type="button"
-                className="rounded-lg bg-gray-500 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!commentText.trim()) return;
-                  addComment(commentText.trim(), {
-                    id: entry.id,
-                    data: entry.data,
-                    metadata: entry.metadata,
-                  });
-                  setCommentText('');
-                  setIsAddingComment(false);
-                  setHasUnsavedChanges(false);
-                }}
-                className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                Add Comment
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </Card>
   );
 };

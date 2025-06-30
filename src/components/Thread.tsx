@@ -3,9 +3,14 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+import ImageUpload from '@/components/ImageUpload';
 import PendingQueue from '@/components/PendingQueue';
 import { fetchRandomEntry } from '@/helpers/functions';
-import { useAddQueueProcessor } from '@/hooks/useAddQueue';
+import {
+  enqueueAddText,
+  enqueueAddURL,
+  useAddQueueProcessor,
+} from '@/hooks/useAddQueue';
 import { useAutoScrollMode } from '@/hooks/useAutoScrollMode';
 
 import SearchModalBeta from './SearchModalBeta';
@@ -36,6 +41,13 @@ export default function Thread({ inputId }: { inputId: string }) {
     null,
   );
   const [triggerAddComment, setTriggerAddComment] = useState(false);
+  const [isAddCommentModalOpen, setIsAddCommentModalOpen] = useState(false);
+  const [isAddURLModalOpen, setIsAddURLModalOpen] = useState(false);
+  const [isAddImageModalOpen, setIsAddImageModalOpen] = useState(false);
+  const [currentModalEntry, setCurrentModalEntry] =
+    useState<FlattenedEntry | null>(null);
+  const [commentText, setCommentText] = useState('');
+  const [urlText, setUrlText] = useState('');
   const idSet = useRef(new Set<string>());
   const router = useRouter();
   const { autoScrollMode, maxDepth } = useAutoScrollMode();
@@ -746,6 +758,78 @@ export default function Thread({ inputId }: { inputId: string }) {
     }
   };
 
+  const handleOpenAddCommentModal = (entry: FlattenedEntry) => {
+    setCurrentModalEntry(entry);
+    setIsAddCommentModalOpen(true);
+  };
+
+  const handleOpenAddURLModal = (entry: FlattenedEntry) => {
+    setCurrentModalEntry(entry);
+    setIsAddURLModalOpen(true);
+  };
+
+  const handleOpenAddImageModal = (entry: FlattenedEntry) => {
+    setCurrentModalEntry(entry);
+    setIsAddImageModalOpen(true);
+  };
+
+  const handleSubmitComment = () => {
+    if (!commentText.trim() || !currentModalEntry) return;
+
+    enqueueAddText(
+      {
+        data: commentText.trim(),
+        metadata: {
+          parent_id: currentModalEntry.id,
+          title: currentModalEntry.metadata.title,
+          author: currentModalEntry.metadata.author,
+        },
+        parentId: currentModalEntry.id,
+      },
+      (addedCommentData) => {
+        const newEntry: FlattenedEntry = {
+          id: addedCommentData.id,
+          data: commentText.trim(),
+          comments: [],
+          createdAt: addedCommentData.createdAt,
+          metadata: {
+            ...addedCommentData.metadata,
+            parent_id: currentModalEntry.id,
+          },
+          relationshipType: 'comment',
+          relationshipSource: currentModalEntry.id,
+          level: currentModalEntry.level + 1,
+          hasMoreRelations: true,
+        };
+        handleAddNewEntry(newEntry, currentModalEntry.id);
+      },
+    );
+
+    setCommentText('');
+    setIsAddCommentModalOpen(false);
+    setCurrentModalEntry(null);
+  };
+
+  const handleSubmitURL = () => {
+    if (!urlText.trim() || !currentModalEntry) return;
+
+    enqueueAddURL(
+      {
+        url: urlText.trim(),
+        metadata: {
+          parent_id: currentModalEntry.id,
+        },
+      },
+      (addedCommentData) => {
+        handleUrlUpload(addedCommentData, currentModalEntry.id);
+      },
+    );
+
+    setUrlText('');
+    setIsAddURLModalOpen(false);
+    setCurrentModalEntry(null);
+  };
+
   useEffect(() => {
     const fetchInitialEntry = async () => {
       try {
@@ -901,6 +985,9 @@ export default function Thread({ inputId }: { inputId: string }) {
                   onCardClick={handleCardClick}
                   isCurrentEntry={index === currentEntryIndex}
                   triggerAddComment={triggerAddComment}
+                  onOpenAddCommentModal={handleOpenAddCommentModal}
+                  onOpenAddURLModal={handleOpenAddURLModal}
+                  onOpenAddImageModal={handleOpenAddImageModal}
                 />
               </div>
             </div>
@@ -974,6 +1061,193 @@ export default function Thread({ inputId }: { inputId: string }) {
               <QuickLook
                 currentEntry={treeModalEntry}
                 allEntries={flattenedEntries}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Comment Modal */}
+      {isAddCommentModalOpen && currentModalEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="flex h-[95vh] w-[95vw] max-w-4xl flex-col rounded-lg bg-white shadow-xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
+              <h2 className="text-xl font-bold text-gray-900">Add Comment</h2>
+              <button
+                onClick={() => {
+                  setIsAddCommentModalOpen(false);
+                  setCurrentModalEntry(null);
+                }}
+                className="text-gray-400 transition-colors hover:text-gray-600"
+                type="button"
+                aria-label="Close"
+              >
+                <svg
+                  className="size-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                rows={10}
+                style={{ fontSize: '17px' }}
+                className="size-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                placeholder="Add a comment..."
+              />
+            </div>
+            <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 p-6">
+              <button
+                onClick={() => {
+                  setCommentText('');
+                  setIsAddCommentModalOpen(false);
+                  setCurrentModalEntry(null);
+                }}
+                type="button"
+                className="rounded-lg bg-gray-500 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitComment}
+                type="button"
+                className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Add Comment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add URL Modal */}
+      {isAddURLModalOpen && currentModalEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="flex h-[95vh] w-[95vw] max-w-4xl flex-col rounded-lg bg-white shadow-xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
+              <h2 className="text-xl font-bold text-gray-900">Add URL</h2>
+              <button
+                onClick={() => {
+                  setIsAddURLModalOpen(false);
+                  setCurrentModalEntry(null);
+                }}
+                className="text-gray-400 transition-colors hover:text-gray-600"
+                type="button"
+                aria-label="Close"
+              >
+                <svg
+                  className="size-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
+                <div>
+                  {/* eslint-disable-next-line */}
+                  <label
+                    htmlFor="url-input"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    URL
+                  </label>
+                  <input
+                    id="url-input"
+                    type="text"
+                    value={urlText}
+                    onChange={(e) => setUrlText(e.target.value)}
+                    placeholder="https://example.com"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-lg text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+                <div className="text-sm text-gray-500">
+                  Enter a URL to be processed and added as a comment to this
+                  entry.
+                </div>
+              </div>
+            </div>
+            <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 p-6">
+              <button
+                onClick={() => {
+                  setUrlText('');
+                  setIsAddURLModalOpen(false);
+                  setCurrentModalEntry(null);
+                }}
+                type="button"
+                className="rounded-lg bg-gray-500 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitURL}
+                type="button"
+                className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Add URL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Image Modal */}
+      {isAddImageModalOpen && currentModalEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="flex h-[95vh] w-[95vw] max-w-4xl flex-col rounded-lg bg-white shadow-xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
+              <h2 className="text-xl font-bold text-gray-900">Add Image</h2>
+              <button
+                onClick={() => {
+                  setIsAddImageModalOpen(false);
+                  setCurrentModalEntry(null);
+                }}
+                className="text-gray-400 transition-colors hover:text-gray-600"
+                type="button"
+                aria-label="Close"
+              >
+                <svg
+                  className="size-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <ImageUpload
+                metadata={{ parent_id: currentModalEntry.id }}
+                onUploadComplete={(result) => {
+                  handleImageUpload(result, currentModalEntry.id);
+                  setIsAddImageModalOpen(false);
+                  setCurrentModalEntry(null);
+                }}
               />
             </div>
           </div>
