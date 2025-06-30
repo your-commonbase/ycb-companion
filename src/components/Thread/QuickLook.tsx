@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { FlattenedEntry, QuickLookProps } from './types';
@@ -7,6 +8,7 @@ import type { FlattenedEntry, QuickLookProps } from './types';
 type TabType = 'neighbors' | 'thread' | 'current';
 
 const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('neighbors');
   const [loading, setLoading] = useState<Record<TabType, boolean>>({
     neighbors: false,
@@ -442,9 +444,15 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
               >
                 <div className="pl-4">
                   <div className="mb-2 flex items-center gap-2">
-                    <div className="text-xs text-gray-500">
+                    <button
+                      onClick={() =>
+                        router.push(`/dashboard/entry/${entry.id}`)
+                      }
+                      className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                      type="button"
+                    >
                       ID: {entry.id.slice(0, 8)}...
-                    </div>
+                    </button>
                     {entry.createdAt && (
                       <div className="text-xs text-gray-400">
                         {new Date(entry.createdAt).toLocaleDateString()}
@@ -484,9 +492,13 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
                 >
                   {relationshipInfo.label}
                 </span>
-                <div className="text-xs text-gray-500">
+                <button
+                  onClick={() => router.push(`/dashboard/entry/${entry.id}`)}
+                  className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                  type="button"
+                >
                   ID: {entry.id.slice(0, 8)}...
-                </div>
+                </button>
               </div>
 
               <div className="mb-2 text-xs text-gray-600">
