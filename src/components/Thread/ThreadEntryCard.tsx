@@ -687,7 +687,7 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
       id={`entry-${entry.id}`}
       className={`w-full ${getRelationshipStyle()} ${getAnimationClasses()} ${
         isCurrentEntry ? 'ring-2 ring-gray-900' : ''
-      } flex h-auto min-h-[400px] flex-col border-gray-200 transition-colors hover:border-gray-300 ${
+      } flex h-auto max-h-[calc(100vh-8rem)] flex-col border-gray-200 transition-colors hover:border-gray-300 ${
         onCardClick ? 'cursor-pointer' : ''
       }`}
       onClick={handleCardClick}
@@ -749,7 +749,8 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
 
       {/* Main Content */}
       <CardContent
-        className={`flex flex-1 flex-col${entry.relationshipType === 'root' ? ' pt-6' : ''}`}
+        className={`flex flex-1 flex-col overflow-y-auto${entry.relationshipType === 'root' ? ' pt-6' : ''}`}
+        style={{ minHeight: 0 }}
       >
         {/* Image Display */}
         {metadata.type === 'image' && (

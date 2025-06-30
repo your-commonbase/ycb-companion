@@ -928,13 +928,13 @@ export default function Thread({ inputId }: { inputId: string }) {
             <div
               key={`snap-${entry.id}`}
               id={`entry-${entry.id}`}
-              className={`relative flex items-start justify-center px-6 ${
-                isMobile ? 'h-screen py-4' : 'min-h-screen py-8'
+              className={`relative flex items-start justify-center ${
+                isMobile ? 'h-screen px-12 py-4' : 'min-h-screen px-6 py-8'
               }`}
               style={{
                 scrollSnapAlign: isMobile ? 'start' : 'none',
                 maxHeight: '100vh',
-                overflowY: 'auto',
+                overflowY: 'visible',
                 overflowX: 'hidden',
               }}
             >
