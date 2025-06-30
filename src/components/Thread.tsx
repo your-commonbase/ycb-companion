@@ -435,6 +435,11 @@ export default function Thread({ inputId }: { inputId: string }) {
         return;
       }
 
+      // Don't intercept if any modifier keys are pressed (Cmd, Ctrl, Alt, Shift)
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) {
+        return;
+      }
+
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         const nextIndex = Math.min(
