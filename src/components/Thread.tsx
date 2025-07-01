@@ -892,7 +892,7 @@ export default function Thread({ inputId }: { inputId: string }) {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100"
+      className="min-h-screen"
       style={{
         scrollSnapType: isMobile ? 'y mandatory' : 'none',
         overflow: isExpansionBlocking ? 'hidden' : 'auto',
