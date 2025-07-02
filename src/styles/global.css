@@ -88,3 +88,47 @@
 .markdown-domine {
   font-family: 'Domine', serif;
 }
+
+/* 90s/MySpace Style Customizations */
+body {
+  font-family: var(--custom-font-family, inherit) !important;
+  color: var(--custom-text-color, inherit) !important;
+  position: relative;
+}
+
+/* Background image with opacity using pseudo-element */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: var(--custom-background-image, none);
+  background-repeat: var(--custom-background-repeat, repeat);
+  background-size: var(--custom-background-size, auto);
+  background-position: var(--custom-background-position, top left);
+  background-attachment: var(--custom-background-attachment, fixed);
+  opacity: var(--custom-background-opacity, 1);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Apply custom font to all text elements for that authentic 90s feel */
+.customizable-text,
+h1, h2, h3, h4, h5, h6,
+p, span, div, a, button, input, textarea, select, label {
+  font-family: var(--custom-font-family, inherit) !important;
+  color: var(--custom-text-color, inherit) !important;
+}
+
+/* Ensure background shows through transparent elements */
+.customizable-background {
+  background: transparent !important;
+}
+
+/* Special handling for cards and modals to maintain readability */
+.custom-overlay {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(2px);
+}
