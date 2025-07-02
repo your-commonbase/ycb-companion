@@ -1,7 +1,12 @@
+/* eslint-disable no-underscore-dangle */
+
 'use client';
 
+import { instantMeiliSearch } from '@meilisearch/instant-meilisearch';
+import type { SearchClient } from 'instantsearch.js';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { InstantSearch, useHits, useSearchBox } from 'react-instantsearch';
 
 import ImageUpload from '@/components/ImageUpload';
 import {
@@ -35,6 +40,75 @@ const TabButton = ({ label, isActive, onClick }: TabButtonProps) => (
   </button>
 );
 
+// Search components for InstantSearch
+const CustomSearchBox = ({ setSemanticSearchResults }: any) => {
+  const { query, refine } = useSearchBox();
+
+  return (
+    <input
+      id="dashboard-search"
+      onChange={(e) => {
+        try {
+          refine(e.target.value);
+        } catch (err) {
+          console.error('Error refining search:', err);
+        }
+        setSemanticSearchResults();
+      }}
+      type="text"
+      value={query}
+      className="w-full rounded-lg border border-gray-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+      placeholder="Search your entries..."
+    />
+  );
+};
+
+const CustomHits = ({ router, imageUrls }: any) => {
+  const { items } = useHits();
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 max-h-96 space-y-3 overflow-y-auto">
+      <h4 className="text-sm font-medium text-gray-700">Instant Results:</h4>
+      {items.map((item: any) => (
+        <button
+          key={item.id}
+          className="w-full cursor-pointer rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
+          onClick={() => router.push(`/dashboard/entry/${item.id}`)}
+          type="button"
+        >
+          <div className="flex items-start space-x-3">
+            {item.metadata?.type === 'image' && imageUrls[item.id] && (
+              <img
+                src={imageUrls[item.id]}
+                alt="Entry preview"
+                className="size-16 rounded object-cover"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              {/* eslint-disable-next-line */}
+              <div
+                className="line-clamp-3 text-sm text-gray-900"
+                dangerouslySetInnerHTML={{
+                  __html: item._highlightResult?.data?.value || item.data,
+                }}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {new Date(
+                  item.createdAt || item.created_at,
+                ).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const SimpleDashboard = () => {
   const router = useRouter();
 
@@ -54,6 +128,7 @@ const SimpleDashboard = () => {
   const [searchHighlights, setSearchHighlights] = useState<{
     [id: string]: string;
   }>({});
+  const [isSearchClient, setSearchClient] = useState<SearchClient | null>(null);
 
   // Synthesize section state
   const [randomEntry, setRandomEntry] = useState<any>(null);
@@ -369,10 +444,47 @@ const SimpleDashboard = () => {
     }
   };
 
+  // Initialize MeiliSearch client
+  const initializeSearchClient = async () => {
+    try {
+      const token = await fetch('/api/searchToken', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const tokenData = await token.json();
+
+      if (tokenData.error) {
+        if (tokenData.error.includes('upgrade to search or synthesis plan')) {
+          return; // No search client available
+        }
+        throw new Error(tokenData.error);
+      }
+
+      if (Object.keys(tokenData).length === 0) {
+        throw new Error('No token data returned from the API');
+      }
+
+      const { searchClient } = instantMeiliSearch(
+        process.env.NEXT_PUBLIC_MEILI_HOST!,
+        tokenData.token.token,
+        {
+          placeholderSearch: true,
+        },
+      );
+
+      setSearchClient(searchClient);
+    } catch (err) {
+      console.error('Error initializing search client:', err);
+    }
+  };
+
   // Load random entry and recent comments on mount
   useEffect(() => {
     loadRandomEntry();
     loadRecentComments();
+    initializeSearchClient();
   }, []);
 
   // Cleanup timers on unmount
@@ -482,58 +594,140 @@ const SimpleDashboard = () => {
           <CardDescription>Find content in your knowledge base</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search your entries..."
-                className="w-full rounded-lg border border-gray-300 p-3 pr-10 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+          {isSearchClient ? (
+            <InstantSearch
+              searchClient={isSearchClient}
+              indexName="ycb_fts_staging"
+            >
+              <CustomSearchBox
+                setSemanticSearchResults={() => setSearchResults([])}
               />
-              {isSearching && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <div className="size-4 animate-spin rounded-full border-b-2 border-gray-900" />
+              <CustomHits router={router} imageUrls={imageUrls} />
+
+              {/* Semantic Search Button */}
+              <div className="mt-4">
+                <button
+                  type="button"
+                  className="w-full rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-800 hover:text-white focus:outline-none focus:ring-4 focus:ring-gray-300"
+                  onClick={async () => {
+                    const input = document.getElementById(
+                      'dashboard-search',
+                    ) as HTMLInputElement;
+                    const query = input?.value;
+                    if (!query || query.length < 3) return;
+
+                    setIsSearching(true);
+                    await performSearch(query);
+                    setIsSearching(false);
+                  }}
+                  disabled={isSearching}
+                >
+                  {isSearching ? 'Searching...' : 'Semantic Search'}
+                </button>
+              </div>
+
+              {/* Semantic Search Results */}
+              {searchResults.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="mb-2 text-sm font-medium text-gray-700">
+                    Semantic Results:
+                  </h4>
+                  <div className="max-h-96 space-y-3 overflow-y-auto">
+                    {searchResults.map((result) => (
+                      <button
+                        key={result.id}
+                        className="w-full cursor-pointer rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
+                        onClick={() =>
+                          router.push(`/dashboard/entry/${result.id}`)
+                        }
+                        type="button"
+                      >
+                        <div className="flex items-start space-x-3">
+                          {result.metadata?.type === 'image' &&
+                            imageUrls[result.id] && (
+                              <img
+                                src={imageUrls[result.id]}
+                                alt="Entry preview"
+                                className="size-16 rounded object-cover"
+                              />
+                            )}
+                          <div className="min-w-0 flex-1">
+                            <div
+                              className="line-clamp-3 text-sm text-gray-900"
+                              dangerouslySetInnerHTML={{
+                                __html:
+                                  searchHighlights[result.id] || result.data,
+                              }}
+                            />
+                            <p className="mt-1 text-xs text-gray-500">
+                              {new Date(result.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </InstantSearch>
+          ) : (
+            <div className="space-y-4">
+              <div className="relative">
+                <input
+                  id="dashboard-search-fallback"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder="Search your entries..."
+                  className="w-full rounded-lg border border-gray-300 p-3 pr-10 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="size-4 animate-spin rounded-full border-b-2 border-gray-900" />
+                  </div>
+                )}
+              </div>
+
+              {/* Fallback Search Results */}
+              {searchResults.length > 0 && (
+                <div className="max-h-96 space-y-3 overflow-y-auto">
+                  {searchResults.map((result) => (
+                    <button
+                      key={result.id}
+                      className="w-full cursor-pointer rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
+                      onClick={() =>
+                        router.push(`/dashboard/entry/${result.id}`)
+                      }
+                      type="button"
+                    >
+                      <div className="flex items-start space-x-3">
+                        {result.metadata?.type === 'image' &&
+                          imageUrls[result.id] && (
+                            <img
+                              src={imageUrls[result.id]}
+                              alt="Entry preview"
+                              className="size-16 rounded object-cover"
+                            />
+                          )}
+                        <div className="min-w-0 flex-1">
+                          <div
+                            className="line-clamp-3 text-sm text-gray-900"
+                            dangerouslySetInnerHTML={{
+                              __html:
+                                searchHighlights[result.id] || result.data,
+                            }}
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            {new Date(result.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
-
-            {/* Search Results */}
-            {searchResults.length > 0 && (
-              <div className="max-h-96 space-y-3 overflow-y-auto">
-                {searchResults.map((result) => (
-                  <button
-                    key={result.id}
-                    className="w-full cursor-pointer rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
-                    onClick={() => router.push(`/dashboard/entry/${result.id}`)}
-                    type="button"
-                  >
-                    <div className="flex items-start space-x-3">
-                      {result.metadata?.type === 'image' &&
-                        imageUrls[result.id] && (
-                          <img
-                            src={imageUrls[result.id]}
-                            alt="Entry preview"
-                            className="size-16 rounded object-cover"
-                          />
-                        )}
-                      <div className="min-w-0 flex-1">
-                        <div
-                          className="line-clamp-3 text-sm text-gray-900"
-                          dangerouslySetInnerHTML={{
-                            __html: searchHighlights[result.id] || result.data,
-                          }}
-                        />
-                        <p className="mt-1 text-xs text-gray-500">
-                          {new Date(result.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </CardContent>
       </Card>
 
