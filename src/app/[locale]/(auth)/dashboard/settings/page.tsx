@@ -3,6 +3,7 @@
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 
+import CustomizationSettings from '@/components/CustomizationSettings';
 import { useAutoScrollMode } from '@/hooks/useAutoScrollMode';
 
 function DownloadCSVButton() {
@@ -247,6 +248,9 @@ export default function SettingsPage() {
   return (
     <>
       <h1>Settings</h1>
+
+      {/* 90s Customization Settings */}
+      <CustomizationSettings />
       <h2>Upload profile picture</h2>
       <form
         onSubmit={uploadProfilePicture}
