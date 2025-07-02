@@ -1,7 +1,7 @@
 'use client';
 
-import type { ChangeEvent, FormEvent } from 'react';
-import { useState } from 'react';
+import type { ChangeEvent, ClipboardEvent, DragEvent, FormEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { fetchByID, updateEntry as apiUpdateEntry } from '@/helpers/functions';
 
@@ -17,13 +17,64 @@ export default function ImageUploader({
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [, setResult] = useState<any>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFile(selectedFile: File | null) {
+    if (selectedFile && selectedFile.type.startsWith('image/')) {
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
+    }
+  }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0] || null;
-    if (selected) {
-      setFile(selected);
-      setPreview(URL.createObjectURL(selected));
+    handleFile(selected);
+  }
+
+  function resetUpload() {
+    setFile(null);
+    setPreview(null);
+    setResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }
+
+  function handleDragOver(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }
+
+  function handleDragLeave(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }
+
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find((f) => f.type.startsWith('image/'));
+    if (imageFile) {
+      handleFile(imageFile);
+    }
+  }
+
+  function handlePaste(e: ClipboardEvent) {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItem = items.find((item) => item.type.startsWith('image/'));
+
+    if (imageItem) {
+      const ifile = imageItem.getAsFile();
+      if (ifile) {
+        handleFile(ifile);
+      }
     }
   }
 
@@ -70,6 +121,9 @@ export default function ImageUploader({
 
       setResult(json);
 
+      // Reset the form after successful upload
+      resetUpload();
+
       if (onUploadComplete) {
         onUploadComplete(json);
       }
@@ -80,23 +134,99 @@ export default function ImageUploader({
     }
   }
 
+  // Add paste event listener
+  useEffect(() => {
+    const handleGlobalPaste = (e: Event) => {
+      const clipboardEvent = e as unknown as ClipboardEvent;
+      // Only handle paste if this component is focused or no other input is focused
+      const { activeElement } = document;
+      if (
+        !activeElement ||
+        (activeElement.tagName !== 'INPUT' &&
+          activeElement.tagName !== 'TEXTAREA')
+      ) {
+        handlePaste(clipboardEvent);
+      }
+    };
+
+    document.addEventListener('paste', handleGlobalPaste);
+    return () => document.removeEventListener('paste', handleGlobalPaste);
+  }, []);
+
   return (
-    <form
-      onSubmit={handleUpload}
-      style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-    >
-      {preview && (
-        <img src={preview} alt="preview" style={{ maxWidth: '200px' }} />
-      )}
-      <input type="file" accept="image/*" onChange={handleFileChange} />
-      <button type="submit" disabled={!file || loading}>
-        {loading ? 'uploading...' : 'upload image'}
+    <form onSubmit={handleUpload} className="flex flex-col gap-4">
+      {/* Drag and Drop Zone */}
+      <div
+        className={`relative rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+          isDragOver
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-300 hover:border-gray-400'
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {preview ? (
+          <div className="space-y-3">
+            <img
+              src={preview}
+              alt="preview"
+              className="mx-auto max-h-48 max-w-full rounded object-contain"
+            />
+            <button
+              type="button"
+              onClick={resetUpload}
+              className="text-sm text-gray-500 underline hover:text-gray-700"
+            >
+              Remove image
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="mx-auto size-12 text-gray-400">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M12 16l4-4m0 0l-4-4m4 4H8m13 4a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">
+                Drag and drop an image here, or{' '}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-blue-600 underline hover:text-blue-800"
+                >
+                  browse
+                </button>
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                You can also paste an image from your clipboard
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      <button
+        type="submit"
+        disabled={!file || loading}
+        className="rounded-lg bg-blue-600 px-6 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {loading ? 'Uploading...' : 'Upload Image'}
       </button>
-      {result && (
-        <pre style={{ whiteSpace: 'pre-wrap' }}>
-          {JSON.stringify(result, null, 2)}
-        </pre>
-      )}
     </form>
   );
 }

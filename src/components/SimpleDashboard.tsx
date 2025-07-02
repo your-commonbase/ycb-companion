@@ -1,502 +1,712 @@
 'use client';
 
-import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css';
-
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import AnimatedNumbers from 'react-animated-numbers';
-import LiteYouTubeEmbed from 'react-lite-youtube-embed';
 
-import { fetchFavicon } from '@/helpers/functions';
+import ImageUpload from '@/components/ImageUpload';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { fetchRandomEntry } from '@/helpers/functions';
 
-// import ForceFromEntry from "./ForceFromEntry";
-// import Uploader from "./Uploader";
+// Tab button component moved outside to avoid re-creation on render
+interface TabButtonProps {
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+const TabButton = ({ label, isActive, onClick }: TabButtonProps) => (
+  <button
+    onClick={onClick}
+    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+      isActive
+        ? 'bg-gray-900 text-white'
+        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+    }`}
+    type="button"
+    aria-pressed={isActive}
+  >
+    {label}
+  </button>
+);
 
 const SimpleDashboard = () => {
-  // const [randomEntry, setRandomEntry] = useState<any>(null);
-  // const [comments, setComments] = useState<any[]>([]);
+  const router = useRouter();
 
-  const [logEntries, setLogEntries] = useState<any[]>([]);
-  // const [isSaving, setIsSaving] = useState(false);
-  // const [timeMachine, setTimeMachine] = useState<any>('week');
-  // const [randomTimeMachineEntry, setRandomTimeMachineEntry] =
-  //   useState<any>(null);
-  // const [timeMachineEntries, setTimeMachineEntries] = useState<any[]>([]);
-  const [totalEntries, setTotalEntries] = useState(-1);
-  const [todaysEntriesLength, setTodaysEntriesLength] = useState(0);
-  const [showLogEmbed, setShowLogEmbed] = useState<Record<string, boolean>>({});
+  // Store section state
+  const [activeTab, setActiveTab] = useState<'text' | 'image' | 'url'>('text');
+  const [textValue, setTextValue] = useState('');
+  const [urlValue, setUrlValue] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
-  // const [inboxEntries, setInboxEntries] = useState<any[]>([]);
+  // Search section state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [imageUrls, setImageUrls] = useState<{ [id: string]: string }>({});
+  const [searchDebounceTimer, setSearchDebounceTimer] =
+    useState<NodeJS.Timeout | null>(null);
+  const [searchHighlights, setSearchHighlights] = useState<{
+    [id: string]: string;
+  }>({});
 
-  // const handleRandom = async () => {
-  //   setRandomEntry(null);
-  //   setComments([]);
-  //   // fetch a random entry and open it
-  //   const entry = await fetchRandomEntry();
-  //   // const entry = await fetchByID('9548');
-  //   // if entry has a parent_id, fetch the parent entry
-  //   let { metadata } = entry;
-  //   try {
-  //     metadata = JSON.parse(entry.metadata);
-  //   } catch (err) {
-  //     console.error('Error parsing metadata:', err);
-  //   }
-  //   if (metadata.alias_ids) {
-  //     const commentsList = [];
-  //     const aliasEntries = await Promise.all(
-  //       metadata.alias_ids.map(async (aliasId: string) => {
-  //         const aliasEntry = await fetchByID(aliasId);
-  //         return aliasEntry;
-  //       }),
-  //     );
-  //     for (const aliasEntry of aliasEntries) {
-  //       commentsList.push({
-  //         aliasId: aliasEntry.id,
-  //         aliasData: aliasEntry.data,
-  //         aliasMetadata: aliasEntry.metadata,
-  //       });
-  //     }
-  //     setComments(commentsList);
-  //   }
-  //   if (metadata.parent_id) {
-  //     const parentEntry = await fetchByID(metadata.parent_id);
-  //     // make sure metadata is JSON parseable
-  //     try {
-  //       parentEntry.metadata = JSON.parse(parentEntry.metadata);
-  //     } catch (err) {
-  //       // pass
-  //     }
-
-  //     if (parentEntry.metadata.alias_ids) {
-  //       const commentsList = [];
-  //       const aliasEntries = await Promise.all(
-  //         parentEntry.metadata.alias_ids.map(async (aliasId: string) => {
-  //           const aliasEntry = await fetchByID(aliasId);
-  //           return aliasEntry;
-  //         }),
-  //       );
-  //       for (const aliasEntry of aliasEntries) {
-  //         commentsList.push({
-  //           aliasId: aliasEntry.id,
-  //           aliasData: aliasEntry.data,
-  //           aliasMetadata: aliasEntry.metadata,
-  //         });
-  //       }
-  //       setComments(commentsList);
-  //     }
-
-  //     setRandomEntry(parentEntry);
-  //     return parentEntry;
-  //   }
-  //   try {
-  //     entry.metadata = JSON.parse(entry.metadata);
-  //   } catch (err) {
-  //     // pass
-  //   }
-  //   setRandomEntry(entry);
-  //   return entry;
-  // };
-
-  // for time machine, fetch entries from the past week, month, or year depending on the timeMachine state and select a random entry from the fetched entries
-  /*
-
-  const fetchRecords = useCallback(
-    async (date: Date) => {
-      // convert date to form 2024-01-01
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      let monthString = month.toString();
-      // put a 0 in front of month if it is less than 10
-      if (month < 10) {
-        monthString = `0${month}`;
-      }
-      const day = date.getDate();
-      let dayString = day.toString();
-      if (day < 10) {
-        dayString = `0${day}`;
-      }
-      const dateString = `${year}-${monthString}-${dayString}`;
-      setSelectedDay(dateString);
-      setLoading(true);
-
-      // run a post request to fetch records for that date at /api/daily
-      const response = await fetch('/api/daily', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ date: dateString }),
-      });
-      const responseData = await response.json();
-
-      // console.log('Fetched records:', responseData);
-      // set entries to the mapped data
-      setEntries(responseData.data);
-      setDateSelected(date);
-      setLoading(false);
-    },
-    [setSelectedDay, setLoading, setEntries],
+  // Synthesize section state
+  const [randomEntry, setRandomEntry] = useState<any>(null);
+  const [commentText, setCommentText] = useState('');
+  const [isAddingComment, setIsAddingComment] = useState(false);
+  const [recentComments, setRecentComments] = useState<any[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [logPollingTimer, setLogPollingTimer] = useState<NodeJS.Timeout | null>(
+    null,
   );
-  */
-  // const fetchTimeMachineEntries = async () => {
-  //   try {
-  //     const date = new Date();
-  //     switch (timeMachine) {
-  //       case 'week':
-  //         date.setDate(date.getDate() - 7);
-  //         break;
-  //       case 'month':
-  //         date.setMonth(date.getMonth() - 1);
-  //         break;
-  //       case 'year':
-  //         date.setFullYear(date.getFullYear() - 1);
-  //         break;
-  //       default:
-  //         break;
-  //     }
-  //     // use daily endpoint to fetch entries from the past week, month, or year
+  const [logImageUrls, setLogImageUrls] = useState<{ [id: string]: string }>(
+    {},
+  );
 
-  //     // convert date to form 2024-01-01
-  //     const year = date.getFullYear();
-  //     const month = date.getMonth() + 1;
-  //     let monthString = month.toString();
-  //     // put a 0 in front of month if it is less than 10
-  //     if (month < 10) {
-  //       monthString = `0${month}`;
-  //     }
-  //     const day = date.getDate();
-  //     let dayString = day.toString();
-  //     if (day < 10) {
-  //       dayString = `0${day}`;
-  //     }
-  //     const dateString = `${year}-${monthString}-${dayString}`;
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
-  //     const response = await fetch('/api/daily', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({ date: dateString }),
-  //     });
-  //     const responseData = await response.json();
-  //     setTimeMachineEntries(responseData.data);
-  //     // math random number between 0 and the length of the responseData.data array
-  //     const randomIndex = Math.floor(Math.random() * responseData.data.length);
-  //     setRandomTimeMachineEntry(responseData.data[randomIndex]);
-  //   } catch (error) {
-  //     console.error('Error fetching time machine entries:', error);
-  //   }
-  // };
+  // Poll log for updates after entry additions
+  const pollLogUpdates = () => {
+    // Clear any existing timer
+    if (logPollingTimer) {
+      clearTimeout(logPollingTimer);
+    }
 
-  // useEffect(() => {
-  //   fetchTimeMachineEntries();
-  // }, [timeMachine]);
+    let attempts = 0;
+    const maxAttempts = 15; // Poll for 15 seconds
+    const currentLogLength = recentComments.length;
+    const currentFirstEntryId = recentComments[0]?.id;
 
-  // const fetchInboxEntries = async () => {
-  //   try {
-  //     setIsLoading(true);
-  //     const response = await fetch('/api/inbox', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         page: 1,
-  //       }),
-  //     });
-  //     const data = await response.json();
-  //     setInboxEntries(data.data);
-  //     setIsLoading(false);
-  //   } catch (error) {
-  //     console.error('Error fetching inbox entries:', error);
-  //   }
-  // };
+    const poll = async () => {
+      try {
+        const response = await fetch('/api/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            limit: 20,
+          }),
+        });
 
-  // useEffect(() => {
-  //   fetchInboxEntries();
-  // }, []);
+        if (response.ok) {
+          const data = await response.json();
+          const newLogData = data.data || [];
+          const newLogLength = newLogData.length;
+          const newFirstEntryId = newLogData[0]?.id;
 
-  const fetchTotalEntries = async () => {
+          // Check if log has new entries (either length changed or first entry is different)
+          // Also check if any URLs are still processing (contain "URL: ")
+          const hasUnprocessedUrls = newLogData.some(
+            (entry: any) => entry.data && entry.data.startsWith('URL: '),
+          );
+
+          const hasNewEntries =
+            newLogLength > currentLogLength ||
+            (newFirstEntryId && newFirstEntryId !== currentFirstEntryId);
+
+          if (hasNewEntries && !hasUnprocessedUrls) {
+            setRecentComments(newLogData);
+            return; // Stop polling - we got new data and no URLs are processing
+          }
+          if (hasNewEntries) {
+            setRecentComments(newLogData); // Update with new data but keep polling
+          }
+        }
+
+        attempts += 1;
+        if (attempts < maxAttempts) {
+          const timer = setTimeout(poll, 1000); // Poll every second
+          setLogPollingTimer(timer);
+        }
+      } catch (error) {
+        console.error('Error polling log updates:', error);
+      }
+    };
+
+    // Start polling immediately
+    poll();
+  };
+
+  // Upload functions
+  const handleTextUpload = async () => {
+    if (!textValue.trim()) return;
+
+    setIsUploading(true);
     try {
-      const response = await fetch('/api/count', {
+      const response = await fetch('/api/add', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: textValue,
+          metadata: {
+            title: 'Thought',
+            author: 'https://yourcommonbase.com/dashboard',
+          },
+        }),
       });
-      const data = await response.json();
-      setTotalEntries(data.count);
+
+      if (response.ok) {
+        await response.json();
+        setTextValue('');
+        // Start polling for log updates
+        pollLogUpdates();
+        // Show success toast
+        setToastMessage('Text entry added successfully!');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      }
     } catch (error) {
-      console.error('Error fetching total entries:', error);
+      console.error('Error uploading text:', error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  useEffect(() => {
-    fetchTotalEntries();
-  }, []);
+  const handleUrlUpload = async () => {
+    if (!urlValue.trim()) return;
 
-  useEffect(() => {
-    const todaysEntriesLengthFn = async () => {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = today.getMonth() + 1;
-      let monthString = month.toString();
-      // put a 0 in front of month if it is less than 10
-      if (month < 10) {
-        monthString = `0${month}`;
-      }
-      const day = today.getDate();
-      let dayString = day.toString();
-      if (day < 10) {
-        dayString = `0${day}`;
-      }
-      const dateString = `${year}-${monthString}-${dayString}`;
-
-      // call /api/entries
-      const response = await fetch('/api/daily', {
+    setIsUploading(true);
+    try {
+      const response = await fetch('/api/addURL', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ date: dateString }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: urlValue,
+          metadata: {},
+        }),
       });
-      const responseData = await response.json();
 
-      // console.log('Fetched records:', responseData);
-      // set entries to the mapped data
-      setTodaysEntriesLength(responseData.data.length);
-    };
+      if (response.ok) {
+        await response.json();
+        setUrlValue('');
+        // Start polling for log updates
+        pollLogUpdates();
+        // Show success toast
+        setToastMessage('URL entry added successfully!');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error uploading URL:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
-    todaysEntriesLengthFn();
-  }, []);
+  // Debounced search function
+  const performSearch = async (query: string) => {
+    if (!query.trim() || query.length < 3) {
+      setSearchResults([]);
+      setImageUrls({});
+      setSearchHighlights({});
+      return;
+    }
 
-  // get log entries
-  const fetchLogEntries = async () => {
+    setIsSearching(true);
+    try {
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.data || []);
+
+        // Create highlights for search results
+        const highlights: { [id: string]: string } = {};
+        data.data.forEach((entry: any) => {
+          if (entry.data) {
+            // Simple highlighting - replace query matches with bold tags
+            const regex = new RegExp(
+              `(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
+              'gi',
+            );
+            highlights[entry.id] = entry.data.replace(
+              regex,
+              '<mark class="bg-yellow-200">$1</mark>',
+            );
+          }
+        });
+        setSearchHighlights(highlights);
+
+        // Load images for image entries
+        const imageEntries = data.data.filter(
+          (entry: any) => entry.metadata?.type === 'image',
+        );
+        if (imageEntries.length > 0) {
+          const imageIds = imageEntries.map((entry: any) => entry.id);
+          const imageResponse = await fetch('/api/fetchImageByIDs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: imageIds }),
+          });
+
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            setImageUrls(imageData.data.body.urls || {});
+          }
+        }
+      }
+    } catch (error) {
+      // Error searching
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle search input change with debouncing
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+
+    // Clear existing timer
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+    }
+
+    // Set new timer for debounced search
+    const newTimer = setTimeout(() => {
+      performSearch(value);
+    }, 300); // 300ms debounce
+
+    setSearchDebounceTimer(newTimer);
+  };
+
+  // Load recent log entries function
+  const loadRecentComments = async () => {
+    setIsLoadingComments(true);
     try {
       const response = await fetch('/api/log', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           limit: 20,
         }),
       });
-      const data = await response.json();
-      // if createdAt == updatedAt, say "added", else "updated"
-      const log = data.data
-        .map((entry: any) => {
-          if (entry.createdAt === entry.updatedAt) {
-            return {
-              ...entry,
-              action: 'added',
-            };
+
+      if (response.ok) {
+        const data = await response.json();
+        const logData = data.data || [];
+        setRecentComments(logData);
+
+        // Load images for image entries in log
+        const imageEntries = logData.filter(
+          (entry: any) => entry.metadata?.type === 'image',
+        );
+        if (imageEntries.length > 0) {
+          const imageIds = imageEntries.map((entry: any) => entry.id);
+          const imageResponse = await fetch('/api/fetchImageByIDs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: imageIds }),
+          });
+
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            setLogImageUrls(imageData.data.body.urls || {});
           }
-          return {
-            ...entry,
-            action: 'updated',
-          };
-        })
-        .filter((entry: any) => entry !== null);
-
-      log.forEach((entry: any) => {
-        if (entry.metadata.author.includes('youtube.com')) {
-          setShowLogEmbed((prev) => ({ ...prev, [entry.id]: false }));
-        } else {
-          // continue
         }
-      });
-
-      setLogEntries(log);
-
-      // add favicon to each entry
-      const faviconPromises = log.map(async (entry: any) => {
-        if (entry.metadata.author) {
-          const favicon = await fetchFavicon(entry.metadata.author);
-          return { ...entry, favicon: favicon.favicon };
-        }
-
-        return entry;
-      });
-
-      const faviconData = await Promise.all(faviconPromises);
-      setLogEntries(faviconData);
+      }
     } catch (error) {
       console.error('Error fetching log entries:', error);
+    } finally {
+      setIsLoadingComments(false);
     }
   };
 
-  useEffect(() => {
-    fetchLogEntries();
-  }, []);
+  // Random entry function
+  const loadRandomEntry = async () => {
+    try {
+      const entry = await fetchRandomEntry();
+      setRandomEntry(entry);
+    } catch (error) {
+      console.error('Error fetching random entry:', error);
+    }
+  };
 
-  const [cdnImageUrls, setCdnImageUrls] = useState<{ [id: string]: string }>(
-    {},
-  );
+  // Add comment function
+  const handleAddComment = async () => {
+    if (!commentText.trim() || !randomEntry) return;
 
-  useEffect(() => {
-    // Find all image entries that don't have a URL yet
-    const imageEntries = logEntries.filter(
-      (entry: any) =>
-        entry.metadata.type === 'image' && !cdnImageUrls[entry.id],
-    );
-
-    if (imageEntries.length === 0) return;
-
-    const fetchImages = async () => {
-      const ids = imageEntries.map((entry: any) => entry.id);
-      const cdnResp = await fetch(`/api/fetchImageByIDs`, {
+    setIsAddingComment(true);
+    try {
+      const response = await fetch('/api/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify({
+          data: commentText,
+          metadata: {
+            parent_id: randomEntry.id,
+            title: randomEntry.metadata?.title || 'Comment',
+            author:
+              randomEntry.metadata?.author ||
+              'https://yourcommonbase.com/dashboard',
+          },
+        }),
       });
-      const cdnData = await cdnResp.json();
 
-      // Update state with new URLs
-      setCdnImageUrls((prev) => ({
-        ...prev,
-        ...Object.fromEntries(
-          ids.map((id: string) => [id, cdnData.data.body.urls[id] || '']),
-        ),
-      }));
+      if (response.ok) {
+        await response.json();
+        setCommentText('');
+        // Start polling for log updates
+        pollLogUpdates();
+        // Show success toast
+        setToastMessage('Comment added successfully!');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    } finally {
+      setIsAddingComment(false);
+    }
+  };
+
+  // Load random entry and recent comments on mount
+  useEffect(() => {
+    loadRandomEntry();
+    loadRecentComments();
+  }, []);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+      }
+      if (logPollingTimer) {
+        clearTimeout(logPollingTimer);
+      }
     };
-
-    fetchImages();
-  }, [logEntries]);
+  }, [searchDebounceTimer, logPollingTimer]);
 
   return (
-    <div>
-      {totalEntries >= 0 && (
-        <h2 className="mx-2 mt-8 text-xl font-extrabold text-gray-400 md:text-lg lg:text-lg">
-          You have{' '}
-          <span className="bg-gradient-to-r from-sky-400 to-emerald-600 bg-clip-text text-transparent">
-            {totalEntries}
-          </span>{' '}
-          total entries in your commonbase. That&apos;s the equivalent of{' '}
-          <span className="bg-gradient-to-r from-sky-400 to-emerald-600 bg-clip-text text-transparent">
-            {Math.round(totalEntries / 251)}
-          </span>{' '}
-          journals filled! You are{' '}
-          <span className="bg-gradient-to-r from-sky-400 to-emerald-600 bg-clip-text text-transparent">
-            {251 - (totalEntries % 251)}
-          </span>{' '}
-          entries away from filling your next journal!
-        </h2>
-      )}
+    <div className="mx-auto max-w-6xl space-y-8 p-6">
+      {/* Store Section */}
+      <Card className="border-0 shadow-none">
+        <CardHeader>
+          <CardTitle>Store</CardTitle>
+          <CardDescription>
+            Add new content to your knowledge base
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Tab Navigation */}
+          <div className="mb-6 flex space-x-2">
+            <TabButton
+              label="Text"
+              isActive={activeTab === 'text'}
+              onClick={() => setActiveTab('text')}
+            />
+            <TabButton
+              label="Image"
+              isActive={activeTab === 'image'}
+              onClick={() => setActiveTab('image')}
+            />
+            <TabButton
+              label="URL"
+              isActive={activeTab === 'url'}
+              onClick={() => setActiveTab('url')}
+            />
+          </div>
 
-      <h2 className="mx-2 mt-8 text-xl font-extrabold text-gray-400 md:text-lg lg:text-lg">
-        You have{' '}
-        <AnimatedNumbers
-          includeComma
-          transitions={(index) => ({
-            type: 'spring',
-            duration: index + 0.3,
-          })}
-          animateToNumber={todaysEntriesLength}
-          fontStyle={{
-            fontSize: 18,
-            color: 'black',
-          }}
-        />
-        entries today!
-      </h2>
+          {/* Tab Content */}
+          {activeTab === 'text' && (
+            <div className="space-y-4">
+              <textarea
+                value={textValue}
+                onChange={(e) => setTextValue(e.target.value)}
+                placeholder="Enter your thoughts..."
+                className="h-32 w-full resize-none rounded-lg border border-gray-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleTextUpload}
+                disabled={!textValue.trim() || isUploading}
+                className="rounded-lg bg-gray-900 px-6 py-2 text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+              >
+                {isUploading ? 'Adding...' : 'Add Text'}
+              </button>
+            </div>
+          )}
 
-      <h1 className="my-4 text-xl font-extrabold text-gray-900 md:text-xl lg:text-xl">
-        Recent Activity Log
-      </h1>
-      <div className="mx-2 my-4 w-full overflow-auto">
-        {logEntries.map((entry: any) => (
-          <div key={entry.id}>
-            <div
-              key={entry.id}
-              className="mx-2 mb-4 flex items-center justify-between"
-            >
-              <div className="grow">
-                <Link
-                  href={{
-                    pathname: `/dashboard/entry/${entry.id}`,
-                  }}
-                  className="block text-gray-900 no-underline"
-                  prefetch={false}
-                >
-                  <div className="relative">
-                    {entry.metadata.author &&
-                      entry.metadata.author.includes('imagedelivery.net') && (
-                        <img
-                          src={entry.metadata.author}
-                          alt="ycb-companion-image"
-                        />
-                      )}
-                    <span className="flex items-center font-normal">
-                      <img
-                        src={entry.favicon || '/favicon.ico'}
-                        alt="favicon"
-                        className="mr-2 size-6"
-                      />
-                      {entry.data}
-                    </span>
-                  </div>
-                </Link>
-                <div className="text-sm text-gray-500">
-                  {(() => {
-                    if (entry.action === 'added') {
-                      return <b>Added</b>;
-                    }
-                    if (entry.action === 'updated') {
-                      return <b>Updated</b>;
-                    }
-                    return 'Deleted';
-                  })()}{' '}
-                  {new Date(entry.updatedAt).toLocaleDateString()}
+          {activeTab === 'image' && (
+            <div>
+              <ImageUpload
+                metadata={{}}
+                onUploadComplete={() => {
+                  // Start polling for log updates
+                  pollLogUpdates();
+                  // Show success toast
+                  setToastMessage('Image uploaded successfully!');
+                  setShowToast(true);
+                  setTimeout(() => setShowToast(false), 3000);
+                }}
+              />
+            </div>
+          )}
+
+          {activeTab === 'url' && (
+            <div className="space-y-4">
+              <input
+                type="url"
+                value={urlValue}
+                onChange={(e) => setUrlValue(e.target.value)}
+                placeholder="https://example.com"
+                className="w-full rounded-lg border border-gray-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleUrlUpload}
+                disabled={!urlValue.trim() || isUploading}
+                className="rounded-lg bg-gray-900 px-6 py-2 text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+              >
+                {isUploading ? 'Adding...' : 'Add URL'}
+              </button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Search Section */}
+      <Card className="border-0 shadow-none">
+        <CardHeader>
+          <CardTitle>Search</CardTitle>
+          <CardDescription>Find content in your knowledge base</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Search your entries..."
+                className="w-full rounded-lg border border-gray-300 p-3 pr-10 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {isSearching && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="size-4 animate-spin rounded-full border-b-2 border-gray-900" />
                 </div>
-                {/* a button called 'show embed' that only shows if entry is a youtube video  on click display the embed */}
-                {entry.metadata.author.includes('youtube.com') && (
-                  <>
-                    <button
-                      type="button"
-                      className="inline-flex items-center rounded-full border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
-                      onClick={() => {
-                        // if entry is a youtube video, display the embed
-                        console.log(`show embed for ${entry.id}`);
-                        console.log(entry.metadata.author);
-                        console.log(
-                          entry.metadata.author.split('v=')[1]?.split('&')[0],
-                        );
-                        console.log(showLogEmbed);
-                        setShowLogEmbed((prev) => ({
-                          ...prev,
-                          [entry.id]: true,
-                        }));
-                      }}
-                    >
-                      Show Embed
-                    </button>
+              )}
+            </div>
 
-                    {showLogEmbed[entry.id] && (
-                      <div className="mt-2 text-sm text-gray-500">
-                        <LiteYouTubeEmbed
-                          id={
-                            entry.metadata.author.split('v=')[1]?.split('&')[0]
-                          }
-                          title="YouTube video"
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <div className="max-h-96 space-y-3 overflow-y-auto">
+                {searchResults.map((result) => (
+                  <button
+                    key={result.id}
+                    className="w-full cursor-pointer rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
+                    onClick={() => router.push(`/dashboard/entry/${result.id}`)}
+                    type="button"
+                  >
+                    <div className="flex items-start space-x-3">
+                      {result.metadata?.type === 'image' &&
+                        imageUrls[result.id] && (
+                          <img
+                            src={imageUrls[result.id]}
+                            alt="Entry preview"
+                            className="size-16 rounded object-cover"
+                          />
+                        )}
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className="line-clamp-3 text-sm text-gray-900"
+                          dangerouslySetInnerHTML={{
+                            __html: searchHighlights[result.id] || result.data,
+                          }}
                         />
+                        <p className="mt-1 text-xs text-gray-500">
+                          {new Date(result.createdAt).toLocaleDateString()}
+                        </p>
                       </div>
-                    )}
-                  </>
-                )}
-                {entry.metadata.type === 'image' && cdnImageUrls[entry.id] && (
-                  <img
-                    src={cdnImageUrls[entry.id]}
-                    alt="entry"
-                    style={{ maxWidth: 200, marginTop: 8 }}
-                  />
-                )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Synthesize Section */}
+      <Card className="border-0 shadow-none">
+        <CardHeader>
+          <CardTitle>Synthesize</CardTitle>
+          <CardDescription>
+            Connect ideas by commenting on existing content
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {randomEntry ? (
+            <div className="space-y-4">
+              {/* Random Entry Display */}
+              <button
+                className="w-full cursor-pointer rounded-lg bg-gray-50 p-4 text-left transition-colors hover:bg-gray-100"
+                onClick={() =>
+                  router.push(`/dashboard/entry/${randomEntry.id}`)
+                }
+                type="button"
+              >
+                <div className="flex items-start space-x-3">
+                  {randomEntry.metadata?.type === 'image' && (
+                    <div className="mb-2 text-sm text-gray-500">
+                      📷 Image Entry
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <p className="mb-2 text-gray-900">{randomEntry.data}</p>
+                    <p className="text-xs text-gray-500">
+                      Created:{' '}
+                      {new Date(randomEntry.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Comment Input */}
+              <div className="space-y-3">
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                <label className="text-sm font-medium text-gray-700">
+                  Add your thoughts about this entry:
+                </label>
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="What connections do you see? What does this remind you of?"
+                  className="h-24 w-full resize-none rounded-lg border border-gray-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleAddComment}
+                    disabled={!commentText.trim() || isAddingComment}
+                    className="rounded-lg bg-blue-600 px-6 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    type="button"
+                  >
+                    {isAddingComment ? 'Adding Comment...' : 'Add Comment'}
+                  </button>
+                  <button
+                    onClick={loadRandomEntry}
+                    className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 transition-colors hover:bg-gray-50"
+                    type="button"
+                  >
+                    Get Another Entry
+                  </button>
+                </div>
               </div>
             </div>
-            {/* <hr className="my-4" /> */}
+          ) : (
+            <div className="flex items-center justify-center py-8">
+              <div className="size-8 animate-spin rounded-full border-b-2 border-gray-900" />
+              <span className="ml-2 text-gray-600">
+                Loading random entry...
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Log Section */}
+      <Card className="border-0 shadow-none">
+        <CardHeader>
+          <CardTitle>Log</CardTitle>
+          <CardDescription>Recent activity log</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* eslint-disable-next-line */}
+          {isLoadingComments ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="size-8 animate-spin rounded-full border-b-2 border-gray-900" />
+              <span className="ml-2 text-gray-600">
+                Loading activity log...
+              </span>
+            </div>
+          ) : recentComments.length > 0 ? (
+            <div className="max-h-96 space-y-3 overflow-y-auto">
+              {recentComments.map((comment) => (
+                <button
+                  key={comment.id}
+                  className="w-full cursor-pointer rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
+                  onClick={() => router.push(`/dashboard/entry/${comment.id}`)}
+                  type="button"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start space-x-3">
+                      {comment.metadata?.type === 'image' &&
+                        logImageUrls[comment.id] && (
+                          <img
+                            src={logImageUrls[comment.id]}
+                            alt="Entry thumbnail"
+                            className="size-12 shrink-0 rounded object-cover"
+                          />
+                        )}
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-sm text-gray-900">
+                          {comment.data.startsWith('URL: ') ? (
+                            <span className="text-orange-600">
+                              {comment.data}{' '}
+                              <span className="text-xs">(processing...)</span>
+                            </span>
+                          ) : (
+                            comment.data
+                          )}
+                        </p>
+                        <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                          <span>
+                            {comment.metadata?.parent_id
+                              ? `Comment on: ${comment.metadata?.title || 'Entry'}`
+                              : `${comment.metadata?.type || 'Entry'}`}
+                          </span>
+                          <span>
+                            {new Date(comment.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-gray-500">
+              <p>No recent activity yet</p>
+              <p className="text-sm">
+                Activity will appear here as you use the app
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Success Toast */}
+      {showToast && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-green-600 px-6 py-4 text-white shadow-lg transition-all duration-300">
+          <div className="flex items-center space-x-2">
+            <svg
+              className="size-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <span className="text-sm font-medium">{toastMessage}</span>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
