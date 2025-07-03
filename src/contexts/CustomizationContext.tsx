@@ -102,7 +102,8 @@ export function CustomizationProvider({ children }: { children: ReactNode }) {
         });
 
         if (response.ok) {
-          const dbSettings = await response.json();
+          const dbSettingsWrapper = await response.json();
+          const dbSettings = dbSettingsWrapper.companionCSS;
           console.log('📖 Database settings loaded:', dbSettings);
 
           if (dbSettings && Object.keys(dbSettings).length > 0) {

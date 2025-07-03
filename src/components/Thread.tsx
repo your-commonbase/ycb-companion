@@ -959,7 +959,7 @@ export default function Thread({ inputId }: { inputId: string }) {
       }
 
       // Build the enhanced prompt with context
-      let prompt = `provide world context using specific details and references for entry. do not return a list: ${data} ${title} ${author}`;
+      let prompt = `provide world context using specific details and references for entry. do not just rehash what you see in front of you. provide helpful external world events and information to add smart context and commentary aka marginalia. do not return a list: ${data} ${title} ${author}`;
 
       if (threadContext) {
         prompt += `\n\n{thread: ${threadContext}}`;
