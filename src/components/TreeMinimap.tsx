@@ -2,6 +2,7 @@
 
 import * as d3 from 'd3';
 import type { HierarchyPointLink } from 'd3-hierarchy';
+import jsPDF from 'jspdf';
 import React, { useEffect, useRef, useState } from 'react';
 
 interface TreeNode {
@@ -34,6 +35,52 @@ const TreeMinimapModal: React.FC<TreeMinimapModalProps> = ({
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+
+  const convertTreeToNestedList = (
+    node: TreeNode,
+    level: number = 0,
+  ): string[] => {
+    const lines: string[] = [];
+    const indent = '  '.repeat(level);
+
+    // Get the full entry data for this node
+    const fullEntry = entries.find((e) => e.id === node.id);
+    const truncatedId = node.id.slice(0, 8);
+
+    // Format the line based on relationship type
+    let relationshipInfo = '';
+    if (node.relationshipType === 'root') {
+      relationshipInfo = `[${truncatedId}]`;
+    } else if (
+      node.relationshipType === 'neighbor' &&
+      node.similarity !== undefined
+    ) {
+      relationshipInfo = `[${truncatedId}: ${Math.round(node.similarity * 100)}%]`;
+    } else if (
+      node.relationshipType === 'comment' ||
+      node.relationshipType === 'parent'
+    ) {
+      relationshipInfo = `[${truncatedId}: ${node.relationshipType}]`;
+    } else {
+      relationshipInfo = `[${truncatedId}]`;
+    }
+
+    // Get title and author from metadata
+    const title = fullEntry?.metadata?.title || 'Untitled';
+    const author = fullEntry?.metadata?.author || 'Unknown';
+    const data = fullEntry?.data || '';
+
+    lines.push(`${indent}${relationshipInfo} ${data} (${title}, ${author})`);
+
+    // Add children recursively
+    if (node.children && node.children.length > 0) {
+      node.children.forEach((child) => {
+        lines.push(...convertTreeToNestedList(child, level + 1));
+      });
+    }
+
+    return lines;
+  };
 
   const buildTreeData = () => {
     if (!entries.length) return null;
@@ -105,6 +152,56 @@ const TreeMinimapModal: React.FC<TreeMinimapModalProps> = ({
     };
 
     return buildNode(rootEntry);
+  };
+
+  const generatePDF = () => {
+    const treeData = buildTreeData();
+    if (!treeData) return;
+
+    // eslint-disable-next-line
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.width;
+    const pageHeight = pdf.internal.pageSize.height;
+    const margin = 20;
+    const lineHeight = 6;
+    let currentY = margin;
+
+    // Add title
+    pdf.setFontSize(16);
+    pdf.text('Thread Tree Map', margin, currentY);
+    currentY += lineHeight * 2;
+
+    // Add timestamp
+    pdf.setFontSize(10);
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, margin, currentY);
+    currentY += lineHeight * 2;
+
+    // Convert tree to nested list
+    const nestedList = convertTreeToNestedList(treeData);
+
+    // Add content
+    pdf.setFontSize(9);
+    nestedList.forEach((line) => {
+      // Check if we need a new page
+      if (currentY + lineHeight > pageHeight - margin) {
+        pdf.addPage();
+        currentY = margin;
+      }
+
+      // Split long lines if needed
+      const textLines = pdf.splitTextToSize(line, pageWidth - margin * 2);
+      textLines.forEach((textLine: string) => {
+        if (currentY + lineHeight > pageHeight - margin) {
+          pdf.addPage();
+          currentY = margin;
+        }
+        pdf.text(textLine, margin, currentY);
+        currentY += lineHeight;
+      });
+    });
+
+    // Save the PDF
+    pdf.save(`thread-tree-map-${treeData.id}.pdf`);
   };
 
   const renderFullTree = () => {
@@ -397,13 +494,35 @@ const TreeMinimapModal: React.FC<TreeMinimapModalProps> = ({
       <div className="flex max-h-[95vh] w-full max-w-[95vw] flex-col rounded-lg bg-white shadow-xl">
         <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900">Thread Tree Map</h2>
-          <button
-            onClick={onClose}
-            className="flex size-8 items-center justify-center rounded-full text-2xl font-bold text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-            type="button"
-          >
-            ×
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={generatePDF}
+              className="flex items-center gap-2 rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              type="button"
+            >
+              <svg
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Download PDF
+            </button>
+            <button
+              onClick={onClose}
+              className="flex size-8 items-center justify-center rounded-full text-2xl font-bold text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              type="button"
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         <div className="shrink-0 border-b border-gray-100 px-6 py-4 text-sm text-gray-600">
