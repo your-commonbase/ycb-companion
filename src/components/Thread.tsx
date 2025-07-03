@@ -1,5 +1,6 @@
 'use client';
 
+import { useChat } from 'ai/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -48,11 +49,25 @@ export default function Thread({ inputId }: { inputId: string }) {
     useState<FlattenedEntry | null>(null);
   const [commentText, setCommentText] = useState('');
   const [urlText, setUrlText] = useState('');
+  const [isGeneratingComment, setIsGeneratingComment] = useState(false);
   const idSet = useRef(new Set<string>());
   const router = useRouter();
   const { autoScrollMode, maxDepth } = useAutoScrollMode();
   const processedEntries = useRef(new Set<string>());
   useAddQueueProcessor();
+
+  // AI Chat hook for auto comment generation
+  const {
+    messages,
+    append,
+    isLoading: isChatLoading,
+  } = useChat({
+    onFinish: (message) => {
+      // When AI finishes generating, update the comment text
+      setCommentText(message.content);
+      setIsGeneratingComment(false);
+    },
+  });
 
   const flattenEntry = (
     entry: Entry,
@@ -773,6 +788,197 @@ export default function Thread({ inputId }: { inputId: string }) {
     setIsAddImageModalOpen(true);
   };
 
+  const handleAutoComment = async () => {
+    if (!currentModalEntry) return;
+
+    setIsGeneratingComment(true);
+    const data = currentModalEntry.data || '';
+    const title = currentModalEntry.metadata?.title || 'Untitled';
+    const author = currentModalEntry.metadata?.author || 'Unknown';
+
+    try {
+      // Build complete thread context using the same logic as QuickLook
+      let threadContext = '';
+
+      // Step 1: Build complete ID tree structure using DFS
+      const allThreadIds = new Set<string>();
+      const parentChildMap = new Map<string, Set<string>>();
+      const childParentMap = new Map<string, string>();
+      const processedIds = new Set<string>();
+
+      // Helper to fetch entry metadata only
+      const fetchEntryMetadata = async (
+        id: string,
+      ): Promise<{ parent_id?: string; alias_ids?: any[] } | null> => {
+        try {
+          const response = await fetch('/api/fetch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id }),
+          });
+
+          if (!response.ok) return null;
+          const responseData = await response.json();
+          if (!responseData.data?.metadata) return null;
+
+          return {
+            parent_id: responseData.data.metadata.parent_id,
+            alias_ids: responseData.data.metadata.alias_ids || [],
+          };
+        } catch (error) {
+          console.error('Error fetching metadata:', error);
+          return null;
+        }
+      };
+
+      // DFS to build complete ID tree
+      const buildIdTree = async (entryId: string): Promise<void> => {
+        if (processedIds.has(entryId)) return;
+        processedIds.add(entryId);
+        allThreadIds.add(entryId);
+
+        // Use current entry data if it's the starting entry
+        let metadata;
+        if (entryId === currentModalEntry.id) {
+          metadata = {
+            parent_id: currentModalEntry.metadata?.parent_id,
+            alias_ids: currentModalEntry.metadata?.alias_ids || [],
+          };
+        } else {
+          metadata = await fetchEntryMetadata(entryId);
+          if (!metadata) return;
+        }
+
+        // Process parent relationship
+        if (metadata.parent_id && metadata.parent_id.trim()) {
+          const parentId = metadata.parent_id.trim();
+          childParentMap.set(entryId, parentId);
+
+          if (!parentChildMap.has(parentId)) {
+            parentChildMap.set(parentId, new Set());
+          }
+          parentChildMap.get(parentId)!.add(entryId);
+
+          // Recurse to parent
+          await buildIdTree(parentId);
+        }
+
+        // Process children relationships
+        if (metadata.alias_ids && Array.isArray(metadata.alias_ids)) {
+          const childIds = metadata.alias_ids
+            .filter((id: any) => typeof id === 'string' && id.trim() !== '')
+            .map((id: string) => id.trim());
+
+          if (!parentChildMap.has(entryId)) {
+            parentChildMap.set(entryId, new Set());
+          }
+
+          for (const childId of childIds) {
+            parentChildMap.get(entryId)!.add(childId);
+            childParentMap.set(childId, entryId);
+
+            // Recurse to child
+            // eslint-disable-next-line no-await-in-loop
+            await buildIdTree(childId);
+          }
+        }
+      };
+
+      // Only build thread if entry has relationships
+      if (
+        currentModalEntry.metadata?.parent_id ||
+        (currentModalEntry.metadata?.alias_ids &&
+          currentModalEntry.metadata.alias_ids.length > 0)
+      ) {
+        await buildIdTree(currentModalEntry.id);
+
+        if (allThreadIds.size > 1) {
+          // Fetch all thread entries in parallel
+          const threadEntries = new Map<string, any>();
+
+          const fetchPromises = Array.from(allThreadIds)
+            .filter((id) => id !== currentModalEntry.id)
+            .map(async (id) => {
+              try {
+                const response = await fetch('/api/fetch', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id }),
+                });
+
+                if (!response.ok) return null;
+                const responseData = await response.json();
+                if (!responseData.data) return null;
+
+                threadEntries.set(id, responseData.data);
+                return responseData.data;
+              } catch (error) {
+                console.error(`Error fetching entry ${id}:`, error);
+                return null;
+              }
+            });
+
+          await Promise.all(fetchPromises);
+
+          // Build thread context string
+          const threadTexts = Array.from(threadEntries.values()).map(
+            (entry) => {
+              const entryTitle = entry.metadata?.title || 'Untitled';
+              const entryAuthor = entry.metadata?.author || 'Unknown';
+              return `${entry.data} (${entryTitle}, ${entryAuthor})`;
+            },
+          );
+
+          if (threadTexts.length > 0) {
+            threadContext = threadTexts.join('\n\n');
+          }
+        }
+      }
+
+      // Fetch neighbors context
+      let neighborsContext = '';
+      try {
+        const neighborsResponse = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ platformId: currentModalEntry.id }),
+        });
+        const neighborsData = await neighborsResponse.json();
+        if (neighborsData.data && neighborsData.data.length > 0) {
+          const neighborTexts = neighborsData.data
+            .slice(0, 5)
+            .map((neighbor: any) => {
+              const neighborTitle = neighbor.metadata?.title || 'Untitled';
+              const neighborAuthor = neighbor.metadata?.author || 'Unknown';
+              return `${neighbor.data} (${neighborTitle}, ${neighborAuthor})`;
+            });
+          neighborsContext = neighborTexts.join('\n\n');
+        }
+      } catch (error) {
+        console.error('Error fetching neighbors:', error);
+      }
+
+      // Build the enhanced prompt with context
+      let prompt = `provide world context using specific details and references for entry. do not return a list: ${data} ${title} ${author}`;
+
+      if (threadContext) {
+        prompt += `\n\n{thread: ${threadContext}}`;
+      }
+
+      if (neighborsContext) {
+        prompt += `\n\n{neighbors: ${neighborsContext}}`;
+      }
+
+      await append({
+        role: 'user',
+        content: prompt,
+      });
+    } catch (error) {
+      console.error('Error generating auto comment:', error);
+      setIsGeneratingComment(false);
+    }
+  };
+
   const handleSubmitComment = () => {
     if (!commentText.trim() || !currentModalEntry) return;
 
@@ -1073,39 +1279,94 @@ export default function Thread({ inputId }: { inputId: string }) {
           <div className="flex h-[95vh] w-[95vw] max-w-4xl flex-col rounded-lg bg-white shadow-xl">
             <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
               <h2 className="text-xl font-bold text-gray-900">Add Comment</h2>
-              <button
-                onClick={() => {
-                  setIsAddCommentModalOpen(false);
-                  setCurrentModalEntry(null);
-                }}
-                className="text-gray-400 transition-colors hover:text-gray-600"
-                type="button"
-                aria-label="Close"
-              >
-                <svg
-                  className="size-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleAutoComment}
+                  disabled={isGeneratingComment || isChatLoading}
+                  className="flex items-center gap-2 rounded-md bg-purple-500 px-4 py-2 text-sm font-medium text-white hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-purple-300"
+                  type="button"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  {isGeneratingComment || isChatLoading ? (
+                    <>
+                      <div className="size-4 animate-spin rounded-full border-b-2 border-white" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="size-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 10V3L4 14h7v7l9-11h-7z"
+                        />
+                      </svg>
+                      Auto Comment
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setIsAddCommentModalOpen(false);
+                    setCurrentModalEntry(null);
+                    setCommentText('');
+                  }}
+                  className="text-gray-400 transition-colors hover:text-gray-600"
+                  type="button"
+                  aria-label="Close"
+                >
+                  <svg
+                    className="size-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                rows={10}
-                style={{ fontSize: '17px' }}
-                className="size-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                placeholder="Add a comment..."
-              />
+              <div className="relative size-full">
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  rows={10}
+                  style={{ fontSize: '17px' }}
+                  className="size-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="Add a comment..."
+                  disabled={isGeneratingComment || isChatLoading}
+                />
+                {(isGeneratingComment || isChatLoading) && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-white bg-opacity-75">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="size-8 animate-spin rounded-full border-b-2 border-purple-500" />
+                      <span className="text-sm font-medium text-gray-600">
+                        Generating AI comment...
+                      </span>
+                      {messages.length > 0 &&
+                        messages[messages.length - 1]?.role === 'assistant' &&
+                        messages[messages.length - 1]?.content && (
+                          <div className="max-h-40 max-w-2xl overflow-y-auto rounded-lg border bg-gray-50 p-4 text-left text-sm text-gray-700">
+                            <div className="whitespace-pre-wrap">
+                              {messages[messages.length - 1]?.content}
+                            </div>
+                          </div>
+                        )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 p-6">
               <button
@@ -1113,6 +1374,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                   setCommentText('');
                   setIsAddCommentModalOpen(false);
                   setCurrentModalEntry(null);
+                  setIsGeneratingComment(false);
                 }}
                 type="button"
                 className="rounded-lg bg-gray-500 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
