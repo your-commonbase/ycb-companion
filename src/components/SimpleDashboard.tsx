@@ -29,9 +29,7 @@ const TabButton = ({ label, isActive, onClick }: TabButtonProps) => (
   <button
     onClick={onClick}
     className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-      isActive
-        ? 'bg-gray-900 text-white'
-        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+      isActive ? 'border-b-2 border-black' : null
     }`}
     type="button"
     aria-pressed={isActive}
@@ -744,7 +742,7 @@ const SimpleDashboard = () => {
             <div className="space-y-4">
               {/* Random Entry Display */}
               <button
-                className="w-full cursor-pointer rounded-lg bg-gray-50 p-4 text-left transition-colors hover:bg-gray-100"
+                className="w-full cursor-pointer rounded-lg p-4 text-left transition-colors hover:bg-gray-100"
                 onClick={() =>
                   router.push(`/dashboard/entry/${randomEntry.id}`)
                 }

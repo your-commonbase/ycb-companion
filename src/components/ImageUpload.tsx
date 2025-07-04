@@ -66,18 +66,6 @@ export default function ImageUploader({
     }
   }
 
-  function handlePaste(e: ClipboardEvent) {
-    const items = Array.from(e.clipboardData?.items || []);
-    const imageItem = items.find((item) => item.type.startsWith('image/'));
-
-    if (imageItem) {
-      const ifile = imageItem.getAsFile();
-      if (ifile) {
-        handleFile(ifile);
-      }
-    }
-  }
-
   async function handleUpload(e: FormEvent) {
     e.preventDefault();
     if (!file) return;
@@ -134,10 +122,41 @@ export default function ImageUploader({
     }
   }
 
+  // Handle clipboard paste from button click
+  const handleClipboardPaste = async () => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const clipboardItem of clipboardItems) {
+        for (const type of clipboardItem.types) {
+          if (type.startsWith('image/')) {
+            // eslint-disable-next-line no-await-in-loop
+            const blob = await clipboardItem.getType(type);
+            const ifile = new File([blob], 'pasted-image.png', { type });
+            handleFile(ifile);
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to read clipboard contents: ', err);
+    }
+  };
+
   // Add paste event listener
   useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = Array.from(e.clipboardData?.items || []);
+      const imageItem = items.find((item) => item.type.startsWith('image/'));
+
+      if (imageItem) {
+        const ifile = imageItem.getAsFile();
+        if (ifile) {
+          handleFile(ifile);
+        }
+      }
+    };
+
     const handleGlobalPaste = (e: Event) => {
-      const clipboardEvent = e as unknown as ClipboardEvent;
       // Only handle paste if this component is focused or no other input is focused
       const { activeElement } = document;
       if (
@@ -145,7 +164,7 @@ export default function ImageUploader({
         (activeElement.tagName !== 'INPUT' &&
           activeElement.tagName !== 'TEXTAREA')
       ) {
-        handlePaste(clipboardEvent);
+        handlePaste(e as unknown as ClipboardEvent);
       }
     };
 
@@ -183,16 +202,6 @@ export default function ImageUploader({
           </div>
         ) : (
           <div className="space-y-2">
-            <div className="mx-auto size-12 text-gray-400">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M12 16l4-4m0 0l-4-4m4 4H8m13 4a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
             <div>
               <p className="text-sm text-gray-600">
                 Drag and drop an image here, or{' '}
@@ -205,7 +214,14 @@ export default function ImageUploader({
                 </button>
               </p>
               <p className="mt-1 text-xs text-gray-500">
-                You can also paste an image from your clipboard
+                You can also{' '}
+                <button
+                  type="button"
+                  onClick={handleClipboardPaste}
+                  className="text-blue-600 underline hover:text-blue-800"
+                >
+                  paste an image from your clipboard
+                </button>
               </p>
             </div>
           </div>

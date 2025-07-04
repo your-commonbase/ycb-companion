@@ -96,22 +96,24 @@ body {
   position: relative;
 }
 
-/* Background image with opacity using pseudo-element */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: var(--custom-background-image, none);
-  background-repeat: var(--custom-background-repeat, repeat);
-  background-size: var(--custom-background-size, auto);
-  background-position: var(--custom-background-position, top left);
-  background-attachment: var(--custom-background-attachment, fixed);
-  opacity: var(--custom-background-opacity, 1);
-  z-index: -1;
-  pointer-events: none;
+/* Background image with opacity using pseudo-element - only on desktop */
+@media (min-width: 1024px) {
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: var(--custom-background-image, none);
+    background-repeat: var(--custom-background-repeat, repeat);
+    background-size: var(--custom-background-size, auto);
+    background-position: var(--custom-background-position, top left);
+    background-attachment: var(--custom-background-attachment, fixed);
+    opacity: var(--custom-background-opacity, 1);
+    z-index: -1;
+    pointer-events: none;
+  }
 }
 
 /* Apply custom font to all text elements for that authentic 90s feel */
