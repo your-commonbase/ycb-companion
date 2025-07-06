@@ -52,6 +52,7 @@ export default function Thread({ inputId }: { inputId: string }) {
   const [isGeneratingComment, setIsGeneratingComment] = useState(false);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const idSet = useRef(new Set<string>());
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
   const { autoScrollMode, maxDepth } = useAutoScrollMode();
   const processedEntries = useRef(new Set<string>());
@@ -508,6 +509,13 @@ export default function Thread({ inputId }: { inputId: string }) {
         if (currentEntry) {
           setTreeModalEntry(currentEntry);
           setIsTreeModalOpen(true);
+        }
+      } else if (e.key === 'o' || e.key === 'O') {
+        e.preventDefault();
+        // Open metadata.author in new tab for current entry
+        const currentEntry = flattenedEntries[currentEntryIndex];
+        if (currentEntry?.metadata?.author) {
+          window.open(currentEntry.metadata.author, '_blank');
         }
       }
     };
@@ -1108,6 +1116,16 @@ export default function Thread({ inputId }: { inputId: string }) {
     });
   };
 
+  // Focus textarea when comment modal opens
+  useEffect(() => {
+    if (isAddCommentModalOpen && commentTextareaRef.current) {
+      // Use setTimeout to ensure the modal is fully rendered
+      setTimeout(() => {
+        commentTextareaRef.current?.focus();
+      }, 100);
+    }
+  }, [isAddCommentModalOpen]);
+
   return (
     <div
       className="min-h-screen"
@@ -1376,6 +1394,7 @@ export default function Thread({ inputId }: { inputId: string }) {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="relative size-full">
                 <textarea
+                  ref={commentTextareaRef}
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   onKeyDown={(e) => {

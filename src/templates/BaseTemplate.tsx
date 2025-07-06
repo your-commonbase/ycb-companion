@@ -79,7 +79,7 @@ const BaseTemplate = (props: {
           </a>
           <a
             className="text-blue-700 hover:border-b-2 hover:border-blue-700"
-            href="https://drive.google.com/file/d/18lSus68zLaU-zimvZQ8gKsCRVwj_hYwj/view?usp=sharing"
+            href="https://drive.google.com/file/d/19QNgbX7uedYPU1F7sA9M1Uc8yTzNTpGI/view?usp=sharing"
           >
             {' '}
             Get the Chrome Extension.
