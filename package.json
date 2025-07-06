@@ -85,6 +85,7 @@
     "react-syntax-highlighter": "^15.5.0",
     "react-tweet": "^3.2.1",
     "recharts": "^2.12.7",
+    "rehype-raw": "^7.0.0",
     "shadcn": "^2.0.8",
     "sharp": "^0.33.4",
     "tailwind-merge": "^2.5.2",

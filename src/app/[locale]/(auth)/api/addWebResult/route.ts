@@ -39,6 +39,13 @@ export const POST = async (request: Request) => {
           type: 'web_result',
           source_url: url,
         },
+        duplicate_check: {
+          fields: {
+            metadata: {
+              author: url,
+            },
+          },
+        },
       }),
     });
 

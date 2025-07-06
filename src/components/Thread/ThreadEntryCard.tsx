@@ -8,6 +8,7 @@ import LiteYouTubeEmbed from 'react-lite-youtube-embed';
 import ReactMarkdown from 'react-markdown';
 import { InstagramEmbed } from 'react-social-media-embed';
 import { Tweet } from 'react-tweet';
+import rehypeRaw from 'rehype-raw';
 
 import {
   Card,
@@ -828,7 +829,10 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
               className="prose max-w-none"
               style={{ fontSize: dynamicFontSize, lineHeight: '1.6' }}
             >
-              <ReactMarkdown className="markdown-domine leading-relaxed text-gray-900">
+              <ReactMarkdown
+                className="markdown-domine leading-relaxed text-gray-900"
+                rehypePlugins={[rehypeRaw]}
+              >
                 {entry.data}
               </ReactMarkdown>
             </div>

@@ -12,6 +12,7 @@ import LiteYouTubeEmbed from 'react-lite-youtube-embed';
 import ReactMarkdown from 'react-markdown';
 import { InstagramEmbed, TikTokEmbed } from 'react-social-media-embed';
 import { Tweet } from 'react-tweet';
+import rehypeRaw from 'rehype-raw';
 
 const Entry = ({
   hasAliases: initialHasAliases = false,
@@ -146,7 +147,10 @@ const Entry = ({
           className="flex items-center justify-between overflow-x-auto font-normal text-gray-900"
           id={`data-${id}`}
         >
-          <ReactMarkdown className="font-normal text-gray-900">
+          <ReactMarkdown
+            className="font-normal text-gray-900"
+            rehypePlugins={[rehypeRaw]}
+          >
             {data}
           </ReactMarkdown>
         </div>

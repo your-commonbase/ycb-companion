@@ -10,6 +10,7 @@
 import { useChat } from 'ai/react';
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 
 import QuickLook from '@/components/Thread/QuickLook';
 import type { FlattenedEntry } from '@/components/Thread/types';
@@ -696,7 +697,9 @@ export default function TwentyQuestionsPage() {
                           )}
 
                         <div className="text-sm text-gray-900">
-                          <ReactMarkdown>{result.data}</ReactMarkdown>
+                          <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                            {result.data}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     ))}
@@ -736,9 +739,11 @@ export default function TwentyQuestionsPage() {
                             >
                               {result.title}
                             </h5>
-                            <p className="mt-1 text-xs text-gray-600">
-                              {result.description}
-                            </p>
+                            <div className="mt-1 text-xs text-gray-600">
+                              <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                                {result.description}
+                              </ReactMarkdown>
+                            </div>
                           </div>
                           <button
                             onClick={() =>
