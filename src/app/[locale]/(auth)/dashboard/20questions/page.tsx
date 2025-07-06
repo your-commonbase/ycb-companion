@@ -1,9 +1,11 @@
 /* eslint-disable no-useless-escape */
+/* eslint-disable jsx-a11y/label-has-associated-control */
 
 'use client';
 
 import { useChat } from 'ai/react';
 import { useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 import QuickLook from '@/components/Thread/QuickLook';
 import type { FlattenedEntry } from '@/components/Thread/types';
@@ -32,6 +34,9 @@ export default function TwentyQuestionsPage() {
     null,
   );
   const [isQuickLookOpen, setIsQuickLookOpen] = useState(false);
+  const [hideDuplicates, setHideDuplicates] = useState(true);
+  const [, setSeenIds] = useState<Set<string>>(new Set());
+  const seenIdsRef = useRef<Set<string>>(new Set());
 
   // Track current operation type and target
   const [currentOperation, setCurrentOperation] = useState<{
@@ -57,12 +62,27 @@ export default function TwentyQuestionsPage() {
         const data = await response.json();
         console.log(`Search data for ${questionId}:`, data);
 
+        // Filter duplicates if hideDuplicates is enabled
+        let filteredResults = data.data || [];
+        if (hideDuplicates) {
+          filteredResults = filteredResults.filter((entry: any) => {
+            if (seenIdsRef.current.has(entry.id)) {
+              return false;
+            }
+            seenIdsRef.current.add(entry.id);
+            return true;
+          });
+
+          // Update state to match ref
+          setSeenIds(new Set(seenIdsRef.current));
+        }
+
         setQuestions((prev) =>
           prev.map((q) =>
             q.id === questionId
               ? {
                   ...q,
-                  searchResults: data.data || [],
+                  searchResults: filteredResults,
                   isLoadingSearch: false,
                 }
               : q,
@@ -70,17 +90,67 @@ export default function TwentyQuestionsPage() {
         );
 
         // Load images for image entries if any
-        const imageEntries = (data.data || []).filter(
+        const imageEntries = filteredResults.filter(
           (entry: any) => entry.metadata?.type === 'image',
         );
         if (imageEntries.length > 0) {
           const imageIds = imageEntries.map((entry: any) => entry.id);
-          await fetch('/api/fetchImageByIDs', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ids: imageIds }),
-          });
-          // Handle image URLs if needed
+          try {
+            console.log('Fetching images for IDs:', imageIds);
+            const imageResponse = await fetch('/api/fetchImageByIDs', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids: imageIds }),
+            });
+
+            if (imageResponse.ok) {
+              const imageData = await imageResponse.json();
+              console.log('Image response data:', imageData);
+
+              // Check if imageData has the expected structure: imageData.data.body.urls
+              if (
+                imageData &&
+                imageData.data &&
+                imageData.data.body &&
+                imageData.data.body.urls
+              ) {
+                const imageUrls = imageData.data.body.urls;
+
+                // Update questions with image URLs
+                setQuestions((prev) =>
+                  prev.map((q) =>
+                    q.id === questionId
+                      ? {
+                          ...q,
+                          searchResults: q.searchResults.map((entry: any) => {
+                            if (
+                              entry.metadata?.type === 'image' &&
+                              imageUrls[entry.id]
+                            ) {
+                              return {
+                                ...entry,
+                                tempImageUrl: imageUrls[entry.id],
+                              };
+                            }
+                            return entry;
+                          }),
+                        }
+                      : q,
+                  ),
+                );
+              } else {
+                console.warn('Unexpected image data structure:', imageData);
+              }
+            } else {
+              console.error(
+                'Image fetch failed:',
+                imageResponse.status,
+                imageResponse.statusText,
+              );
+            }
+          } catch (imageError) {
+            console.error('Error loading images:', imageError);
+          }
         }
       } else {
         console.error(`Search failed for ${questionId}:`, response.status);
@@ -138,6 +208,8 @@ export default function TwentyQuestionsPage() {
           if (newQuestions.length > 0) {
             setQuestions(newQuestions);
             setIsGenerating(false);
+            setSeenIds(new Set()); // Reset seen IDs for new questions
+            seenIdsRef.current = new Set(); // Reset ref as well
 
             // Automatically search for all questions
             console.log('Starting automatic searches...');
@@ -266,6 +338,8 @@ export default function TwentyQuestionsPage() {
           if (newQuestions.length > 0) {
             setQuestions(newQuestions);
             setIsGenerating(false);
+            setSeenIds(new Set()); // Reset seen IDs for new questions
+            seenIdsRef.current = new Set(); // Reset ref as well
 
             // Automatically search for all questions
             Promise.all(
@@ -324,12 +398,35 @@ export default function TwentyQuestionsPage() {
     }
   }, [isLoading, messages, currentOperation]);
 
+  // Effect to handle Hide Duplicates toggle
+  useEffect(() => {
+    if (questions.length > 0) {
+      // When hideDuplicates is turned off, refetch all search results
+      if (!hideDuplicates) {
+        setSeenIds(new Set());
+        seenIdsRef.current = new Set();
+        questions.forEach((question) => {
+          if (question.searchResults.length > 0) {
+            setQuestions((prev) =>
+              prev.map((q) =>
+                q.id === question.id ? { ...q, isLoadingSearch: true } : q,
+              ),
+            );
+            searchQuestionAutomatically(question.id, question.text);
+          }
+        });
+      }
+    }
+  }, [hideDuplicates]);
+
   const handleGenerateQuestions = async () => {
     if (!topic.trim()) return;
 
     setIsGenerating(true);
     setQuestions([]);
     setMessages([]); // Clear previous messages
+    setSeenIds(new Set()); // Reset seen IDs for new questions
+    seenIdsRef.current = new Set(); // Reset ref as well
 
     const operation = { type: 'questions' as const };
     console.log('Setting currentOperation for questions:', operation);
@@ -412,6 +509,21 @@ export default function TwentyQuestionsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                id="hide-duplicates"
+                checked={hideDuplicates}
+                onChange={(e) => setHideDuplicates(e.target.checked)}
+                className="size-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label
+                htmlFor="hide-duplicates"
+                className="text-sm font-medium text-gray-700"
+              >
+                Hide Duplicates
+              </label>
+            </div>
             <div className="space-y-2">
               {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
               <label className="text-sm font-medium text-gray-700">
@@ -520,27 +632,59 @@ export default function TwentyQuestionsPage() {
                   <h4 className="mb-3 font-medium text-gray-700">
                     Your Commonbase Results:
                   </h4>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {question.searchResults.map((result) => (
                       <div
                         key={result.id}
-                        className="flex items-start justify-between rounded-lg border border-gray-100 p-3"
+                        className="rounded-lg border border-gray-100 p-4"
                       >
-                        <div className="flex-1">
-                          <p className="line-clamp-2 text-sm text-gray-900">
-                            {result.data}
-                          </p>
-                          <p className="mt-1 text-xs text-gray-500">
+                        <div className="mb-3 flex items-start justify-between">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleQuickLook(result)}
+                              className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200"
+                              type="button"
+                            >
+                              Quick Look
+                            </button>
+                            {result.similarity && (
+                              <span className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700">
+                                {(result.similarity * 100).toFixed(1)}% match
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">
                             {new Date(result.createdAt).toLocaleDateString()}
-                          </p>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => handleQuickLook(result)}
-                          className="ml-3 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200"
-                          type="button"
-                        >
-                          Quick Look
-                        </button>
+
+                        {/* Handle image type entries */}
+                        {result.metadata?.type === 'image' &&
+                          result.tempImageUrl && (
+                            <div className="mb-3">
+                              <img
+                                src={result.tempImageUrl}
+                                alt="Content"
+                                className="h-auto max-w-full rounded-lg"
+                                style={{ maxHeight: '200px' }}
+                                onError={(e) => {
+                                  console.error('Image load error:', e);
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                                onLoad={() => {
+                                  console.log(
+                                    'Image loaded successfully:',
+                                    result.tempImageUrl,
+                                  );
+                                }}
+                              />
+                            </div>
+                          )}
+
+                        <div className="text-sm text-gray-900">
+                          <ReactMarkdown>{result.data}</ReactMarkdown>
+                        </div>
                       </div>
                     ))}
                   </div>
