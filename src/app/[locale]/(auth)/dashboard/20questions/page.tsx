@@ -56,6 +56,7 @@ export default function TwentyQuestionsPage() {
   const [topic, setTopic] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSearchingWeb, setIsSearchingWeb] = useState(false);
   const [quickLookEntry, setQuickLookEntry] = useState<FlattenedEntry | null>(
     null,
   );
@@ -84,7 +85,8 @@ export default function TwentyQuestionsPage() {
     );
 
     try {
-      console.log('Analyzing relevance for question:', questionText);
+      console.log('🔍 Starting relevance analysis for question:', questionText);
+      console.log('📊 Search results to analyze:', searchResults.length);
 
       // Prepare the prompt with question and search results
       const resultsForAnalysis = searchResults.map((result, index) => ({
@@ -92,6 +94,8 @@ export default function TwentyQuestionsPage() {
         id: result.id,
         content: result.data,
       }));
+
+      console.log('📝 Prepared results for analysis:', resultsForAnalysis);
 
       const prompt = `Given this question and search results, for each search result, identify the most relevant substring that answers or relates to the question. Return a JSON array with the format:
 [
@@ -110,6 +114,7 @@ ${resultsForAnalysis.map((result) => `${result.index}. ${result.content}`).join(
 
 Return ONLY the JSON array, no other text.`;
 
+      console.log('🚀 Sending AI analysis request...');
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,39 +123,107 @@ Return ONLY the JSON array, no other text.`;
         }),
       });
 
+      console.log('📡 AI response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('📦 Full AI response data:', data);
+
         const aiResponse =
           data.messages?.[data.messages.length - 1]?.content || '';
+        console.log('🤖 AI response content:', aiResponse);
+        console.log('🤖 AI response length:', aiResponse.length);
+
+        // Handle streaming response or markdown-wrapped JSON
+        let jsonContent = aiResponse;
+
+        // If response is wrapped in markdown code blocks, extract the JSON
+        const codeBlockMatch = aiResponse.match(
+          /```(?:json)?\s*([\s\S]*?)\s*```/,
+        );
+        if (codeBlockMatch) {
+          jsonContent = codeBlockMatch[1].trim();
+          console.log('📄 Extracted JSON from code block:', jsonContent);
+        }
 
         try {
-          // Parse the AI response as JSON
-          const analysisResults = JSON.parse(aiResponse);
-
-          if (Array.isArray(analysisResults)) {
-            // Update search results with highlighted content
+          // If content is empty or just whitespace, skip processing
+          if (!jsonContent.trim() || jsonContent.trim() === '[]') {
+            console.warn('⚠️ Empty or no analysis results returned');
             setQuestions((prev) =>
               prev.map((q) =>
-                q.id === questionId
-                  ? {
-                      ...q,
-                      searchResults: q.searchResults.map((result, index) => {
-                        const analysis = analysisResults.find(
-                          (a) => a.index === index,
-                        );
-                        return {
-                          ...result,
-                          highlightedData:
-                            analysis?.highlightedContent || result.data,
-                        };
-                      }),
-                      isAnalyzingRelevance: false,
-                    }
-                  : q,
+                q.id === questionId ? { ...q, isAnalyzingRelevance: false } : q,
               ),
             );
+            return;
+          }
+
+          // Parse the AI response as JSON
+          const analysisResults = JSON.parse(jsonContent);
+          console.log('✅ Parsed analysis results:', analysisResults);
+          console.log('📊 Analysis results count:', analysisResults.length);
+
+          if (Array.isArray(analysisResults) && analysisResults.length > 0) {
+            console.log('🎯 Updating search results with highlights...');
+
+            // Validate that analysis results have the expected structure
+            const validResults = analysisResults.filter(
+              (result) =>
+                result &&
+                typeof result.index === 'number' &&
+                typeof result.highlightedContent === 'string',
+            );
+
             console.log(
-              'Successfully analyzed relevance for question:',
+              '✔️ Valid analysis results:',
+              validResults.length,
+              'of',
+              analysisResults.length,
+            );
+
+            if (validResults.length > 0) {
+              // Update search results with highlighted content
+              setQuestions((prev) => {
+                const updated = prev.map((q) =>
+                  q.id === questionId
+                    ? {
+                        ...q,
+                        searchResults: q.searchResults.map((result, index) => {
+                          const analysis = validResults.find(
+                            (a) => a.index === index,
+                          );
+                          const highlighted =
+                            analysis?.highlightedContent || result.data;
+                          console.log(`💡 Result ${index} highlighted:`, {
+                            original: result.data.substring(0, 100),
+                            highlighted: highlighted.substring(0, 100),
+                            hasHighlights: highlighted !== result.data,
+                            analysisFound: !!analysis,
+                          });
+                          return {
+                            ...result,
+                            highlightedData: highlighted,
+                          };
+                        }),
+                        isAnalyzingRelevance: false,
+                      }
+                    : q,
+                );
+                console.log('📱 State updated with highlights');
+                return updated;
+              });
+            } else {
+              console.warn('⚠️ No valid analysis results found');
+              setQuestions((prev) =>
+                prev.map((q) =>
+                  q.id === questionId
+                    ? { ...q, isAnalyzingRelevance: false }
+                    : q,
+                ),
+              );
+            }
+            console.log(
+              '✅ Successfully analyzed relevance for question:',
               questionId,
             );
           } else {
@@ -162,7 +235,60 @@ Return ONLY the JSON array, no other text.`;
             );
           }
         } catch (parseError) {
-          console.warn('Failed to parse AI analysis response:', parseError);
+          console.warn('❌ Failed to parse AI analysis response:', parseError);
+          console.warn('🔍 Raw response that failed to parse:', aiResponse);
+          console.warn('📝 Attempted to parse as JSON:', jsonContent);
+
+          // Try to extract any JSON-like content as a fallback
+          const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            try {
+              console.log('🔄 Attempting fallback JSON extraction...');
+              const fallbackJson = JSON.parse(jsonMatch[0]);
+              console.log('✅ Fallback parsing succeeded:', fallbackJson);
+
+              if (Array.isArray(fallbackJson) && fallbackJson.length > 0) {
+                // Use the fallback parsing result
+                const validResults = fallbackJson.filter(
+                  (result) =>
+                    result &&
+                    typeof result.index === 'number' &&
+                    typeof result.highlightedContent === 'string',
+                );
+
+                if (validResults.length > 0) {
+                  setQuestions((prev) =>
+                    prev.map((q) =>
+                      q.id === questionId
+                        ? {
+                            ...q,
+                            searchResults: q.searchResults.map(
+                              (result, index) => {
+                                const analysis = validResults.find(
+                                  (a) => a.index === index,
+                                );
+                                return {
+                                  ...result,
+                                  highlightedData:
+                                    analysis?.highlightedContent || result.data,
+                                };
+                              },
+                            ),
+                            isAnalyzingRelevance: false,
+                          }
+                        : q,
+                    ),
+                  );
+                  console.log('✅ Fallback highlighting applied');
+                  return; // Exit successfully
+                }
+              }
+            } catch (fallbackError) {
+              console.warn('❌ Fallback parsing also failed:', fallbackError);
+            }
+          }
+
+          // If all parsing attempts fail, just reset the state
           setQuestions((prev) =>
             prev.map((q) =>
               q.id === questionId ? { ...q, isAnalyzingRelevance: false } : q,
@@ -234,10 +360,25 @@ Return ONLY the JSON array, no other text.`;
 
         // Trigger AI analysis in the background (silently)
         if (filteredResults.length > 0) {
+          console.log('🔥 Triggering AI analysis for question:', questionId);
+          console.log(
+            '📋 Filtered results structure:',
+            filteredResults.map((r: any) => ({
+              id: r.id,
+              dataLength: r.data?.length || 0,
+              hasData: !!r.data,
+            })),
+          );
+
           analyzeSearchResultRelevance(
             questionId,
             questionText,
             filteredResults,
+          );
+        } else {
+          console.log(
+            '⚠️ No filtered results to analyze for question:',
+            questionId,
           );
         }
 
@@ -482,26 +623,58 @@ Return ONLY the JSON array, no other text.`;
     if (!topic.trim()) return;
 
     setIsGenerating(true);
+    setIsSearchingWeb(true);
     setQuestions([]);
     setMessages([]); // Clear previous messages
     setSeenIds(new Set()); // Reset seen IDs for new questions
     seenIdsRef.current = new Set(); // Reset ref as well
 
-    const operation = { type: 'questions' as const };
-    console.log('Setting currentOperation for questions:', operation);
-    setCurrentOperation(operation);
-
     try {
-      console.log('Calling append for questions...');
+      console.log('🌐 Starting initial web search for topic:', topic.trim());
+
+      // First, do a web search to get current context
+      const webSearchResponse = await fetch(
+        `/api/internetSearch?query=${encodeURIComponent(topic.trim())}`,
+      );
+      let webContext = '';
+
+      if (webSearchResponse.ok) {
+        const webData = await webSearchResponse.json();
+        const webResults = webData.data || [];
+        console.log('🔍 Web search found', webResults.length, 'results');
+
+        if (webResults.length > 0) {
+          webContext = `\n\nCurrent web search context:\n${webResults
+            .slice(0, 5)
+            .map(
+              (result: any, index: number) =>
+                `${index + 1}. ${result.title}: ${result.description}`,
+            )
+            .join('\n')}`;
+        }
+      } else {
+        console.warn('⚠️ Web search failed:', webSearchResponse.status);
+      }
+
+      setIsSearchingWeb(false);
+
+      const operation = { type: 'questions' as const };
+      console.log('Setting currentOperation for questions:', operation);
+      setCurrentOperation(operation);
+
+      console.log('🤖 Calling append for questions with web context...');
       await append({
         role: 'user',
-        content: `Generate 20 distinct questions about this topic: ${topic.trim()}. Format each question as a numbered list (1. Question text, 2. Question text, etc.)`,
+        content: `Generate 20 distinct questions about this topic: ${topic.trim()}. Make sure the questions are comprehensive and cover different aspects of the topic.${webContext}
+        
+Format each question as a numbered list (1. Question text, 2. Question text, etc.)`,
       });
       console.log('Append call completed for questions');
     } catch (error) {
       // Error generating questions
       console.error('Error in handleGenerateQuestions:', error);
       setIsGenerating(false);
+      setIsSearchingWeb(false);
       setCurrentOperation(null);
     }
   };
@@ -715,10 +888,12 @@ Return ONLY the JSON array, no other text.`;
               className="rounded-lg bg-blue-600 px-6 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               type="button"
             >
-              {isGenerating ||
-              (isLoading && currentOperation?.type === 'questions')
-                ? 'Generating Questions...'
-                : 'Generate 20 Questions'}
+              {isSearchingWeb
+                ? 'Searching Web...'
+                : isGenerating ||
+                    (isLoading && currentOperation?.type === 'questions')
+                  ? 'Generating Questions...'
+                  : 'Generate 20 Questions'}
             </button>
           </div>
         </CardContent>
