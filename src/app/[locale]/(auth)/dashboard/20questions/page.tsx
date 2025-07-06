@@ -1,5 +1,9 @@
 /* eslint-disable no-useless-escape */
 /* eslint-disable jsx-a11y/label-has-associated-control */
+/* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable react/no-array-index-key */
+/* eslint-disable no-nested-ternary */
 
 'use client';
 
@@ -17,13 +21,23 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
+interface WebResult {
+  title: string;
+  url: string;
+  description: string;
+  isAdded?: boolean;
+  isAdding?: boolean;
+}
+
 interface Question {
   id: string;
   text: string;
   searchResults: any[];
   resources: string[];
+  webResults: WebResult[];
   isLoadingSearch: boolean;
   isLoadingResources: boolean;
+  isLoadingWebResults: boolean;
 }
 
 export default function TwentyQuestionsPage() {
@@ -40,8 +54,7 @@ export default function TwentyQuestionsPage() {
 
   // Track current operation type and target
   const [currentOperation, setCurrentOperation] = useState<{
-    type: 'questions' | 'resources';
-    questionId?: string;
+    type: 'questions';
   } | null>(null);
 
   const searchQuestionAutomatically = async (
@@ -201,6 +214,8 @@ export default function TwentyQuestionsPage() {
             resources: [],
             isLoadingSearch: true, // Start with loading state
             isLoadingResources: false,
+            isLoadingWebResults: false,
+            webResults: [],
           }));
 
           console.log('Parsed questions:', newQuestions);
@@ -223,69 +238,11 @@ export default function TwentyQuestionsPage() {
             console.warn('No questions parsed from response');
             setIsGenerating(false);
           }
-        } else if (
-          currentOperation.type === 'resources' &&
-          currentOperation.questionId
-        ) {
-          // Parse the AI response to extract resources
-          const { content } = message;
-          const lines = content.split('\n').filter((line) => line.trim());
-
-          // Extract lines that look like resources
-          const resources = lines
-            .filter(
-              (line) =>
-                line.match(/^[\-\*\•]\s+/) || // Bullet points
-                line.match(/^\d+\.\s+/) || // Numbered lists
-                line.includes('http') || // URLs
-                line.length > 10, // Substantial content
-            )
-            .map((line) => line.replace(/^[\-\*\•\d\.\s]+/, '').trim()) // Clean up formatting
-            .filter((line) => line.length > 5) // Remove very short items
-            .slice(0, 10); // Limit to 10 resources
-
-          // If no structured resources found, split by sentences and take meaningful ones
-          if (resources.length === 0) {
-            const sentences = content
-              .split(/[.!?]+/)
-              .filter((s) => s.trim().length > 20);
-            resources.push(...sentences.slice(0, 5).map((s) => s.trim()));
-          }
-
-          setQuestions((prev) =>
-            prev.map((q) =>
-              q.id === currentOperation.questionId
-                ? {
-                    ...q,
-                    resources:
-                      resources.length > 0
-                        ? resources
-                        : ['No specific resources found in response'],
-                    isLoadingResources: false,
-                  }
-                : q,
-            ),
-          );
         }
       } catch (error) {
         // Error handling
         if (currentOperation.type === 'questions') {
           setIsGenerating(false);
-        } else if (
-          currentOperation.type === 'resources' &&
-          currentOperation.questionId
-        ) {
-          setQuestions((prev) =>
-            prev.map((q) =>
-              q.id === currentOperation.questionId
-                ? {
-                    ...q,
-                    resources: ['Error generating resources'],
-                    isLoadingResources: false,
-                  }
-                : q,
-            ),
-          );
         }
       }
 
@@ -331,8 +288,10 @@ export default function TwentyQuestionsPage() {
             text: line.replace(/^\d+\.\s*/, '').trim(),
             searchResults: [],
             resources: [],
+            webResults: [],
             isLoadingSearch: true,
             isLoadingResources: false,
+            isLoadingWebResults: false,
           }));
 
           if (newQuestions.length > 0) {
@@ -350,47 +309,6 @@ export default function TwentyQuestionsPage() {
           } else {
             setIsGenerating(false);
           }
-        } else if (
-          currentOperation.type === 'resources' &&
-          currentOperation.questionId
-        ) {
-          console.log('Fallback: Processing resources');
-          const { content } = lastMessage!;
-          const lines = content.split('\n').filter((line) => line.trim());
-
-          const resources = lines
-            .filter(
-              (line) =>
-                line.match(/^[\-\*\•]\s+/) ||
-                line.match(/^\d+\.\s+/) ||
-                line.includes('http') ||
-                line.length > 10,
-            )
-            .map((line) => line.replace(/^[\-\*\•\d\.\s]+/, '').trim())
-            .filter((line) => line.length > 5)
-            .slice(0, 10);
-
-          if (resources.length === 0) {
-            const sentences = content
-              .split(/[.!?]+/)
-              .filter((s) => s.trim().length > 20);
-            resources.push(...sentences.slice(0, 5).map((s) => s.trim()));
-          }
-
-          setQuestions((prev) =>
-            prev.map((q) =>
-              q.id === currentOperation.questionId
-                ? {
-                    ...q,
-                    resources:
-                      resources.length > 0
-                        ? resources
-                        : ['No specific resources found in response'],
-                    isLoadingResources: false,
-                  }
-                : q,
-            ),
-          );
         }
 
         setCurrentOperation(null);
@@ -453,30 +371,133 @@ export default function TwentyQuestionsPage() {
   ) => {
     setQuestions((prev) =>
       prev.map((q) =>
-        q.id === questionId ? { ...q, isLoadingResources: true } : q,
+        q.id === questionId ? { ...q, isLoadingWebResults: true } : q,
       ),
     );
 
-    const operation = { type: 'resources' as const, questionId };
-    console.log('Setting currentOperation for resources:', operation);
-    setCurrentOperation(operation);
-
     try {
-      console.log('Calling append for resources...');
-      await append({
-        role: 'user',
-        content: `Generate useful resources and references for learning about this question: "${questionText}". Please provide specific books, articles, websites, courses, tools, or other educational materials. Format your response as a list with clear titles and brief descriptions.`,
-      });
-      console.log('Append call completed for resources');
+      console.log('Calling web search for resources...');
+      const response = await fetch(
+        `/api/internetSearch?query=${encodeURIComponent(questionText)}`,
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Web search results:', data);
+
+        setQuestions((prev) =>
+          prev.map((q) =>
+            q.id === questionId
+              ? {
+                  ...q,
+                  webResults: data.data || [],
+                  isLoadingWebResults: false,
+                }
+              : q,
+          ),
+        );
+      } else {
+        console.error('Web search failed:', response.status);
+        setQuestions((prev) =>
+          prev.map((q) =>
+            q.id === questionId ? { ...q, isLoadingWebResults: false } : q,
+          ),
+        );
+      }
     } catch (error) {
-      // Error generating resources
       console.error('Error in handleGenerateResources:', error);
       setQuestions((prev) =>
         prev.map((q) =>
-          q.id === questionId ? { ...q, isLoadingResources: false } : q,
+          q.id === questionId ? { ...q, isLoadingWebResults: false } : q,
         ),
       );
-      setCurrentOperation(null);
+    }
+  };
+
+  const handleAddWebResult = async (
+    webResult: WebResult,
+    questionId: string,
+  ) => {
+    // Set adding state
+    setQuestions((prev) =>
+      prev.map((q) =>
+        q.id === questionId
+          ? {
+              ...q,
+              webResults: q.webResults.map((result) =>
+                result.url === webResult.url
+                  ? { ...result, isAdding: true }
+                  : result,
+              ),
+            }
+          : q,
+      ),
+    );
+
+    try {
+      console.log('Adding web result to YCB:', webResult);
+      const response = await fetch('/api/addWebResult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: webResult.title,
+          description: webResult.description,
+          url: webResult.url,
+        }),
+      });
+
+      if (response.ok) {
+        console.log('Web result added successfully');
+        // Set as successfully added
+        setQuestions((prev) =>
+          prev.map((q) =>
+            q.id === questionId
+              ? {
+                  ...q,
+                  webResults: q.webResults.map((result) =>
+                    result.url === webResult.url
+                      ? { ...result, isAdding: false, isAdded: true }
+                      : result,
+                  ),
+                }
+              : q,
+          ),
+        );
+      } else {
+        console.error('Failed to add web result:', response.status);
+        // Reset adding state on error
+        setQuestions((prev) =>
+          prev.map((q) =>
+            q.id === questionId
+              ? {
+                  ...q,
+                  webResults: q.webResults.map((result) =>
+                    result.url === webResult.url
+                      ? { ...result, isAdding: false }
+                      : result,
+                  ),
+                }
+              : q,
+          ),
+        );
+      }
+    } catch (error) {
+      console.error('Error adding web result:', error);
+      // Reset adding state on error
+      setQuestions((prev) =>
+        prev.map((q) =>
+          q.id === questionId
+            ? {
+                ...q,
+                webResults: q.webResults.map((result) =>
+                  result.url === webResult.url
+                    ? { ...result, isAdding: false }
+                    : result,
+                ),
+              }
+            : q,
+        ),
+      );
     }
   };
 
@@ -606,20 +627,12 @@ export default function TwentyQuestionsPage() {
                       onClick={() =>
                         handleGenerateResources(question.id, question.text)
                       }
-                      disabled={
-                        question.isLoadingResources ||
-                        (isLoading &&
-                          currentOperation?.type === 'resources' &&
-                          currentOperation?.questionId === question.id)
-                      }
+                      disabled={question.isLoadingWebResults}
                       className="rounded bg-purple-600 px-3 py-1 text-sm text-white hover:bg-purple-700 disabled:opacity-50"
                       type="button"
                     >
-                      {question.isLoadingResources ||
-                      (isLoading &&
-                        currentOperation?.type === 'resources' &&
-                        currentOperation?.questionId === question.id)
-                        ? 'Generating...'
+                      {question.isLoadingWebResults
+                        ? 'Searching Web...'
                         : 'Generate Resources'}
                     </button>
                   </div>
@@ -691,37 +704,121 @@ export default function TwentyQuestionsPage() {
                 </CardContent>
               )}
 
-              {/* Streaming Resources */}
-              {isLoading &&
-                currentOperation?.type === 'resources' &&
-                currentOperation?.questionId === question.id &&
-                messages.length > 0 && (
-                  <CardContent>
-                    <h4 className="mb-3 font-medium text-gray-700">
-                      <div className="flex items-center gap-2">
-                        <div className="size-4 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
-                        Generating Resources...
-                      </div>
-                    </h4>
-                    <div className="whitespace-pre-wrap text-sm text-gray-600">
-                      {messages[messages.length - 1]?.content || ''}
-                    </div>
-                  </CardContent>
-                )}
-
-              {/* Resources */}
-              {question.resources.length > 0 && (
+              {/* Web Search Results */}
+              {question.isLoadingWebResults && (
                 <CardContent>
                   <h4 className="mb-3 font-medium text-gray-700">
-                    Recommended Resources:
+                    <div className="flex items-center gap-2">
+                      <div className="size-4 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
+                      Searching the web for resources...
+                    </div>
                   </h4>
-                  <ul className="space-y-1">
-                    {question.resources.map((resource) => (
-                      <li key={resource} className="text-sm text-gray-600">
-                        • {resource}
-                      </li>
+                </CardContent>
+              )}
+
+              {/* Web Results */}
+              {question.webResults.length > 0 && (
+                <CardContent>
+                  <h4 className="mb-3 font-medium text-gray-700">
+                    Web Resources:
+                  </h4>
+                  <div className="space-y-3">
+                    {question.webResults.map((result, index) => (
+                      <div
+                        key={index}
+                        className="rounded-lg border border-gray-100 p-3"
+                      >
+                        <div className="mb-2 flex items-start justify-between">
+                          <div className="flex-1">
+                            <h5
+                              className="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                              onClick={() => window.open(result.url, '_blank')}
+                            >
+                              {result.title}
+                            </h5>
+                            <p className="mt-1 text-xs text-gray-600">
+                              {result.description}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() =>
+                              handleAddWebResult(result, question.id)
+                            }
+                            disabled={result.isAdding || result.isAdded}
+                            className={`ml-3 rounded-full p-1.5 transition-colors ${
+                              result.isAdded
+                                ? 'bg-green-500 text-white'
+                                : result.isAdding
+                                  ? 'bg-gray-200 text-gray-500'
+                                  : 'bg-green-100 text-green-600 hover:bg-green-200'
+                            }`}
+                            type="button"
+                            title={
+                              result.isAdded
+                                ? 'Added to YCB'
+                                : result.isAdding
+                                  ? 'Adding...'
+                                  : 'Add to YCB'
+                            }
+                            aria-label={
+                              result.isAdded
+                                ? 'Added to YCB'
+                                : result.isAdding
+                                  ? 'Adding...'
+                                  : 'Add to YCB'
+                            }
+                          >
+                            {result.isAdding ? (
+                              <svg
+                                className="size-4 animate-spin"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                />
+                              </svg>
+                            ) : result.isAdded ? (
+                              <svg
+                                className="size-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            ) : (
+                              <svg
+                                className="size-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                        <div className="truncate text-xs text-gray-500">
+                          {result.url}
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </CardContent>
               )}
             </Card>
