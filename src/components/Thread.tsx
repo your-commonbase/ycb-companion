@@ -1378,6 +1378,14 @@ export default function Thread({ inputId }: { inputId: string }) {
                 <textarea
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (commentText.trim() && currentModalEntry) {
+                        handleSubmitComment();
+                      }
+                    }
+                  }}
                   rows={10}
                   style={{ fontSize: '17px' }}
                   className="size-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
@@ -1421,7 +1429,7 @@ export default function Thread({ inputId }: { inputId: string }) {
               <button
                 onClick={handleSubmitComment}
                 type="button"
-                className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="rounded-lg px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 Add Comment
               </button>

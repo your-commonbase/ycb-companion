@@ -772,6 +772,14 @@ const SimpleDashboard = () => {
                 <textarea
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (commentText.trim() && !isAddingComment) {
+                        handleAddComment();
+                      }
+                    }
+                  }}
                   placeholder="What connections do you see? What does this remind you of?"
                   className="h-24 w-full resize-none rounded-lg border border-gray-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -779,7 +787,7 @@ const SimpleDashboard = () => {
                   <button
                     onClick={handleAddComment}
                     disabled={!commentText.trim() || isAddingComment}
-                    className="rounded-lg bg-blue-600 px-6 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg px-6 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                     type="button"
                   >
                     {isAddingComment ? 'Adding Comment...' : 'Add Comment'}
