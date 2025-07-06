@@ -30,15 +30,26 @@ interface WebResult {
   isAdding?: boolean;
 }
 
+interface SearchResult {
+  id: string;
+  data: string;
+  highlightedData?: string; // AI-highlighted version with <strong> tags
+  createdAt: string;
+  metadata: any;
+  similarity?: number;
+  tempImageUrl?: string;
+}
+
 interface Question {
   id: string;
   text: string;
-  searchResults: any[];
+  searchResults: SearchResult[];
   resources: string[];
   webResults: WebResult[];
   isLoadingSearch: boolean;
   isLoadingResources: boolean;
   isLoadingWebResults: boolean;
+  isAnalyzingRelevance: boolean;
 }
 
 export default function TwentyQuestionsPage() {
@@ -57,6 +68,124 @@ export default function TwentyQuestionsPage() {
   const [currentOperation, setCurrentOperation] = useState<{
     type: 'questions';
   } | null>(null);
+
+  const analyzeSearchResultRelevance = async (
+    questionId: string,
+    questionText: string,
+    searchResults: SearchResult[],
+  ) => {
+    if (searchResults.length === 0) return;
+
+    // Set analyzing state
+    setQuestions((prev) =>
+      prev.map((q) =>
+        q.id === questionId ? { ...q, isAnalyzingRelevance: true } : q,
+      ),
+    );
+
+    try {
+      console.log('Analyzing relevance for question:', questionText);
+
+      // Prepare the prompt with question and search results
+      const resultsForAnalysis = searchResults.map((result, index) => ({
+        index,
+        id: result.id,
+        content: result.data,
+      }));
+
+      const prompt = `Given this question and search results, for each search result, identify the most relevant substring that answers or relates to the question. Return a JSON array with the format:
+[
+  {
+    "index": 0,
+    "relevantSubstring": "the exact text from the content that is most relevant",
+    "highlightedContent": "the full content with <strong> tags around the relevant substring"
+  },
+  ...
+]
+
+Question: "${questionText}"
+
+Search Results:
+${resultsForAnalysis.map((result) => `${result.index}. ${result.content}`).join('\n\n')}
+
+Return ONLY the JSON array, no other text.`;
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const aiResponse =
+          data.messages?.[data.messages.length - 1]?.content || '';
+
+        try {
+          // Parse the AI response as JSON
+          const analysisResults = JSON.parse(aiResponse);
+
+          if (Array.isArray(analysisResults)) {
+            // Update search results with highlighted content
+            setQuestions((prev) =>
+              prev.map((q) =>
+                q.id === questionId
+                  ? {
+                      ...q,
+                      searchResults: q.searchResults.map((result, index) => {
+                        const analysis = analysisResults.find(
+                          (a) => a.index === index,
+                        );
+                        return {
+                          ...result,
+                          highlightedData:
+                            analysis?.highlightedContent || result.data,
+                        };
+                      }),
+                      isAnalyzingRelevance: false,
+                    }
+                  : q,
+              ),
+            );
+            console.log(
+              'Successfully analyzed relevance for question:',
+              questionId,
+            );
+          } else {
+            console.warn('AI response was not a valid array:', analysisResults);
+            setQuestions((prev) =>
+              prev.map((q) =>
+                q.id === questionId ? { ...q, isAnalyzingRelevance: false } : q,
+              ),
+            );
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse AI analysis response:', parseError);
+          setQuestions((prev) =>
+            prev.map((q) =>
+              q.id === questionId ? { ...q, isAnalyzingRelevance: false } : q,
+            ),
+          );
+        }
+      } else {
+        console.warn('AI analysis request failed:', response.status);
+        setQuestions((prev) =>
+          prev.map((q) =>
+            q.id === questionId ? { ...q, isAnalyzingRelevance: false } : q,
+          ),
+        );
+      }
+    } catch (error) {
+      console.warn('Error analyzing search result relevance:', error);
+      setQuestions((prev) =>
+        prev.map((q) =>
+          q.id === questionId ? { ...q, isAnalyzingRelevance: false } : q,
+        ),
+      );
+    }
+  };
 
   const searchQuestionAutomatically = async (
     questionId: string,
@@ -102,6 +231,15 @@ export default function TwentyQuestionsPage() {
               : q,
           ),
         );
+
+        // Trigger AI analysis in the background (silently)
+        if (filteredResults.length > 0) {
+          analyzeSearchResultRelevance(
+            questionId,
+            questionText,
+            filteredResults,
+          );
+        }
 
         // Load images for image entries if any
         const imageEntries = filteredResults.filter(
@@ -216,6 +354,7 @@ export default function TwentyQuestionsPage() {
             isLoadingSearch: true, // Start with loading state
             isLoadingResources: false,
             isLoadingWebResults: false,
+            isAnalyzingRelevance: false,
             webResults: [],
           }));
 
@@ -293,6 +432,7 @@ export default function TwentyQuestionsPage() {
             isLoadingSearch: true,
             isLoadingResources: false,
             isLoadingWebResults: false,
+            isAnalyzingRelevance: false,
           }));
 
           if (newQuestions.length > 0) {
@@ -643,9 +783,17 @@ export default function TwentyQuestionsPage() {
               {/* Search Results */}
               {question.searchResults.length > 0 && (
                 <CardContent>
-                  <h4 className="mb-3 font-medium text-gray-700">
-                    Your Commonbase Results:
-                  </h4>
+                  <div className="mb-3 flex items-center gap-2">
+                    <h4 className="font-medium text-gray-700">
+                      Your Commonbase Results:
+                    </h4>
+                    {question.isAnalyzingRelevance && (
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <div className="size-3 animate-spin rounded-full border border-gray-300 border-t-transparent" />
+                        <span>Analyzing relevance...</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="space-y-3">
                     {question.searchResults.map((result) => (
                       <div
@@ -698,7 +846,7 @@ export default function TwentyQuestionsPage() {
 
                         <div className="text-sm text-gray-900">
                           <ReactMarkdown rehypePlugins={[rehypeRaw]}>
-                            {result.data}
+                            {result.highlightedData || result.data}
                           </ReactMarkdown>
                         </div>
                       </div>
