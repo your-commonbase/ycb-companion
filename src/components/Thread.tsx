@@ -50,6 +50,7 @@ export default function Thread({ inputId }: { inputId: string }) {
   const [commentText, setCommentText] = useState('');
   const [urlText, setUrlText] = useState('');
   const [isGeneratingComment, setIsGeneratingComment] = useState(false);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
   const idSet = useRef(new Set<string>());
   const router = useRouter();
   const { autoScrollMode, maxDepth } = useAutoScrollMode();
@@ -1059,11 +1060,14 @@ export default function Thread({ inputId }: { inputId: string }) {
 
   // Track current entry index based on scroll position (without triggering expansions)
   useEffect(() => {
-    if (!isMobile) return;
-
     let timeoutId: NodeJS.Timeout;
 
     const handleScroll = () => {
+      // Show/hide scroll to top button based on scroll position
+      setShowScrollToTop(window.scrollY > 300);
+
+      if (!isMobile) return;
+
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
@@ -1096,6 +1100,14 @@ export default function Thread({ inputId }: { inputId: string }) {
     };
   }, [flattenedEntries, isMobile, currentEntryIndex]);
 
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
+
   return (
     <div
       className="min-h-screen"
@@ -1122,6 +1134,31 @@ export default function Thread({ inputId }: { inputId: string }) {
           <div className="size-4 animate-spin rounded-full border-b-2 border-blue-500" />
           <span className="text-xs text-gray-600">Loading...</span>
         </div>
+      )}
+
+      {/* Scroll to Top button */}
+      {showScrollToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          type="button"
+          aria-label="Scroll to top"
+        >
+          <svg
+            className="size-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 10l7-7m0 0l7 7m-7-7v18"
+            />
+          </svg>
+          Scroll to Top
+        </button>
       )}
       <div className="w-full">
         <div className="mx-auto max-w-2xl">

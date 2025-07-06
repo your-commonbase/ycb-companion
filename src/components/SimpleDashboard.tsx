@@ -499,92 +499,6 @@ const SimpleDashboard = () => {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-6">
-      {/* Store Section */}
-      <Card className="border-0 shadow-none">
-        <CardHeader>
-          <CardTitle>Store</CardTitle>
-          <CardDescription>
-            Add new content to your knowledge base
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Tab Navigation */}
-          <div className="mb-6 flex space-x-2">
-            <TabButton
-              label="Text"
-              isActive={activeTab === 'text'}
-              onClick={() => setActiveTab('text')}
-            />
-            <TabButton
-              label="Image"
-              isActive={activeTab === 'image'}
-              onClick={() => setActiveTab('image')}
-            />
-            <TabButton
-              label="URL"
-              isActive={activeTab === 'url'}
-              onClick={() => setActiveTab('url')}
-            />
-          </div>
-
-          {/* Tab Content */}
-          {activeTab === 'text' && (
-            <div className="space-y-4">
-              <textarea
-                value={textValue}
-                onChange={(e) => setTextValue(e.target.value)}
-                placeholder="Enter your thoughts..."
-                className="h-32 w-full resize-none rounded-lg border border-gray-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleTextUpload}
-                disabled={!textValue.trim() || isUploading}
-                className="rounded-lg bg-gray-900 px-6 py-2 text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-                type="button"
-              >
-                {isUploading ? 'Adding...' : 'Add Text'}
-              </button>
-            </div>
-          )}
-
-          {activeTab === 'image' && (
-            <div>
-              <ImageUpload
-                metadata={{}}
-                onUploadComplete={() => {
-                  // Start polling for log updates
-                  pollLogUpdates();
-                  // Show success toast
-                  setToastMessage('Image uploaded successfully!');
-                  setShowToast(true);
-                  setTimeout(() => setShowToast(false), 3000);
-                }}
-              />
-            </div>
-          )}
-
-          {activeTab === 'url' && (
-            <div className="space-y-4">
-              <input
-                type="url"
-                value={urlValue}
-                onChange={(e) => setUrlValue(e.target.value)}
-                placeholder="https://example.com"
-                className="w-full rounded-lg border border-gray-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleUrlUpload}
-                disabled={!urlValue.trim() || isUploading}
-                className="rounded-lg bg-gray-900 px-6 py-2 text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-                type="button"
-              >
-                {isUploading ? 'Adding...' : 'Add URL'}
-              </button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Search Section */}
       <Card className="border-0 shadow-none">
         <CardHeader>
@@ -724,6 +638,91 @@ const SimpleDashboard = () => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      {/* Store Section */}
+      <Card className="border-0 shadow-none">
+        <CardHeader>
+          <CardTitle>Store</CardTitle>
+          <CardDescription>
+            Add new content to your knowledge base
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Tab Navigation */}
+          <div className="mb-6 flex space-x-2">
+            <TabButton
+              label="Text"
+              isActive={activeTab === 'text'}
+              onClick={() => setActiveTab('text')}
+            />
+            <TabButton
+              label="Image"
+              isActive={activeTab === 'image'}
+              onClick={() => setActiveTab('image')}
+            />
+            <TabButton
+              label="URL"
+              isActive={activeTab === 'url'}
+              onClick={() => setActiveTab('url')}
+            />
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'text' && (
+            <div className="space-y-4">
+              <textarea
+                value={textValue}
+                onChange={(e) => setTextValue(e.target.value)}
+                placeholder="Enter your thoughts..."
+                className="h-32 w-full resize-none rounded-lg border border-gray-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleTextUpload}
+                disabled={!textValue.trim() || isUploading}
+                className="rounded-lg px-6 py-2 text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+              >
+                {isUploading ? 'Adding...' : 'Add Text'}
+              </button>
+            </div>
+          )}
+
+          {activeTab === 'image' && (
+            <div>
+              <ImageUpload
+                metadata={{}}
+                onUploadComplete={() => {
+                  // Start polling for log updates
+                  pollLogUpdates();
+                  // Show success toast
+                  setToastMessage('Image uploaded successfully!');
+                  setShowToast(true);
+                  setTimeout(() => setShowToast(false), 3000);
+                }}
+              />
+            </div>
+          )}
+
+          {activeTab === 'url' && (
+            <div className="space-y-4">
+              <input
+                type="url"
+                value={urlValue}
+                onChange={(e) => setUrlValue(e.target.value)}
+                placeholder="https://example.com"
+                className="w-full rounded-lg border border-gray-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleUrlUpload}
+                disabled={!urlValue.trim() || isUploading}
+                className="rounded-lg px-6 py-2 text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+              >
+                {isUploading ? 'Adding...' : 'Add URL'}
+              </button>
             </div>
           )}
         </CardContent>
