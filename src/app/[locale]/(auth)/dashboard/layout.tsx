@@ -468,6 +468,11 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
                 onClick: () => router.push('/dashboard/kanban/'),
               },
               {
+                label: '20 Questions',
+                icon: '❓',
+                onClick: () => router.push('/dashboard/20questions/'),
+              },
+              {
                 label: 'Games',
                 icon: '🔮',
                 disabled: true,
