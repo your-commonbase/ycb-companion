@@ -52,6 +52,25 @@ interface Question {
   isAnalyzingRelevance: boolean;
 }
 
+// Custom components for ReactMarkdown - defined outside render to avoid re-creation
+const CustomPre = ({
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLPreElement>) => (
+  <pre className="overflow-x-auto whitespace-pre-wrap break-words" {...props}>
+    {children}
+  </pre>
+);
+
+const CustomCode = ({
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLElement>) => (
+  <code className="break-words" {...props}>
+    {children}
+  </code>
+);
+
 export default function TwentyQuestionsPage() {
   const [topic, setTopic] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -64,6 +83,10 @@ export default function TwentyQuestionsPage() {
   const [hideDuplicates, setHideDuplicates] = useState(true);
   const [, setSeenIds] = useState<Set<string>>(new Set());
   const seenIdsRef = useRef<Set<string>>(new Set());
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [currentCommentEntry, setCurrentCommentEntry] =
+    useState<SearchResult | null>(null);
+  const [commentText, setCommentText] = useState('');
 
   // Track current operation type and target
   const [currentOperation, setCurrentOperation] = useState<{
@@ -665,7 +688,7 @@ Return ONLY the JSON array, no other text.`;
       console.log('🤖 Calling append for questions with web context...');
       await append({
         role: 'user',
-        content: `Generate 20 distinct questions about this topic: ${topic.trim()}. Make sure the questions are comprehensive and cover different aspects of the topic.${webContext}
+        content: `Generate 20 distinct questions about this topic: ${topic.trim()}. Make sure the questions are comprehensive and cover different aspects of the topic. Go as far as you can, go crazy. We pride ourselves on breadth, so ask really out there questions. You may want to think about associations leading to x leading to y leading to z and then post z. Current web context if its helpful (this is needed for jargon and terms you dont know): ${webContext}
         
 Format each question as a numbered list (1. Question text, 2. Question text, etc.)`,
       });
@@ -815,6 +838,43 @@ Format each question as a numbered list (1. Question text, 2. Question text, etc
     }
   };
 
+  const handleAddComment = (entry: SearchResult) => {
+    setCurrentCommentEntry(entry);
+    setCommentText('');
+    setIsCommentModalOpen(true);
+  };
+
+  const handleSubmitComment = async () => {
+    if (!currentCommentEntry || !commentText.trim()) return;
+
+    try {
+      const response = await fetch('/api/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: commentText.trim(),
+          metadata: {
+            title: 'Comment',
+            author: 'https://yourcommonbase.com/dashboard/20questions',
+            parent_id: currentCommentEntry.id,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        console.log('Comment added successfully');
+        setIsCommentModalOpen(false);
+        setCurrentCommentEntry(null);
+        setCommentText('');
+        // Could show a success toast here
+      } else {
+        console.error('Failed to add comment:', response.status);
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+
   const handleQuickLook = (entry: any) => {
     // Convert search result to FlattenedEntry format
     const flattenedEntry: FlattenedEntry = {
@@ -928,32 +988,35 @@ Format each question as a numbered list (1. Question text, 2. Question text, etc
 
           {questions.map((question) => (
             <Card key={question.id} className="border border-gray-200">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">
-                    {questions.indexOf(question) + 1}. {question.text}
-                  </CardTitle>
-                  <div className="flex gap-2">
-                    {question.isLoadingSearch && (
-                      <span className="rounded bg-blue-100 px-3 py-1 text-sm text-blue-700">
-                        Searching knowledge base...
-                      </span>
-                    )}
-                    <button
-                      onClick={() =>
-                        handleGenerateResources(question.id, question.text)
-                      }
-                      disabled={question.isLoadingWebResults}
-                      className="rounded bg-purple-600 px-3 py-1 text-sm text-white hover:bg-purple-700 disabled:opacity-50"
-                      type="button"
-                    >
-                      {question.isLoadingWebResults
-                        ? 'Searching Web...'
-                        : 'Generate Resources'}
-                    </button>
+              {/* Sticky Question Header */}
+              <div className="sticky top-0 z-10 rounded-t-lg border-b border-gray-200 bg-white">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-lg">
+                      {questions.indexOf(question) + 1}. {question.text}
+                    </CardTitle>
+                    <div className="flex gap-2">
+                      {question.isLoadingSearch && (
+                        <span className="rounded bg-blue-100 px-3 py-1 text-sm text-blue-700">
+                          Searching knowledge base...
+                        </span>
+                      )}
+                      <button
+                        onClick={() =>
+                          handleGenerateResources(question.id, question.text)
+                        }
+                        disabled={question.isLoadingWebResults}
+                        className="rounded bg-purple-600 px-3 py-1 text-sm text-white hover:bg-purple-700 disabled:opacity-50"
+                        type="button"
+                      >
+                        {question.isLoadingWebResults
+                          ? 'Searching Web...'
+                          : 'Generate Resources'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
+                </CardHeader>
+              </div>
 
               {/* Search Results */}
               {question.searchResults.length > 0 && (
@@ -975,14 +1038,42 @@ Format each question as a numbered list (1. Question text, 2. Question text, etc
                         key={result.id}
                         className="rounded-lg border border-gray-100 p-4"
                       >
+                        {/* Title and Metadata */}
+                        {result.metadata?.title && (
+                          <div className="mb-2">
+                            <h5 className="text-sm font-medium text-gray-800">
+                              {result.metadata.title}
+                            </h5>
+                          </div>
+                        )}
+
                         <div className="mb-3 flex items-start justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <button
                               onClick={() => handleQuickLook(result)}
                               className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200"
                               type="button"
                             >
                               Quick Look
+                            </button>
+                            <button
+                              onClick={() =>
+                                window.open(
+                                  `/dashboard/entry/${result.id}`,
+                                  '_blank',
+                                )
+                              }
+                              className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-600 hover:bg-blue-200"
+                              type="button"
+                            >
+                              Open Entry
+                            </button>
+                            <button
+                              onClick={() => handleAddComment(result)}
+                              className="rounded bg-green-100 px-2 py-1 text-xs text-green-600 hover:bg-green-200"
+                              type="button"
+                            >
+                              Add Comment
                             </button>
                             {result.similarity && (
                               <span className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700">
@@ -1019,8 +1110,15 @@ Format each question as a numbered list (1. Question text, 2. Question text, etc
                             </div>
                           )}
 
-                        <div className="text-sm text-gray-900">
-                          <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                        <div className="overflow-x-auto text-sm text-gray-900">
+                          <ReactMarkdown
+                            rehypePlugins={[rehypeRaw]}
+                            className="prose prose-sm max-w-none"
+                            components={{
+                              pre: CustomPre,
+                              code: CustomCode,
+                            }}
+                          >
                             {result.highlightedData || result.data}
                           </ReactMarkdown>
                         </div>
@@ -1192,6 +1290,53 @@ Format each question as a numbered list (1. Question text, 2. Question text, etc
                 currentEntry={quickLookEntry}
                 allEntries={[quickLookEntry]}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comment Modal */}
+      {isCommentModalOpen && currentCommentEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+              Add Comment
+            </h3>
+            <div className="mb-4">
+              <p className="mb-2 text-sm text-gray-600">Adding comment to:</p>
+              <p className="text-sm font-medium text-gray-800">
+                {currentCommentEntry.metadata?.title || 'Entry'}
+              </p>
+              <p className="line-clamp-2 text-xs text-gray-500">
+                {currentCommentEntry.data.substring(0, 100)}...
+              </p>
+            </div>
+            <textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Enter your comment..."
+              className="mb-4 h-32 w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setIsCommentModalOpen(false);
+                  setCurrentCommentEntry(null);
+                  setCommentText('');
+                }}
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitComment}
+                disabled={!commentText.trim()}
+                className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+                type="button"
+              >
+                Add Comment
+              </button>
             </div>
           </div>
         </div>
