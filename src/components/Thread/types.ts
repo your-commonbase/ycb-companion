@@ -37,6 +37,7 @@ export interface ThreadEntryCardProps {
   onOpenAddCommentModal: (entry: FlattenedEntry) => void;
   onOpenAddURLModal: (entry: FlattenedEntry) => void;
   onOpenAddImageModal: (entry: FlattenedEntry) => void;
+  onOpenJoinModal: (entry: FlattenedEntry) => void;
 }
 
 export interface TreePathDisplayProps {

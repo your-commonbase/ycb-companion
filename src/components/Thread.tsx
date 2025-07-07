@@ -45,10 +45,13 @@ export default function Thread({ inputId }: { inputId: string }) {
   const [isAddCommentModalOpen, setIsAddCommentModalOpen] = useState(false);
   const [isAddURLModalOpen, setIsAddURLModalOpen] = useState(false);
   const [isAddImageModalOpen, setIsAddImageModalOpen] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [currentModalEntry, setCurrentModalEntry] =
     useState<FlattenedEntry | null>(null);
   const [commentText, setCommentText] = useState('');
   const [urlText, setUrlText] = useState('');
+  const [joinUrl, setJoinUrl] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
   const [isGeneratingComment, setIsGeneratingComment] = useState(false);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const idSet = useRef(new Set<string>());
@@ -797,6 +800,59 @@ export default function Thread({ inputId }: { inputId: string }) {
     setIsAddImageModalOpen(true);
   };
 
+  const handleOpenJoinModal = (entry: FlattenedEntry) => {
+    setCurrentModalEntry(entry);
+    setJoinUrl('');
+    setIsJoinModalOpen(true);
+  };
+
+  const extractIdFromUrl = (url: string): string | null => {
+    // Match /dashboard/entry/{uuid} pattern
+    const match = url.match(
+      /\/dashboard\/entry\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})/i,
+    );
+    return match?.[1] || null;
+  };
+
+  const handleSubmitJoin = async () => {
+    if (!currentModalEntry || !joinUrl.trim()) return;
+
+    const extractedId = extractIdFromUrl(joinUrl.trim());
+    if (!extractedId) {
+      alert('Please enter a valid YourCommonbase URL with a valid entry ID');
+      return;
+    }
+
+    setIsJoining(true);
+
+    try {
+      const response = await fetch('/api/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id1: currentModalEntry.id,
+          id2: extractedId,
+        }),
+      });
+
+      if (response.ok) {
+        console.log('Entries joined successfully');
+        setIsJoinModalOpen(false);
+        setCurrentModalEntry(null);
+        setJoinUrl('');
+        // Could show a success message or refresh the data
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to join entries: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error joining entries:', error);
+      alert('An error occurred while joining entries');
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
   const handleAutoComment = async () => {
     if (!currentModalEntry) return;
 
@@ -1249,6 +1305,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                   onOpenAddCommentModal={handleOpenAddCommentModal}
                   onOpenAddURLModal={handleOpenAddURLModal}
                   onOpenAddImageModal={handleOpenAddImageModal}
+                  onOpenJoinModal={handleOpenJoinModal}
                 />
               </div>
             </div>
@@ -1575,6 +1632,93 @@ export default function Thread({ inputId }: { inputId: string }) {
                   setCurrentModalEntry(null);
                 }}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Join Modal */}
+      {isJoinModalOpen && currentModalEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="flex h-auto w-[95vw] max-w-lg flex-col rounded-lg bg-white shadow-xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
+              <h2 className="text-xl font-bold text-gray-900">Join Entry</h2>
+              <button
+                onClick={() => {
+                  setIsJoinModalOpen(false);
+                  setCurrentModalEntry(null);
+                  setJoinUrl('');
+                }}
+                className="text-gray-400 transition-colors hover:text-gray-600"
+                type="button"
+                aria-label="Close"
+              >
+                <svg
+                  className="size-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 p-6">
+              <div className="space-y-4">
+                <div>
+                  <p className="mb-2 text-sm text-gray-600">
+                    Joining with entry:{' '}
+                    <strong>{currentModalEntry.id.slice(0, 8)}...</strong>
+                  </p>
+                  {/* eslint-disable-next-line */}
+                  <label
+                    htmlFor="join-url-input"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    YourCommonbase Entry URL
+                  </label>
+                  <input
+                    id="join-url-input"
+                    type="text"
+                    value={joinUrl}
+                    onChange={(e) => setJoinUrl(e.target.value)}
+                    placeholder="https://yourcommonbase.com/dashboard/entry/12345678-1234-5678-9012-123456789abc"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    disabled={isJoining}
+                  />
+                </div>
+                <div className="text-sm text-gray-500">
+                  Enter a YourCommonbase URL containing /dashboard/entry/
+                  followed by a valid UUID to join this entry with another.
+                </div>
+              </div>
+            </div>
+            <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 p-6">
+              <button
+                onClick={() => {
+                  setJoinUrl('');
+                  setIsJoinModalOpen(false);
+                  setCurrentModalEntry(null);
+                }}
+                type="button"
+                className="rounded-lg bg-gray-500 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                disabled={isJoining}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitJoin}
+                type="button"
+                className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                disabled={isJoining || !joinUrl.trim()}
+              >
+                {isJoining ? 'Joining...' : 'Join Entries'}
+              </button>
             </div>
           </div>
         </div>

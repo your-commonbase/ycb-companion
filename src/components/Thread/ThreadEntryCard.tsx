@@ -40,6 +40,7 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   onOpenAddCommentModal,
   onOpenAddURLModal,
   onOpenAddImageModal,
+  onOpenJoinModal,
 }) => {
   const [cdnImageUrl, setCdnImageUrl] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
@@ -1122,6 +1123,16 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
                   className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
                 >
                   Add Image
+                </button>
+                <button
+                  onClick={() => {
+                    setIsActionsDropdownOpen(false);
+                    onOpenJoinModal(entry);
+                  }}
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  Join
                 </button>
                 {!isEditing &&
                   (!entry.metadata.type || entry.metadata.type === 'text') && (
