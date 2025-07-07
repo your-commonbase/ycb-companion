@@ -55,6 +55,7 @@ export default function Thread({ inputId }: { inputId: string }) {
   const [isGeneratingComment, setIsGeneratingComment] = useState(false);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const idSet = useRef(new Set<string>());
+  const fetchingIds = useRef(new Set<string>()); // Track currently fetching IDs to prevent duplicates
   const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
   const { autoScrollMode, maxDepth } = useAutoScrollMode();
@@ -240,31 +241,53 @@ export default function Thread({ inputId }: { inputId: string }) {
 
         if (type === 'parent' && currentEntryTry.metadata.parent_id) {
           const parentId = currentEntryTry.metadata.parent_id;
-          if (!idSet.current.has(parentId)) {
-            const res = await fetch('/api/fetch', {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ id: parentId }),
-            });
-            const data = await res.json();
-            const parentEntry = flattenEntry(
-              data.data,
-              'parent',
-              currentEntryTry.level + 1,
-              entryId,
-            );
-            console.log(
-              `Adding parent ${parentEntry.id} at level ${parentEntry.level} for child ${entryId} at level ${currentEntryTry.level}`,
-            );
-            newEntries.push(parentEntry);
+          if (
+            !idSet.current.has(parentId) &&
+            !fetchingIds.current.has(parentId)
+          ) {
+            // Mark as fetching to prevent concurrent requests
+            fetchingIds.current.add(parentId);
             idSet.current.add(parentId);
+
+            try {
+              const res = await fetch('/api/fetch', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ id: parentId }),
+              });
+              const data = await res.json();
+              const parentEntry = flattenEntry(
+                data.data,
+                'parent',
+                currentEntryTry.level + 1,
+                entryId,
+              );
+              console.log(
+                `Adding parent ${parentEntry.id} at level ${parentEntry.level} for child ${entryId} at level ${currentEntryTry.level}`,
+              );
+              newEntries.push(parentEntry);
+            } catch (error) {
+              console.error(`Error fetching parent ${parentId}:`, error);
+              // Remove from seen set on error so it can be retried later
+              idSet.current.delete(parentId);
+            } finally {
+              // Always remove from fetching set
+              fetchingIds.current.delete(parentId);
+            }
           }
         }
 
         if (type === 'comments' && currentEntryTry.metadata.alias_ids) {
           const aliasIds = currentEntryTry.metadata.alias_ids;
           const commentPromises = aliasIds.map(async (aliasId: any) => {
-            if (!idSet.current.has(aliasId)) {
+            if (
+              !idSet.current.has(aliasId) &&
+              !fetchingIds.current.has(aliasId)
+            ) {
+              // Mark as fetching to prevent concurrent requests
+              fetchingIds.current.add(aliasId);
+              idSet.current.add(aliasId);
+
               try {
                 const res = await fetch('/api/fetch', {
                   method: 'POST',
@@ -278,11 +301,15 @@ export default function Thread({ inputId }: { inputId: string }) {
                   currentEntryTry.level + 1,
                   entryId,
                 );
-                idSet.current.add(aliasId);
                 return commentEntry;
               } catch (error) {
                 console.error('Error fetching comment:', error);
+                // Remove from seen set on error so it can be retried later
+                idSet.current.delete(aliasId);
                 return null;
+              } finally {
+                // Always remove from fetching set
+                fetchingIds.current.delete(aliasId);
               }
             }
             return null;
@@ -300,7 +327,12 @@ export default function Thread({ inputId }: { inputId: string }) {
             });
             const data = await res.json();
             data.data.forEach((neighborEntry: Entry) => {
-              if (!idSet.current.has(neighborEntry.id)) {
+              if (
+                !idSet.current.has(neighborEntry.id) &&
+                !fetchingIds.current.has(neighborEntry.id)
+              ) {
+                // For neighbors, we add to both sets immediately since we already have the data
+                idSet.current.add(neighborEntry.id);
                 const neighbor = flattenEntry(
                   neighborEntry,
                   'neighbor',
@@ -308,7 +340,6 @@ export default function Thread({ inputId }: { inputId: string }) {
                   entryId,
                 );
                 newEntries.push(neighbor);
-                idSet.current.add(neighborEntry.id);
               }
             });
           } catch (error) {
@@ -341,6 +372,7 @@ export default function Thread({ inputId }: { inputId: string }) {
       setLoadingMore(false);
       setIsExpansionBlocking(false);
       processedEntries.current.clear();
+      // Note: fetchingIds.current is cleared individually in each fetch block
     }
   };
 
@@ -1104,6 +1136,10 @@ export default function Thread({ inputId }: { inputId: string }) {
   useEffect(() => {
     const fetchInitialEntry = async () => {
       try {
+        // Clear all tracking sets when loading a new entry
+        idSet.current.clear();
+        fetchingIds.current.clear();
+        processedEntries.current.clear();
         const res = await fetch('/api/fetch', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
