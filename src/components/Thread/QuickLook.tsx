@@ -66,6 +66,7 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
     const parentChildMap = new Map<string, Set<string>>(); // parent -> children
     const childParentMap = new Map<string, string>(); // child -> parent
     const processedIds = new Set<string>();
+    const fetchingIds = new Set<string>(); // Track currently processing IDs to prevent infinite recursion
 
     // Helper to fetch entry metadata only (minimal fetch)
     const fetchEntryMetadata = async (
@@ -92,56 +93,89 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
       }
     };
 
-    // DFS to build complete ID tree
-    const buildIdTree = async (entryId: string): Promise<void> => {
+    // DFS to build complete ID tree with depth limiting
+    const buildIdTree = async (
+      entryId: string,
+      depth: number = 0,
+    ): Promise<void> => {
+      // Prevent extremely deep recursion
+      const MAX_DEPTH = 50;
+      if (depth > MAX_DEPTH) {
+        console.warn(`Max depth ${MAX_DEPTH} reached for entry ${entryId}`);
+        return;
+      }
+      // Check if already fully processed
       if (processedIds.has(entryId)) return;
-      processedIds.add(entryId);
+
+      // Check if currently being processed (cycle detection)
+      if (fetchingIds.has(entryId)) {
+        console.warn(`Cycle detected: ${entryId} is already being processed`);
+        return;
+      }
+
+      // Mark as currently being processed
+      fetchingIds.add(entryId);
       allThreadIds.add(entryId);
 
-      // Use current entry data if it's the starting entry
-      let metadata;
-      if (entryId === currentEntry.id) {
-        metadata = {
-          parent_id: currentEntry.metadata?.parent_id,
-          alias_ids: currentEntry.metadata?.alias_ids || [],
-        };
-      } else {
-        metadata = await fetchEntryMetadata(entryId);
-        if (!metadata) return;
-      }
-
-      // Process parent relationship
-      if (metadata.parent_id && metadata.parent_id.trim()) {
-        const parentId = metadata.parent_id.trim();
-        childParentMap.set(entryId, parentId);
-
-        if (!parentChildMap.has(parentId)) {
-          parentChildMap.set(parentId, new Set());
-        }
-        parentChildMap.get(parentId)!.add(entryId);
-
-        // Recurse to parent
-        await buildIdTree(parentId);
-      }
-
-      // Process children relationships
-      if (metadata.alias_ids && Array.isArray(metadata.alias_ids)) {
-        const childIds = metadata.alias_ids
-          .filter((id: any) => typeof id === 'string' && id.trim() !== '')
-          .map((id: string) => id.trim());
-
-        if (!parentChildMap.has(entryId)) {
-          parentChildMap.set(entryId, new Set());
+      try {
+        // Use current entry data if it's the starting entry
+        let metadata;
+        if (entryId === currentEntry.id) {
+          metadata = {
+            parent_id: currentEntry.metadata?.parent_id,
+            alias_ids: currentEntry.metadata?.alias_ids || [],
+          };
+        } else {
+          metadata = await fetchEntryMetadata(entryId);
+          if (!metadata) return;
         }
 
-        for (const childId of childIds) {
-          parentChildMap.get(entryId)!.add(childId);
-          childParentMap.set(childId, entryId);
+        // Process parent relationship
+        if (metadata.parent_id && metadata.parent_id.trim()) {
+          const parentId = metadata.parent_id.trim();
 
-          // Recurse to child
-          // eslint-disable-next-line no-await-in-loop
-          await buildIdTree(childId);
+          // Prevent self-reference cycles
+          if (parentId !== entryId) {
+            childParentMap.set(entryId, parentId);
+
+            if (!parentChildMap.has(parentId)) {
+              parentChildMap.set(parentId, new Set());
+            }
+            parentChildMap.get(parentId)!.add(entryId);
+
+            // Recurse to parent only if not already processed or being processed
+            if (!processedIds.has(parentId) && !fetchingIds.has(parentId)) {
+              await buildIdTree(parentId, depth + 1);
+            }
+          }
         }
+
+        // Process children relationships
+        if (metadata.alias_ids && Array.isArray(metadata.alias_ids)) {
+          const childIds = metadata.alias_ids
+            .filter((id: any) => typeof id === 'string' && id.trim() !== '')
+            .map((id: string) => id.trim())
+            .filter((id: string) => id !== entryId); // Prevent self-reference
+
+          if (!parentChildMap.has(entryId)) {
+            parentChildMap.set(entryId, new Set());
+          }
+
+          for (const childId of childIds) {
+            parentChildMap.get(entryId)!.add(childId);
+            childParentMap.set(childId, entryId);
+
+            // Recurse to child only if not already processed or being processed
+            if (!processedIds.has(childId) && !fetchingIds.has(childId)) {
+              // eslint-disable-next-line no-await-in-loop
+              await buildIdTree(childId, depth + 1);
+            }
+          }
+        }
+      } finally {
+        // Mark as fully processed and remove from fetching set
+        processedIds.add(entryId);
+        fetchingIds.delete(entryId);
       }
     };
 
