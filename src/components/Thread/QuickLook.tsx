@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { FlattenedEntry, QuickLookProps } from './types';
 
@@ -20,6 +20,31 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
     thread: [],
     current: [],
   });
+
+  // Persistent tracking sets to prevent infinite loops - these persist across function calls
+  const globalProcessedIds = useRef<Set<string>>(new Set());
+  const globalFetchingIds = useRef<Set<string>>(new Set());
+  const callCount = useRef<number>(0);
+  const lastResetTime = useRef<number>(Date.now());
+
+  // Circuit breaker - reset if too many calls in short time
+  const resetTrackingIfNeeded = () => {
+    const now = Date.now();
+    const timeSinceReset = now - lastResetTime.current;
+
+    // Reset every 30 seconds or if call count exceeds 100
+    if (timeSinceReset > 30000 || callCount.current > 100) {
+      console.warn(
+        'Circuit breaker: Resetting tracking sets to prevent infinite loops',
+      );
+      globalProcessedIds.current.clear();
+      globalFetchingIds.current.clear();
+      callCount.current = 0;
+      lastResetTime.current = now;
+    }
+
+    callCount.current += 1;
+  };
 
   // Load Current tab data (path to root)
   const loadCurrentTabData = useCallback(async (): Promise<
@@ -61,12 +86,36 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
 
   // Load Thread tab data (complete thread tree) - Build ID tree first, then fetch data
   const loadThreadTabData = useCallback(async (): Promise<FlattenedEntry[]> => {
+    const startTime = Date.now();
+    const TIMEOUT_MS = 10000; // 10 second timeout
+
+    // Circuit breaker check
+    resetTrackingIfNeeded();
+
+    // Check if we've already built this tree recently
+    if (globalProcessedIds.current.has(currentEntry.id)) {
+      console.log(
+        'Thread tree already built for this entry, skipping to prevent loops',
+      );
+      return [];
+    }
+
+    // Timeout wrapper function
+    const checkTimeout = () => {
+      if (Date.now() - startTime > TIMEOUT_MS) {
+        throw new Error(
+          `LoadThreadTabData timed out after ${TIMEOUT_MS}ms - possible infinite loop`,
+        );
+      }
+    };
+
     // Step 1: Build complete ID tree structure using DFS
     const allThreadIds = new Set<string>();
     const parentChildMap = new Map<string, Set<string>>(); // parent -> children
     const childParentMap = new Map<string, string>(); // child -> parent
-    const processedIds = new Set<string>();
-    const fetchingIds = new Set<string>(); // Track currently processing IDs to prevent infinite recursion
+    // Use global tracking sets instead of local ones
+    const processedIds = globalProcessedIds.current;
+    const fetchingIds = globalFetchingIds.current;
 
     // Helper to fetch entry metadata only (minimal fetch)
     const fetchEntryMetadata = async (
@@ -98,18 +147,35 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
       entryId: string,
       depth: number = 0,
     ): Promise<void> => {
-      // Prevent extremely deep recursion
-      const MAX_DEPTH = 50;
-      if (depth > MAX_DEPTH) {
-        console.warn(`Max depth ${MAX_DEPTH} reached for entry ${entryId}`);
+      // Emergency circuit breaker - check call count and timeout
+      checkTimeout();
+      if (callCount.current > 50) {
+        console.error(
+          'EMERGENCY STOP: Too many buildIdTree calls, aborting to prevent crash',
+        );
         return;
       }
-      // Check if already fully processed
-      if (processedIds.has(entryId)) return;
 
-      // Check if currently being processed (cycle detection)
+      // Prevent extremely deep recursion
+      const MAX_DEPTH = 20; // Reduced from 50 to be more conservative
+      if (depth > MAX_DEPTH) {
+        console.warn(
+          `Max depth ${MAX_DEPTH} reached for entry ${entryId} at depth ${depth}`,
+        );
+        return;
+      }
+
+      // Check if already fully processed (using global set)
+      if (processedIds.has(entryId)) {
+        console.log(`Entry ${entryId} already processed, skipping`);
+        return;
+      }
+
+      // Check if currently being processed (cycle detection using global set)
       if (fetchingIds.has(entryId)) {
-        console.warn(`Cycle detected: ${entryId} is already being processed`);
+        console.warn(
+          `CYCLE DETECTED: ${entryId} is already being processed at depth ${depth}`,
+        );
         return;
       }
 
@@ -179,15 +245,32 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
       }
     };
 
-    // Start building tree from current entry
-    await buildIdTree(currentEntry.id);
+    // Start building tree from current entry with error handling
+    try {
+      await buildIdTree(currentEntry.id);
+    } catch (error) {
+      console.error('Error building thread tree:', error);
+      // Clear tracking sets and return empty result on error
+      globalProcessedIds.current.clear();
+      globalFetchingIds.current.clear();
+      return [];
+    }
 
-    // Step 2: Find root of the tree
+    // Step 2: Find root of the tree with cycle protection
     let rootId = currentEntry.id;
-    while (childParentMap.has(rootId)) {
+    let iterations = 0;
+    const MAX_ITERATIONS = 100; // Prevent infinite while loop
+
+    while (childParentMap.has(rootId) && iterations < MAX_ITERATIONS) {
+      checkTimeout();
       const parentId = childParentMap.get(rootId);
       if (!parentId || rootId === parentId) break; // Prevent cycles
       rootId = parentId;
+      iterations += 1;
+    }
+
+    if (iterations >= MAX_ITERATIONS) {
+      console.warn('Max iterations reached while finding root, possible cycle');
     }
 
     // Step 3: Calculate levels using BFS from root
@@ -374,8 +457,22 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
     [], // Remove all dependencies to prevent re-creation
   );
 
-  // Load neighbors tab data immediately when component mounts
+  // Reset tracking when current entry changes to prevent stale data
   useEffect(() => {
+    console.log('Current entry changed, clearing tracking sets');
+    globalProcessedIds.current.clear();
+    globalFetchingIds.current.clear();
+    callCount.current = 0;
+    lastResetTime.current = Date.now();
+
+    // Clear tab data for fresh start
+    setTabData({
+      neighbors: [],
+      thread: [],
+      current: [],
+    });
+
+    // Load neighbors tab data for new entry
     loadTabData('neighbors');
   }, [currentEntry.id]); // Remove loadTabData dependency to prevent loops
 
