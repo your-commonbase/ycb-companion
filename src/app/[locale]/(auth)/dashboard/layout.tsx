@@ -331,6 +331,11 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
                 },
               },
               {
+                label: 'Free Write',
+                icon: '✍️',
+                onClick: () => router.push('/dashboard/free-write/'),
+              },
+              {
                 label: 'URL',
                 shortcut: 'u',
                 icon: '🔗',
