@@ -683,6 +683,40 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
     }
   };
 
+  // Show skeleton if entry is processing
+  if (entry.isProcessing) {
+    return (
+      <Card
+        ref={targetRef}
+        id={`entry-${entry.id}`}
+        className={`w-full ${getRelationshipStyle()} ${getAnimationClasses()} ${
+          isCurrentEntry ? 'ring-2 ring-gray-900' : ''
+        } flex h-auto max-h-[calc(100vh-8rem)] animate-pulse flex-col border-gray-200 transition-colors hover:border-gray-300`}
+      >
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+          <div className="size-6 animate-pulse rounded bg-gray-200" />
+        </CardHeader>
+        <CardContent className="space-y-4 pb-4">
+          <div className="space-y-2">
+            <div className="h-4 w-full animate-pulse rounded bg-gray-200" />
+            <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200" />
+            <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200" />
+          </div>
+        </CardContent>
+        <CardFooter className="border-t border-gray-100 pt-4">
+          <div className="flex w-full items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-16 animate-pulse rounded bg-gray-200" />
+              <div className="h-4 w-12 animate-pulse rounded bg-gray-200" />
+            </div>
+            <div className="size-8 animate-pulse rounded bg-gray-200" />
+          </div>
+        </CardFooter>
+      </Card>
+    );
+  }
+
   return (
     <Card
       ref={targetRef}

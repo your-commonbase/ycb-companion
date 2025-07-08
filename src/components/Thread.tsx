@@ -1108,6 +1108,28 @@ export default function Thread({ inputId }: { inputId: string }) {
     }
 
     // Default behavior for regular text comments
+    // Create a temporary skeleton entry that will be shown while processing
+    const tempId = `temp-${Date.now()}`;
+    const skeletonEntry: FlattenedEntry = {
+      id: tempId,
+      data: trimmedText,
+      comments: [],
+      createdAt: new Date().toISOString(),
+      metadata: {
+        parent_id: currentModalEntry.id,
+        title: currentModalEntry.metadata.title,
+        author: currentModalEntry.metadata.author,
+      },
+      relationshipType: 'comment',
+      relationshipSource: currentModalEntry.id,
+      level: currentModalEntry.level + 1,
+      hasMoreRelations: true,
+      isProcessing: true, // Mark as processing to show skeleton
+    };
+
+    // Add skeleton entry immediately at the correct position
+    handleAddNewEntry(skeletonEntry, currentModalEntry.id);
+
     enqueueAddText(
       {
         data: trimmedText,
@@ -1119,6 +1141,7 @@ export default function Thread({ inputId }: { inputId: string }) {
         parentId: currentModalEntry.id,
       },
       (addedCommentData) => {
+        // Replace skeleton with actual entry
         const newEntry: FlattenedEntry = {
           id: addedCommentData.id,
           data: trimmedText,
@@ -1132,8 +1155,17 @@ export default function Thread({ inputId }: { inputId: string }) {
           relationshipSource: currentModalEntry.id,
           level: currentModalEntry.level + 1,
           hasMoreRelations: true,
+          isProcessing: false,
         };
-        handleAddNewEntry(newEntry, currentModalEntry.id);
+
+        // Replace skeleton entry with actual entry
+        setFlattenedEntries((prev) =>
+          prev.map((entry) => (entry.id === tempId ? newEntry : entry)),
+        );
+
+        // Update ID tracking
+        idSet.current.delete(tempId);
+        idSet.current.add(newEntry.id);
       },
     );
 
