@@ -1079,9 +1079,38 @@ export default function Thread({ inputId }: { inputId: string }) {
   const handleSubmitComment = () => {
     if (!commentText.trim() || !currentModalEntry) return;
 
+    const trimmedText = commentText.trim();
+
+    // Check if the comment contains only a URL
+    const urlRegex = /^https?:\/\/[^\s]+$/;
+    const isUrlOnly = urlRegex.test(trimmedText);
+
+    if (isUrlOnly) {
+      // Check if it's an internal URL (localhost or yourcommonbase.com)
+      const isInternalUrl =
+        trimmedText.includes('localhost') ||
+        trimmedText.includes('yourcommonbase.com');
+
+      if (isInternalUrl) {
+        // Handle internal URL - trigger join workflow
+        setJoinUrl(trimmedText);
+        setIsAddCommentModalOpen(false);
+        setIsJoinModalOpen(true);
+        // Note: currentModalEntry remains set for the join modal
+        return;
+      }
+      // Handle external URL - trigger add URL workflow
+      setUrlText(trimmedText);
+      setIsAddCommentModalOpen(false);
+      setIsAddURLModalOpen(true);
+      // Note: currentModalEntry remains set for the URL modal
+      return;
+    }
+
+    // Default behavior for regular text comments
     enqueueAddText(
       {
-        data: commentText.trim(),
+        data: trimmedText,
         metadata: {
           parent_id: currentModalEntry.id,
           title: currentModalEntry.metadata.title,
@@ -1092,7 +1121,7 @@ export default function Thread({ inputId }: { inputId: string }) {
       (addedCommentData) => {
         const newEntry: FlattenedEntry = {
           id: addedCommentData.id,
-          data: commentText.trim(),
+          data: trimmedText,
           comments: [],
           createdAt: addedCommentData.createdAt,
           metadata: {
