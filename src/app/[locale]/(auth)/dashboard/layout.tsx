@@ -395,9 +395,14 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
                 onClick: () => router.push('/dashboard/garden/'),
               },
               {
-                label: 'Gallery',
+                label: 'Image Gallery',
                 icon: '🖼️',
                 onClick: () => router.push('/dashboard/gallery/'),
+              },
+              {
+                label: 'Entries',
+                icon: '🗄️',
+                onClick: () => router.push('/dashboard/table/'),
               },
               {
                 label: 'Random',
