@@ -880,6 +880,47 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
               href={entry.metadata.author}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={async (e) => {
+                if (entry.metadata.author?.startsWith('file://')) {
+                  e.preventDefault();
+
+                  // Try different methods to open local files
+                  try {
+                    // Method 1: Try File System Access API (if supported)
+                    if ('showOpenFilePicker' in window) {
+                      const filePath = entry.metadata.author.replace(
+                        'file://',
+                        '',
+                      );
+                      await navigator.clipboard.writeText(filePath);
+                      alert(
+                        'File path copied to clipboard. You can paste it in Finder/Explorer to open the file.',
+                      );
+                      return;
+                    }
+
+                    // Method 2: Copy file path to clipboard as fallback
+                    const filePath = entry.metadata.author.replace(
+                      'file://',
+                      '',
+                    );
+                    await navigator.clipboard.writeText(filePath);
+                    alert(
+                      'File path copied to clipboard. You can paste it in Finder/Explorer to open the file.',
+                    );
+                  } catch (error) {
+                    console.error('Failed to handle file URL:', error);
+                    // Method 3: Show the file path in an alert as last resort
+                    const filePath = entry.metadata.author.replace(
+                      'file://',
+                      '',
+                    );
+                    alert(
+                      `Cannot open file directly due to browser security restrictions. File path: ${filePath}`,
+                    );
+                  }
+                }
+              }}
             >
               {entry.metadata.title}
             </a>
