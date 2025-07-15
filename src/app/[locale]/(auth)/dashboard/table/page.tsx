@@ -1,3 +1,7 @@
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable tailwindcss/migration-from-tailwind-2 */
+/* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
+
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -28,6 +32,9 @@ const TablePage = () => {
   const [isThrottled, setIsThrottled] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+  const [selectedMetadata, setSelectedMetadata] = useState<any>(null);
+  const [showMetadataModal, setShowMetadataModal] = useState(false);
+  const [hideEntriesWithComments, setHideEntriesWithComments] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const loadingRef = useRef(false);
   const throttledRef = useRef(false);
@@ -185,6 +192,45 @@ const TablePage = () => {
     window.open(`/dashboard/entry/${id}`, '_blank');
   };
 
+  const handleMetadataClick = (metadata: any) => {
+    setSelectedMetadata(metadata);
+    setShowMetadataModal(true);
+  };
+
+  const closeMetadataModal = () => {
+    setShowMetadataModal(false);
+    setSelectedMetadata(null);
+  };
+
+  // Handle keyboard events for modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showMetadataModal) {
+        closeMetadataModal();
+      }
+    };
+
+    if (showMetadataModal) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      if (showMetadataModal) {
+        document.removeEventListener('keydown', handleKeyDown);
+      }
+    };
+  }, [showMetadataModal]);
+
+  const filteredEntries = entries.filter((entry) => {
+    if (hideEntriesWithComments) {
+      // Hide entries that have comments (alias_ids)
+      return (
+        !entry.metadata?.alias_ids || entry.metadata.alias_ids.length === 0
+      );
+    }
+    return true;
+  });
+
   const renderDataCell = (entry: Entry) => {
     if (entry.metadata?.type === 'image') {
       const imageUrl = imageUrls[entry.id];
@@ -248,11 +294,32 @@ const TablePage = () => {
     <div className="container mx-auto px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">Entries Table</h1>
 
-      {pagination && (
-        <div className="mb-4 text-sm text-gray-600">
-          Showing {entries.length} of {pagination.total} entries
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          {pagination && (
+            <div className="text-sm text-gray-600">
+              Showing {filteredEntries.length} of {entries.length} entries
+              {hideEntriesWithComments && ' (filtered)'}
+            </div>
+          )}
         </div>
-      )}
+
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="hide-comments-filter"
+            className="flex items-center gap-2 text-sm"
+          >
+            <input
+              id="hide-comments-filter"
+              type="checkbox"
+              checked={hideEntriesWithComments}
+              onChange={(e) => setHideEntriesWithComments(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            Hide entries with comments
+          </label>
+        </div>
+      </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow">
         <table className="min-w-full divide-y divide-gray-200">
@@ -276,7 +343,7 @@ const TablePage = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
-            {entries.map((entry) => (
+            {filteredEntries.map((entry) => (
               <tr key={entry.id} className="hover:bg-gray-50">
                 <td className="whitespace-nowrap px-6 py-4">
                   <button
@@ -289,9 +356,13 @@ const TablePage = () => {
                 </td>
                 <td className="px-6 py-4">{renderDataCell(entry)}</td>
                 <td className="px-6 py-4">
-                  <div className="max-w-md truncate text-sm text-gray-500">
+                  <button
+                    onClick={() => handleMetadataClick(entry.metadata)}
+                    className="max-w-md truncate text-left text-sm text-gray-500 hover:text-gray-700 hover:underline"
+                    type="button"
+                  >
                     {formatMetadata(entry.metadata)}
-                  </div>
+                  </button>
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                   {formatDate(entry.createdAt)}
@@ -319,6 +390,66 @@ const TablePage = () => {
       {!hasMoreData && entries.length > 0 && (
         <div className="mt-4 text-center text-sm text-gray-500">
           No more entries to load
+        </div>
+      )}
+
+      {/* Metadata Modal */}
+      {showMetadataModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={closeMetadataModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="metadata-modal-title"
+        >
+          <div
+            className="mx-4 w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+            role="document"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 id="metadata-modal-title" className="text-lg font-semibold">
+                Metadata JSON
+              </h2>
+              <button
+                onClick={closeMetadataModal}
+                className="text-gray-500 hover:text-gray-700"
+                type="button"
+                aria-label="Close metadata modal"
+              >
+                <svg
+                  className="size-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <textarea
+              value={JSON.stringify(selectedMetadata, null, 2)}
+              readOnly
+              className="h-80 w-full rounded border border-gray-300 p-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="No metadata available"
+            />
+
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={closeMetadataModal}
+                className="rounded bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
