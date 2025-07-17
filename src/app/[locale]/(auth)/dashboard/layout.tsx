@@ -286,8 +286,11 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
         <>
           <li>
             <button
-              // eslint-disable-next-line
-              onClick={() => (window.location.href = '/dashboard/')}
+              onClick={() => {
+                // Set flag in localStorage to focus search after navigation
+                localStorage.setItem('focusSearchOnLoad', 'true');
+                router.push('/dashboard/');
+              }}
               className="cursor-pointer border-none bg-transparent text-gray-700 hover:text-gray-900"
               type="button"
             >

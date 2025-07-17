@@ -115,6 +115,7 @@ const SimpleDashboard = () => {
   const [textValue, setTextValue] = useState('');
   const [urlValue, setUrlValue] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const loadExtras = false;
 
   // Search section state
   const [searchQuery, setSearchQuery] = useState('');
@@ -485,6 +486,32 @@ const SimpleDashboard = () => {
     initializeSearchClient();
   }, []);
 
+  // Separate useEffect for focus management that runs after all async data loads
+  useEffect(() => {
+    // Check if we should focus the search input
+    const shouldFocusSearch = localStorage.getItem('focusSearchOnLoad');
+    if (shouldFocusSearch === 'true') {
+      // Clear the flag
+      localStorage.removeItem('focusSearchOnLoad');
+
+      // Focus the search input with persistent retry logic
+      const focusSearch = () => {
+        const searchInput =
+          document.getElementById('dashboard-search') ||
+          document.getElementById('dashboard-search-fallback');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      };
+
+      // Focus multiple times to ensure it sticks after all content loads
+      const focusIntervals = [100, 300, 500, 800, 1200, 1800, 2500];
+      focusIntervals.forEach((delay) => {
+        setTimeout(focusSearch, delay);
+      });
+    }
+  }, [randomEntry, recentComments, isSearchClient]); // Run after key content loads
+
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
@@ -729,161 +756,167 @@ const SimpleDashboard = () => {
       </Card>
 
       {/* Synthesize Section */}
-      <Card className="border-0 shadow-none">
-        <CardHeader>
-          <CardTitle>Synthesize</CardTitle>
-          <CardDescription>
-            Connect ideas by commenting on existing content
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {randomEntry ? (
-            <div className="space-y-4">
-              {/* Random Entry Display */}
-              <button
-                className="w-full cursor-pointer rounded-lg p-4 text-left transition-colors hover:bg-gray-100"
-                onClick={() =>
-                  router.push(`/dashboard/entry/${randomEntry.id}`)
-                }
-                type="button"
-              >
-                <div className="flex items-start space-x-3">
-                  {randomEntry.metadata?.type === 'image' && (
-                    <div className="mb-2 text-sm text-gray-500">
-                      📷 Image Entry
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="mb-2 text-gray-900">{randomEntry.data}</p>
-                    <p className="text-xs text-gray-500">
-                      Created:{' '}
-                      {new Date(randomEntry.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              </button>
-
-              {/* Comment Input */}
-              <div className="space-y-3">
-                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                <label className="text-sm font-medium text-gray-700">
-                  Add your thoughts about this entry:
-                </label>
-                <textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      if (commentText.trim() && !isAddingComment) {
-                        handleAddComment();
-                      }
-                    }
-                  }}
-                  placeholder="What connections do you see? What does this remind you of?"
-                  className="h-24 w-full resize-none rounded-lg border border-gray-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handleAddComment}
-                    disabled={!commentText.trim() || isAddingComment}
-                    className="rounded-lg px-6 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    type="button"
-                  >
-                    {isAddingComment ? 'Adding Comment...' : 'Add Comment'}
-                  </button>
-                  <button
-                    onClick={loadRandomEntry}
-                    className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 transition-colors hover:bg-gray-50"
-                    type="button"
-                  >
-                    Get Another Entry
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center py-8">
-              <div className="size-8 animate-spin rounded-full border-b-2 border-gray-900" />
-              <span className="ml-2 text-gray-600">
-                Loading random entry...
-              </span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Log Section */}
-      <Card className="border-0 shadow-none">
-        <CardHeader>
-          <CardTitle>Log</CardTitle>
-          <CardDescription>Recent activity log</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* eslint-disable-next-line */}
-          {isLoadingComments ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="size-8 animate-spin rounded-full border-b-2 border-gray-900" />
-              <span className="ml-2 text-gray-600">
-                Loading activity log...
-              </span>
-            </div>
-          ) : recentComments.length > 0 ? (
-            <div className="max-h-96 space-y-3 overflow-y-auto">
-              {recentComments.map((comment) => (
+      {loadExtras && (
+        <Card className="border-0 shadow-none">
+          <CardHeader>
+            <CardTitle>Synthesize</CardTitle>
+            <CardDescription>
+              Connect ideas by commenting on existing content
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {randomEntry ? (
+              <div className="space-y-4">
+                {/* Random Entry Display */}
                 <button
-                  key={comment.id}
-                  className="w-full cursor-pointer rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
-                  onClick={() => router.push(`/dashboard/entry/${comment.id}`)}
+                  className="w-full cursor-pointer rounded-lg p-4 text-left transition-colors hover:bg-gray-100"
+                  onClick={() =>
+                    router.push(`/dashboard/entry/${randomEntry.id}`)
+                  }
                   type="button"
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-start space-x-3">
-                      {comment.metadata?.type === 'image' &&
-                        logImageUrls[comment.id] && (
-                          <img
-                            src={logImageUrls[comment.id]}
-                            alt="Entry thumbnail"
-                            className="size-12 shrink-0 rounded object-cover"
-                          />
-                        )}
-                      <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-sm text-gray-900">
-                          {comment.data.startsWith('URL: ') ? (
-                            <span className="text-orange-600">
-                              {comment.data}{' '}
-                              <span className="text-xs">(processing...)</span>
-                            </span>
-                          ) : (
-                            comment.data
-                          )}
-                        </p>
-                        <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
-                          <span>
-                            {comment.metadata?.parent_id
-                              ? `Comment on: ${comment.metadata?.title || 'Entry'}`
-                              : `${comment.metadata?.type || 'Entry'}`}
-                          </span>
-                          <span>
-                            {new Date(comment.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
+                  <div className="flex items-start space-x-3">
+                    {randomEntry.metadata?.type === 'image' && (
+                      <div className="mb-2 text-sm text-gray-500">
+                        📷 Image Entry
                       </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="mb-2 text-gray-900">{randomEntry.data}</p>
+                      <p className="text-xs text-gray-500">
+                        Created:{' '}
+                        {new Date(randomEntry.createdAt).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
                 </button>
-              ))}
-            </div>
-          ) : (
-            <div className="py-8 text-center text-gray-500">
-              <p>No recent activity yet</p>
-              <p className="text-sm">
-                Activity will appear here as you use the app
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+                {/* Comment Input */}
+                <div className="space-y-3">
+                  {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                  <label className="text-sm font-medium text-gray-700">
+                    Add your thoughts about this entry:
+                  </label>
+                  <textarea
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (commentText.trim() && !isAddingComment) {
+                          handleAddComment();
+                        }
+                      }
+                    }}
+                    placeholder="What connections do you see? What does this remind you of?"
+                    className="h-24 w-full resize-none rounded-lg border border-gray-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleAddComment}
+                      disabled={!commentText.trim() || isAddingComment}
+                      className="rounded-lg px-6 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      type="button"
+                    >
+                      {isAddingComment ? 'Adding Comment...' : 'Add Comment'}
+                    </button>
+                    <button
+                      onClick={loadRandomEntry}
+                      className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 transition-colors hover:bg-gray-50"
+                      type="button"
+                    >
+                      Get Another Entry
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8">
+                <div className="size-8 animate-spin rounded-full border-b-2 border-gray-900" />
+                <span className="ml-2 text-gray-600">
+                  Loading random entry...
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Log Section */}
+      {loadExtras && (
+        <Card className="border-0 shadow-none">
+          <CardHeader>
+            <CardTitle>Log</CardTitle>
+            <CardDescription>Recent activity log</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* eslint-disable-next-line */}
+          {isLoadingComments ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="size-8 animate-spin rounded-full border-b-2 border-gray-900" />
+                <span className="ml-2 text-gray-600">
+                  Loading activity log...
+                </span>
+              </div>
+            ) : recentComments.length > 0 ? (
+              <div className="max-h-96 space-y-3 overflow-y-auto">
+                {recentComments.map((comment) => (
+                  <button
+                    key={comment.id}
+                    className="w-full cursor-pointer rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
+                    onClick={() =>
+                      router.push(`/dashboard/entry/${comment.id}`)
+                    }
+                    type="button"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start space-x-3">
+                        {comment.metadata?.type === 'image' &&
+                          logImageUrls[comment.id] && (
+                            <img
+                              src={logImageUrls[comment.id]}
+                              alt="Entry thumbnail"
+                              className="size-12 shrink-0 rounded object-cover"
+                            />
+                          )}
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-sm text-gray-900">
+                            {comment.data.startsWith('URL: ') ? (
+                              <span className="text-orange-600">
+                                {comment.data}{' '}
+                                <span className="text-xs">(processing...)</span>
+                              </span>
+                            ) : (
+                              comment.data
+                            )}
+                          </p>
+                          <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                            <span>
+                              {comment.metadata?.parent_id
+                                ? `Comment on: ${comment.metadata?.title || 'Entry'}`
+                                : `${comment.metadata?.type || 'Entry'}`}
+                            </span>
+                            <span>
+                              {new Date(comment.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-gray-500">
+                <p>No recent activity yet</p>
+                <p className="text-sm">
+                  Activity will appear here as you use the app
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Success Toast */}
       {showToast && (
