@@ -481,6 +481,11 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
                 onClick: () => router.push('/dashboard/20questions/'),
               },
               {
+                label: 'Wiki Game',
+                icon: '📝',
+                onClick: () => router.push('/dashboard/wiki/'),
+              },
+              {
                 label: 'Games',
                 icon: '🔮',
                 disabled: true,
