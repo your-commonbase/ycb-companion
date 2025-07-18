@@ -4,7 +4,7 @@ import { logger } from '@/libs/Logger';
 import { getAccessToken } from '@/utils/getAccessToken';
 
 export const POST = async (request: Request) => {
-  const { author, page, limit } = await request.json();
+  const { author, title, page, limit } = await request.json();
   const { CLOUD_URL } = process.env;
 
   const TOKEN = getAccessToken();
@@ -13,10 +13,13 @@ export const POST = async (request: Request) => {
     return NextResponse.json({ error: 'No token provided' }, { status: 401 });
   }
 
-  // Validate author parameter
-  if (!author || typeof author !== 'string') {
+  // Validate that at least author or title is provided
+  if (
+    (!author || typeof author !== 'string') &&
+    (!title || typeof title !== 'string')
+  ) {
     return NextResponse.json(
-      { error: 'Author parameter is required' },
+      { error: 'At least one of author or title parameter is required' },
       { status: 400 },
     );
   }
@@ -48,7 +51,8 @@ export const POST = async (request: Request) => {
         Authorization: `Bearer ${TOKEN}`,
       },
       body: JSON.stringify({
-        author,
+        ...(author && { author }),
+        ...(title && { title }),
         page: pageNum,
         limit: limitNum,
       }),
@@ -65,7 +69,7 @@ export const POST = async (request: Request) => {
     const data = await resp.json();
 
     logger.info(
-      `Fetched entries by author: ${author}, page: ${pageNum}, limit: ${limitNum}`,
+      `Fetched entries by author: ${author || 'none'}, title: ${title || 'none'}, page: ${pageNum}, limit: ${limitNum}`,
     );
 
     return NextResponse.json({

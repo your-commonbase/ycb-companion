@@ -421,7 +421,7 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
   // Load Sources tab data (entries from the same author)
   const loadSourcesTabData = useCallback(
     async (page: number = 1): Promise<FlattenedEntry[]> => {
-      if (!currentEntry.metadata?.author) {
+      if (!currentEntry.metadata?.author && !currentEntry.metadata?.title) {
         return [];
       }
 
@@ -430,7 +430,12 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            author: currentEntry.metadata.author,
+            ...(currentEntry.metadata.author && {
+              author: currentEntry.metadata.author,
+            }),
+            ...(currentEntry.metadata.title && {
+              title: currentEntry.metadata.title,
+            }),
             page,
             limit: 50,
           }),
@@ -479,7 +484,8 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
         return filteredEntries.map((entry: any) => ({
           ...entry,
           relationshipType: 'source' as const,
-          relationshipSource: currentEntry.metadata?.author || '',
+          relationshipSource:
+            currentEntry.metadata?.author || currentEntry.metadata?.title || '',
           level: 0,
           hasMoreRelations: false,
         }));
@@ -489,7 +495,11 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
         return [];
       }
     },
-    [currentEntry.id, currentEntry.metadata?.author],
+    [
+      currentEntry.id,
+      currentEntry.metadata?.author,
+      currentEntry.metadata?.title,
+    ],
   );
 
   // Load more sources (for infinite scroll)
@@ -661,7 +671,7 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
         return {
           label: 'Source',
           color: 'bg-indigo-500',
-          description: 'From same author',
+          description: 'From same author/title',
         };
       }
       default:
