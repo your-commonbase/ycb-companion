@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { FlattenedEntry, QuickLookProps } from './types';
 
-type TabType = 'neighbors' | 'thread' | 'current';
+type TabType = 'neighbors' | 'thread' | 'current' | 'sources';
 
 const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
   const router = useRouter();
@@ -14,11 +14,13 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
     neighbors: false,
     thread: false,
     current: false,
+    sources: false,
   });
   const [tabData, setTabData] = useState<Record<TabType, FlattenedEntry[]>>({
     neighbors: [],
     thread: [],
     current: [],
+    sources: [],
   });
 
   // Persistent tracking sets to prevent infinite loops - these persist across function calls
@@ -26,6 +28,14 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
   const globalFetchingIds = useRef<Set<string>>(new Set());
   const callCount = useRef<number>(0);
   const lastResetTime = useRef<number>(Date.now());
+
+  // Sources pagination state
+  const [sourcesPage, setSourcesPage] = useState(1);
+  const [sourcesHasMore, setSourcesHasMore] = useState(true);
+  const [sourcesLoadingMore, setSourcesLoadingMore] = useState(false);
+  const [sourcesImageUrls, setSourcesImageUrls] = useState<{
+    [id: string]: string;
+  }>({});
 
   // Circuit breaker - reset if too many calls in short time
   const resetTrackingIfNeeded = () => {
@@ -408,6 +418,114 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
     }
   }, [currentEntry.id]);
 
+  // Load Sources tab data (entries from the same author)
+  const loadSourcesTabData = useCallback(
+    async (page: number = 1): Promise<FlattenedEntry[]> => {
+      if (!currentEntry.metadata?.author) {
+        return [];
+      }
+
+      try {
+        const response = await fetch('/api/listByAuthor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            author: currentEntry.metadata.author,
+            page,
+            limit: 50,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch sources');
+        }
+
+        const responseData = await response.json();
+        const entries = responseData.data || [];
+
+        // Filter out current entry
+        const filteredEntries = entries.filter(
+          (entry: any) => entry.id !== currentEntry.id,
+        );
+
+        // Check if we have more pages
+        const hasMore = entries.length === 50; // If we got a full page, there might be more
+        setSourcesHasMore(hasMore);
+
+        // Load images for image entries
+        const imageEntries = filteredEntries.filter(
+          (entry: any) => entry.metadata?.type === 'image',
+        );
+        if (imageEntries.length > 0) {
+          const imageIds = imageEntries.map((entry: any) => entry.id);
+          try {
+            const imageResponse = await fetch('/api/fetchImageByIDs', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids: imageIds }),
+            });
+
+            if (imageResponse.ok) {
+              const imageData = await imageResponse.json();
+              const newImageUrls = imageData.data.body.urls || {};
+              setSourcesImageUrls((prev) => ({ ...prev, ...newImageUrls }));
+            }
+          } catch (imageError) {
+            console.error('Error fetching images for sources:', imageError);
+          }
+        }
+
+        // Return entries with source relationship type
+        return filteredEntries.map((entry: any) => ({
+          ...entry,
+          relationshipType: 'source' as const,
+          relationshipSource: currentEntry.metadata?.author || '',
+          level: 0,
+          hasMoreRelations: false,
+        }));
+      } catch (sourcesError) {
+        console.error('Error fetching sources:', sourcesError);
+        setSourcesHasMore(false);
+        return [];
+      }
+    },
+    [currentEntry.id, currentEntry.metadata?.author],
+  );
+
+  // Load more sources (for infinite scroll)
+  const loadMoreSources = useCallback(async () => {
+    if (sourcesLoadingMore || !sourcesHasMore || loading.sources) {
+      return;
+    }
+
+    setSourcesLoadingMore(true);
+    try {
+      const nextPage = sourcesPage + 1;
+      const newEntries = await loadSourcesTabData(nextPage);
+
+      if (newEntries.length > 0) {
+        setTabData((prev) => ({
+          ...prev,
+          sources: [...prev.sources, ...newEntries],
+        }));
+        setSourcesPage(nextPage);
+      } else {
+        setSourcesHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more sources:', error);
+      setSourcesHasMore(false);
+    } finally {
+      setSourcesLoadingMore(false);
+    }
+  }, [
+    sourcesPage,
+    sourcesHasMore,
+    sourcesLoadingMore,
+    loading.sources,
+    loadSourcesTabData,
+  ]);
+
   // Lazy load data for each tab
   const loadTabData = useCallback(
     async (tab: TabType) => {
@@ -441,6 +559,10 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
             newTabData = await loadNeighborsTabData();
             break;
           }
+          case 'sources': {
+            newTabData = await loadSourcesTabData(1);
+            break;
+          }
           default: {
             throw new Error(`Unknown tab type: ${tab}`);
           }
@@ -470,7 +592,14 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
       neighbors: [],
       thread: [],
       current: [],
+      sources: [],
     });
+
+    // Reset sources pagination state
+    setSourcesPage(1);
+    setSourcesHasMore(true);
+    setSourcesLoadingMore(false);
+    setSourcesImageUrls({});
 
     // Load neighbors tab data for new entry
     loadTabData('neighbors');
@@ -528,6 +657,13 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
             : 'Neighbor entry',
         };
       }
+      case 'source': {
+        return {
+          label: 'Source',
+          color: 'bg-indigo-500',
+          description: 'From same author',
+        };
+      }
       default:
         return {
           label: 'Entry',
@@ -553,6 +689,93 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
       return (
         <div className="flex items-center justify-center py-8 text-gray-500">
           <span>No {tabType} entries found</span>
+        </div>
+      );
+    }
+
+    // Special handling for sources tab with infinite scroll
+    if (tabType === 'sources') {
+      return (
+        <div className="space-y-2">
+          {tabData[tabType].map((entry, index) => {
+            const relationshipInfo = getRelationshipInfo(entry, index, tabType);
+
+            return (
+              <div
+                key={entry.id}
+                className={`border-l-4 pl-4 ${relationshipInfo.color.replace(
+                  'bg-',
+                  'border-',
+                )}`}
+              >
+                <div className="mb-2 flex items-center gap-3">
+                  <div
+                    className={`size-3 rounded-full ${relationshipInfo.color}`}
+                  />
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs text-white ${relationshipInfo.color}`}
+                  >
+                    {relationshipInfo.label}
+                  </span>
+                  <button
+                    onClick={() => router.push(`/dashboard/entry/${entry.id}`)}
+                    className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                    type="button"
+                  >
+                    ID: {entry.id.slice(0, 8)}...
+                  </button>
+                  {entry.createdAt && (
+                    <div className="text-xs text-gray-400">
+                      {new Date(entry.createdAt).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Show image if entry is an image type */}
+                {entry.metadata?.type === 'image' &&
+                  sourcesImageUrls[entry.id] && (
+                    <div className="mb-2">
+                      <img
+                        src={sourcesImageUrls[entry.id]}
+                        alt="Entry preview"
+                        className="h-32 w-auto rounded object-cover"
+                      />
+                    </div>
+                  )}
+
+                <div className="mb-2 text-xs text-gray-600">
+                  {relationshipInfo.description}
+                </div>
+
+                <div className="mb-3">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-gray-900">
+                    {entry.data}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Load more button for sources */}
+          {sourcesHasMore && (
+            <div className="flex justify-center py-4">
+              <button
+                onClick={loadMoreSources}
+                disabled={sourcesLoadingMore}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                type="button"
+              >
+                {sourcesLoadingMore ? (
+                  <div className="flex items-center gap-2">
+                    <div className="size-4 animate-spin rounded-full border-b-2 border-gray-600" />
+                    Loading more...
+                  </div>
+                ) : (
+                  'Load More'
+                )}
+              </button>
+            </div>
+          )}
         </div>
       );
     }
@@ -705,6 +928,17 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
           type="button"
         >
           Current
+        </button>
+        <button
+          onClick={() => setActiveTab('sources')}
+          className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'sources'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+          type="button"
+        >
+          Sources
         </button>
       </div>
 

@@ -8,7 +8,7 @@ export interface Entry {
 }
 
 export interface FlattenedEntry extends Entry {
-  relationshipType: 'root' | 'parent' | 'comment' | 'neighbor';
+  relationshipType: 'root' | 'parent' | 'comment' | 'neighbor' | 'source';
   relationshipSource?: string;
   level: number;
   hasMoreRelations?: boolean;
