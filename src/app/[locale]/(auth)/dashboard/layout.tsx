@@ -8,6 +8,7 @@ import Modal from 'react-modal';
 
 import NavigationDropdown from '@/components/NavigationDropdown';
 import SearchModalBeta from '@/components/SearchModalBeta';
+import SpotifyPlayer from '@/components/SpotifyPlayer';
 // import SpeedDial from '@/components/SpeedDial';
 import Uploader from '@/components/Uploader';
 import UploaderModalWrapper from '@/components/UploaderModalWrapper';
@@ -686,6 +687,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
         </Modal>
       )}
       {/* <SpeedDial onOpenModal={onOpenModal} openRandom={handleRandom} /> */}
+      <SpotifyPlayer />
       {props.children}
     </BaseTemplate>
   );
