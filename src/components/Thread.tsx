@@ -1485,7 +1485,7 @@ export default function Thread({ inputId }: { inputId: string }) {
       {/* Add Comment Modal */}
       {isAddCommentModalOpen && currentModalEntry && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="flex h-[95vh] w-[95vw] max-w-4xl flex-col rounded-lg bg-white shadow-xl">
+          <div className="flex h-auto w-[90vw] max-w-2xl flex-col rounded-lg bg-white shadow-xl">
             <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-6">
               <h2 className="text-xl font-bold text-gray-900">Add Comment</h2>
               <div className="flex items-center gap-3">
@@ -1545,7 +1545,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="overflow-y-auto p-6">
               <div className="relative size-full">
                 <textarea
                   ref={commentTextareaRef}
@@ -1559,7 +1559,7 @@ export default function Thread({ inputId }: { inputId: string }) {
                       }
                     }
                   }}
-                  rows={10}
+                  rows={6}
                   style={{ fontSize: '17px' }}
                   className="size-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   placeholder="Add a comment..."

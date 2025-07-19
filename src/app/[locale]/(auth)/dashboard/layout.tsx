@@ -173,7 +173,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
     };
   }, []);
 
-  // add event listener to 'r' key to open random page
+  // add event listener to 'r' key to open random page and 'l' key to open entries list
   useEffect(() => {
     // const fetchRandomEntry = async () => {
     //   const response = await fetch('/api/random', {
@@ -197,23 +197,26 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
       const target = event.target as HTMLElement;
 
       if (
-        event.key === 'r' &&
-        // meta key not pressed
         !event.metaKey &&
         !event.ctrlKey &&
         !event.shiftKey &&
         !target.tagName.toLowerCase().includes('input') &&
         !target.tagName.toLowerCase().includes('textarea')
       ) {
-        event.preventDefault();
-        handleRandom();
+        if (event.key === 'r') {
+          event.preventDefault();
+          handleRandom();
+        } else if (event.key === 'l') {
+          event.preventDefault();
+          router.push('/dashboard/table/');
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleRandom]);
+  }, [handleRandom, router]);
 
   // open search modal beta when user presses cmd+k using next/router
   useEffect(() => {
@@ -405,6 +408,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
               },
               {
                 label: 'Entries',
+                shortcut: 'l',
                 icon: '🗄️',
                 onClick: () => router.push('/dashboard/table/'),
               },

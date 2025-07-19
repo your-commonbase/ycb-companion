@@ -49,6 +49,11 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
   const [dropdownPosition, setDropdownPosition] = useState<'top' | 'bottom'>(
     'top',
   );
+
+  // Mobile tap functionality
+  const [tapCount, setTapCount] = useState(0);
+  const [lastTapTime, setLastTapTime] = useState(0);
+  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isEmbedsExpanded, setIsEmbedsExpanded] = useState(false);
   const actionsDropdownRef = useRef<HTMLDivElement>(null);
   console.log('entry id:', entry.id);
@@ -139,6 +144,15 @@ const ThreadEntryCard: React.FC<ThreadEntryCardProps> = ({
       fetchData();
     }
   }, [metadata.type]);
+
+  // Cleanup tap timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const updateEntry = async (newText: string) => {
     try {
@@ -678,7 +692,52 @@ Created: ${new Date(entry.createdAt).toLocaleDateString()}
       'button, a, input, textarea, select, [role="button"]',
     );
 
-    if (!isInteractiveElement && onCardClick) {
+    if (isInteractiveElement) {
+      return;
+    }
+
+    // Check if it's a mobile device
+    const isMobile =
+      /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent,
+      );
+
+    if (isMobile && isCurrentEntry) {
+      // Mobile tap functionality for current entry only
+      const currentTime = Date.now();
+      const tapGap = 300; // 300ms window for multiple taps
+
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+      }
+
+      // Reset tap count if too much time has passed
+      if (currentTime - lastTapTime > tapGap) {
+        setTapCount(1);
+      } else {
+        setTapCount((prev) => prev + 1);
+      }
+
+      setLastTapTime(currentTime);
+
+      tapTimeoutRef.current = setTimeout(() => {
+        if (tapCount === 1) {
+          // Single tap - normal card click behavior
+          if (onCardClick) {
+            onCardClick(entry.id);
+          }
+        } else if (tapCount === 2) {
+          // Double tap - open comment modal
+          onOpenAddCommentModal(entry);
+        } else if (tapCount >= 3) {
+          // Triple tap - open quick look modal
+          onOpenTreeModal(entry);
+        }
+
+        setTapCount(0);
+      }, tapGap);
+    } else if (onCardClick) {
+      // Desktop behavior or non-current entry
       onCardClick(entry.id);
     }
   };

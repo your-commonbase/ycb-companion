@@ -24,19 +24,20 @@ export default function PendingQueue({ idSet }: Props) {
     return () => clearInterval(interval);
   }, [idSet]);
 
-  function cancelPending(itemToCancel: any) {
-    const raw = getPendingQueue();
-    const cleaned = raw.filter(
-      (i) => i.metadata?.local_id !== itemToCancel.metadata?.local_id,
-    );
-    sessionStorage.setItem('addQueue', JSON.stringify(cleaned));
-  }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // function cancelPending(itemToCancel: any) {
+  //   const raw = getPendingQueue();
+  //   const cleaned = raw.filter(
+  //     (i) => i.metadata?.local_id !== itemToCancel.metadata?.local_id,
+  //   );
+  //   sessionStorage.setItem('addQueue', JSON.stringify(cleaned));
+  // }
 
   if (pendingItems.length === 0) return null;
 
   return (
     <div className="mt-2 text-sm text-yellow-600">
-      <strong>Queued:</strong>
+      {/* <strong>Queued:</strong>
       <ul className="ml-4 list-disc space-y-1">
         {pendingItems.map((item, idx) => {
           const retryIn = Math.max(0, 5 - (item.retries || 0));
@@ -61,7 +62,7 @@ export default function PendingQueue({ idSet }: Props) {
             </li>
           );
         })}
-      </ul>
+      </ul> */}
     </div>
   );
 }
