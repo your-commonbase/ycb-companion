@@ -36,6 +36,9 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
   const [sourcesImageUrls, setSourcesImageUrls] = useState<{
     [id: string]: string;
   }>({});
+  const [neighborsImageUrls, setNeighborsImageUrls] = useState<{
+    [id: string]: string;
+  }>({});
 
   // Circuit breaker - reset if too many calls in short time
   const resetTrackingIfNeeded = () => {
@@ -405,6 +408,29 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
         return [];
       }
 
+      // Load images for image entries
+      const imageEntries = filteredResults.filter(
+        (entry: any) => entry.metadata?.type === 'image',
+      );
+      if (imageEntries.length > 0) {
+        const imageIds = imageEntries.map((entry: any) => entry.id);
+        try {
+          const imageResponse = await fetch('/api/fetchImageByIDs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: imageIds }),
+          });
+
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            const newImageUrls = imageData.data.body.urls || {};
+            setNeighborsImageUrls((prev) => ({ ...prev, ...newImageUrls }));
+          }
+        } catch (imageError) {
+          console.error('Error fetching images for neighbors:', imageError);
+        }
+      }
+
       return filteredResults.map((entry: any) => ({
         ...entry,
         relationshipType: 'neighbor' as const,
@@ -610,6 +636,7 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
     setSourcesHasMore(true);
     setSourcesLoadingMore(false);
     setSourcesImageUrls({});
+    setNeighborsImageUrls({});
 
     // Load neighbors tab data for new entry
     loadTabData('neighbors');
@@ -864,6 +891,18 @@ const QuickLook: React.FC<QuickLookProps> = ({ currentEntry, allEntries }) => {
                   ID: {entry.id.slice(0, 8)}...
                 </button>
               </div>
+
+              {/* Show image if entry is an image type */}
+              {entry.metadata?.type === 'image' &&
+                neighborsImageUrls[entry.id] && (
+                  <div className="mb-2">
+                    <img
+                      src={neighborsImageUrls[entry.id]}
+                      alt="Entry preview"
+                      className="h-32 w-auto rounded object-cover"
+                    />
+                  </div>
+                )}
 
               <div className="mb-2 text-xs text-gray-600">
                 {relationshipInfo.description}

@@ -189,7 +189,7 @@ const TablePage = () => {
   };
 
   const handleEntryClick = (id: string) => {
-    window.open(`/dashboard/entry/${id}`, '_blank');
+    window.open(`/dashboard/entry/${id}`);
   };
 
   const handleMetadataClick = (metadata: any) => {
