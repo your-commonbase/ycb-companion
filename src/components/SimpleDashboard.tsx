@@ -526,8 +526,73 @@ const SimpleDashboard = () => {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-6">
-      {/* Search Section */}
+      {/* Info Section */}
       <Card className="border-0 shadow-none">
+        <CardHeader>
+          <CardTitle>What you might want to accomplish</CardTitle>
+          <CardDescription>How to use Your Commonbase</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>I want to...</p>
+          <ul className="list-inside list-disc">
+            <li>
+              <a href="#dash-search" className="to-blue-600 hover:underline">
+                find something specific
+              </a>
+            </li>
+            <li>
+              <a href="#dash-store" className="to-blue-600 hover:underline">
+                add a text/image/url
+              </a>
+            </li>
+            <li>
+              <a
+                href="/dashboard/20questions"
+                className="to-blue-600 hover:underline"
+              >
+                test the boundaries of my knowledge
+              </a>
+            </li>
+            <li>
+              <a href="/dashboard/wiki" className="to-blue-600 hover:underline">
+                add wikipedia articles to my Commonbase
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://docs.google.com/document/d/1Bq6X53bO2L4zylKzyrtf_WYnNZpxd5H9PU80nhrNRPY/edit?usp=sharing"
+                target="_blank"
+                className="to-blue-600 hover:underline"
+              >
+                learn more about the project
+              </a>
+            </li>
+          </ul>
+          <p>Keyboard shortcuts:</p>
+          <ul>
+            <li>
+              <kbd>R</kbd> open a random entry
+            </li>
+            <li>
+              <kbd>L</kbd> open log
+            </li>
+            <li>
+              <kbd>C</kbd> open comment (must be on an entry page) [tap three
+              times on mobile]
+            </li>
+            <li>
+              <kbd>Q</kbd> open quick look (must be on an entry page) [tap four
+              times on mobile]
+            </li>
+            <li>
+              <kbd>Down/Up Arrow</kbd> navigate tree of entries (must be on an
+              entry page and have auto-scroll mode enabled)
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
+      {/* Search Section */}
+      <Card className="border-0 shadow-none" id="dash-search">
         <CardHeader>
           <CardTitle>Search</CardTitle>
           <CardDescription>Find content in your knowledge base</CardDescription>
@@ -670,7 +735,7 @@ const SimpleDashboard = () => {
         </CardContent>
       </Card>
       {/* Store Section */}
-      <Card className="border-0 shadow-none">
+      <Card className="border-0 shadow-none" id="dash-store">
         <CardHeader>
           <CardTitle>Store</CardTitle>
           <CardDescription>
